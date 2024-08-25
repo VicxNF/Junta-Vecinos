@@ -7,11 +7,45 @@
     <h1 class="display-4">Bienvenido al Sistema de Gestión Vecinal</h1>
     <p class="lead">Este es el portal principal.</p>
     <hr class="my-4">
-    <p class="lead">Solicita aquí tu certificado de residencia</p>
 
-    <div class="mt-4">
-        <a href="{% url 'solicitar_certificado' %}" class="btn btn-primary btn-lg mr-3">Solicitar certificado</a>
-    </div>
+    {% if user.is_authenticated %}
+        {% if user.is_superuser %}
+            <!-- Contenido para Administradores -->
+            <h2>Lista de Vecinos (Vista Reducida)</h2>
+            <ul class="list-group">
+                {% for vecino in vecinos %}
+                    <li class="list-group-item">
+                        {{ vecino.nombres }} {{ vecino.apellidos }}
+                    </li>
+                {% endfor %}
+            </ul>
+            <div class="mt-3">
+                <a href="{% url 'lista_vecinos' %}" class="btn btn-primary">Ver todos los vecinos</a>
+            </div>
+
+            <hr class="my-4">
+
+            <h2>Solicitudes de Certificado (Vista Reducida)</h2>
+            <ul class="list-group">
+                {% for solicitud in solicitudes %}
+                    <li class="list-group-item">
+                        {{ solicitud.vecino.nombres }} {{ solicitud.vecino.apellidos }} - Estado: {{ solicitud.estado }}
+                    </li>
+                {% endfor %}
+            </ul>
+            <div class="mt-3">
+                <a href="{% url 'gestionar_solicitudes' %}" class="btn btn-primary">Ver todas las solicitudes</a>
+            </div>
+
+        {% else %}
+            <!-- Contenido para Vecinos -->
+            <p class="lead">Solicita aquí tu certificado de residencia</p>
+            <div class="mt-4">
+                <a href="{% url 'solicitar_certificado' %}" class="btn btn-primary btn-lg mr-3">Solicitar certificado</a>
+            </div>
+        {% endif %}
+    {% else %}
+        <p>Por favor, inicia sesión para acceder a más funciones.</p>
+    {% endif %}
 </div>
 {% endblock %}
-

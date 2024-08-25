@@ -137,6 +137,6 @@ EMAIL_HOST = 'smtp.gmail.com'  # Cambia esto por tu servidor SMTP
 EMAIL_PORT = 587  # O el puerto que use tu servidor SMTP
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = 'victormanuelnf12@gmail.com'
-EMAIL_HOST_PASSWORD = '21042002vm'
+EMAIL_HOST_PASSWORD = 'qane qcey dmbz zjbr'
 DEFAULT_FROM_EMAIL = 'victormanuelnf12@gmail.com'
 SITE_URL = 'http://localhost:8000'  # Cambia esto por la URL de tu sitio

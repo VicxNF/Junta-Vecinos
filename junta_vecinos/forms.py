@@ -65,3 +65,11 @@ class DocumentoCertificadoForm(forms.ModelForm):
 class LoginForm(forms.Form):
     email = forms.EmailField(label="Correo Electrónico")
     password = forms.CharField(label="Contraseña", widget=forms.PasswordInput)
+
+class EnviarCertificadoForm(forms.ModelForm):
+    contenido_correo = forms.CharField(widget=forms.Textarea(attrs={'rows': 5, 'placeholder': 'Escribe el contenido del correo'}), label="Contenido del Correo")
+    documento_certificado = forms.FileField(label="Documento del Certificado")
+
+    class Meta:
+        model = CertificadoResidencia
+        fields = ['documento_certificado']

@@ -7,6 +7,9 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib import messages
 from .models import *
 from .forms import *
+import uuid
+from django.utils import timezone
+from django.db import IntegrityError
 
 def bienvenida(request):
     if request.user.is_authenticated:
@@ -15,7 +18,17 @@ def bienvenida(request):
 
 @login_required
 def index(request):
-    return render(request, 'junta_vecinos/index.html')
+    vecinos = []
+    solicitudes = []
+
+    if request.user.is_authenticated and request.user.is_superuser:
+        vecinos = Vecino.objects.all()[:5]  # Muestra solo los primeros 5 vecinos
+        solicitudes = SolicitudCertificado.objects.all()[:5]  # Muestra solo las primeras 5 solicitudes
+
+    return render(request, 'junta_vecinos/index.html', {
+        'vecinos': vecinos,
+        'solicitudes': solicitudes
+    })
 
 def is_admin(user):
     return user.is_superuser  # Solo permite el acceso si el usuario es un superusuario (admin)
@@ -104,26 +117,35 @@ def aprobar_solicitud(request, id):
     if request.method == 'POST':
         form = DocumentoCertificadoForm(request.POST, request.FILES)
         if form.is_valid():
-            # Guardar el documento del certificado
-            certificado = CertificadoResidencia.objects.create(
-                vecino=solicitud.vecino,
-                numero_certificado=f"CERT-{solicitud.vecino.id}-{solicitud.id}",
-                documento_certificado=form.cleaned_data['documento_certificado']
-            )
-            # Actualizar el estado de la solicitud
-            solicitud.estado = 'aprobado'
-            solicitud.save()
+            # Generar un número de certificado único
+            while True:
+                numero_certificado = f"CERT-{solicitud.vecino.id}-{solicitud.id}-{uuid.uuid4().hex[:8].upper()}"
+                if not CertificadoResidencia.objects.filter(numero_certificado=numero_certificado).exists():
+                    break
+            
+            try:
+                # Guardar el documento del certificado
+                certificado = CertificadoResidencia.objects.create(
+                    vecino=solicitud.vecino,
+                    numero_certificado=numero_certificado,
+                    documento_certificado=form.cleaned_data['documento_certificado']
+                )
+                # Actualizar el estado de la solicitud
+                solicitud.estado = 'aprobado'
+                solicitud.save()
 
-            # Enviar un correo al vecino
-            send_mail(
-                'Certificado de Residencia Aprobado',
-                f'Hola {solicitud.vecino.user.get_full_name()},\n\nTu solicitud de certificado de residencia ha sido aprobada. Puedes descargar el certificado desde el siguiente enlace:\n\n{settings.SITE_URL}/media/{certificado.documento_certificado}',
-                settings.DEFAULT_FROM_EMAIL,
-                [solicitud.vecino.user.email]
-            )
+                # Enviar un correo al vecino
+                send_mail(
+                    'Certificado de Residencia Aprobado',
+                    f'Hola {solicitud.vecino.user.get_full_name()},\n\nTu solicitud de certificado de residencia ha sido aprobada. Puedes descargar el certificado desde el siguiente enlace:\n\n{settings.SITE_URL}/media/{certificado.documento_certificado}',
+                    settings.DEFAULT_FROM_EMAIL,
+                    [solicitud.vecino.user.email]
+                )
 
-            messages.success(request, 'La solicitud ha sido aprobada y el certificado generado. Se ha enviado un correo al vecino.')
-            return redirect('gestionar_solicitudes')
+                messages.success(request, 'La solicitud ha sido aprobada y el certificado generado. Se ha enviado un correo al vecino.')
+                return redirect('gestionar_solicitudes')
+            except IntegrityError:
+                messages.error(request, 'Error al generar el certificado. Inténtalo de nuevo.')
     else:
         form = DocumentoCertificadoForm()
 
@@ -137,3 +159,37 @@ def rechazar_solicitud(request, id):
     solicitud.save()
     messages.error(request, 'La solicitud ha sido rechazada.')
     return redirect('gestionar_solicitudes')
+
+@user_passes_test(is_admin)
+def enviar_certificado(request, id):
+    solicitud = get_object_or_404(SolicitudCertificado, id=id)
+
+    if request.method == 'POST':
+        form = EnviarCertificadoForm(request.POST, request.FILES)
+        if form.is_valid():
+            # Guardar el documento del certificado
+            certificado = CertificadoResidencia.objects.create(
+                vecino=solicitud.vecino,
+                numero_certificado=f"CERT-{solicitud.vecino.id}-{solicitud.id}",
+                documento_certificado=form.cleaned_data['documento_certificado']
+            )
+            
+            # Enviar el correo
+            send_mail(
+                'Certificado de Residencia Aprobado',
+                form.cleaned_data['contenido_correo'] + f'\n\nPuedes descargar el certificado desde el siguiente enlace:\n\n{settings.SITE_URL}/media/{certificado.documento_certificado}',
+                settings.DEFAULT_FROM_EMAIL,
+                [solicitud.vecino.user.email],
+                fail_silently=False,
+            )
+
+            # Actualizar el estado de la solicitud
+            solicitud.estado = 'aprobado'
+            solicitud.save()
+
+            messages.success(request, 'El certificado ha sido enviado y la solicitud ha sido aprobada.')
+            return redirect('gestionar_solicitudes')
+    else:
+        form = EnviarCertificadoForm()
+
+    return render(request, 'junta_vecinos/enviar_certificado.html', {'form': form, 'solicitud': solicitud})

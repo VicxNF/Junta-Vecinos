@@ -17,11 +17,7 @@
 <p><strong>Documento de Residencia:</strong></p>
 <a href="{{ solicitud.documento_residencia.url }}" target="_blank">Ver Documento</a>
 
-<h3>Adjuntar Documento del Certificado</h3>
-<form method="post" enctype="multipart/form-data">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit">Guardar y Aprobar</button>
-</form>
+<h3>Acciones</h3>
+<a href="{% url 'enviar_certificado' solicitud.id %}" class="btn btn-primary">Enviar Certificado</a>
 
 {% endblock %}
