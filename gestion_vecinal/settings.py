@@ -12,6 +12,10 @@ https://docs.djangoproject.com/en/5.1/ref/settings/
 
 from pathlib import Path
 
+AUTHENTICATION_BACKENDS = [
+    'django.contrib.auth.backends.ModelBackend',  # Autenticación estándar
+]
+
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -127,3 +131,12 @@ LOGIN_URL = '/login/'  # Redirige al login si no estás autenticado
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = BASE_DIR / 'media'
+
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'  # Cambia esto por tu servidor SMTP
+EMAIL_PORT = 587  # O el puerto que use tu servidor SMTP
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'victormanuelnf12@gmail.com'
+EMAIL_HOST_PASSWORD = '21042002vm'
+DEFAULT_FROM_EMAIL = 'victormanuelnf12@gmail.com'
+SITE_URL = 'http://localhost:8000'  # Cambia esto por la URL de tu sitio
