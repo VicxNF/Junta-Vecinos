@@ -3,10 +3,15 @@
 {% block title %}Inicio{% endblock %}
 
 {% block content %}
-<div class="jumbotron">
+<div class="jumbotron text-center">
     <h1 class="display-4">Bienvenido al Sistema de Gestión Vecinal</h1>
     <p class="lead">Este es el portal principal.</p>
     <hr class="my-4">
-    <p>Seleccione una opción del menú para comenzar.</p>
+    <p class="lead">Solicita aquí tu certificado de residencia</p>
+
+    <div class="mt-4">
+        <a href="{% url 'solicitar_certificado' %}" class="btn btn-primary btn-lg mr-3">Solicitar certificado</a>
+    </div>
 </div>
 {% endblock %}
+

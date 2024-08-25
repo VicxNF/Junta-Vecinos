@@ -12,15 +12,34 @@ class Vecino(models.Model):
 
     def __str__(self):
         return f"{self.nombres} {self.apellidos}"
+    
+class SolicitudCertificado(models.Model):
+    ESTADO_CHOICES = [
+        ('pendiente', 'Pendiente'),
+        ('aprobado', 'Aprobado'),
+        ('rechazado', 'Rechazado'),
+    ]
 
-# Modelo para representar un certificado de residencia
-class CertificadoResidencia(models.Model):
-    vecino = models.ForeignKey(Vecino, on_delete=models.CASCADE)
-    fecha_emision = models.DateField(auto_now_add=True)
-    numero_certificado = models.CharField(max_length=20, unique=True)
+    vecino = models.ForeignKey(User, on_delete=models.CASCADE)
+    fecha_solicitud = models.DateField(auto_now_add=True)
+    estado = models.CharField(max_length=10, choices=ESTADO_CHOICES, default='pendiente')
+    motivo = models.TextField()
+
+    # Nuevos campos para los archivos
+    foto_carnet_frente = models.ImageField(upload_to='carnets/', blank=False, null=False)
+    foto_carnet_atras = models.ImageField(upload_to='carnets/', blank=False, null=False)
+    documento_residencia = models.FileField(upload_to='documentos_residencia/', blank=False, null=False)
 
     def __str__(self):
-        return f"Certificado {self.numero_certificado} - {self.vecino}"
+        return f"Solicitud de {self.vecino.get_full_name()} - {self.get_estado_display()}"
+
+class CertificadoResidencia(models.Model):
+    solicitud = models.OneToOneField(SolicitudCertificado, on_delete=models.CASCADE)
+    numero_certificado = models.CharField(max_length=20, unique=True)
+    fecha_emision = models.DateField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Certificado {self.numero_certificado} para {self.solicitud.vecino.get_full_name()}"
 
 # Modelo para representar un proyecto vecinal
 class ProyectoVecinal(models.Model):

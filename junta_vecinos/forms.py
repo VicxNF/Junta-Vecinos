@@ -33,3 +33,17 @@ class RegistroVecinoForm(forms.ModelForm):
         if commit:
             vecino.save()
         return vecino
+    
+class SolicitudCertificadoForm(forms.ModelForm):
+    class Meta:
+        model = SolicitudCertificado
+        fields = ['motivo', 'foto_carnet_frente', 'foto_carnet_atras', 'documento_residencia']
+        widgets = {
+            'motivo': forms.Textarea(attrs={'rows': 3, 'placeholder': 'Especifique el motivo de la solicitud'}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields['foto_carnet_frente'].label = 'Foto del Carnet (Parte Frontal)'
+        self.fields['foto_carnet_atras'].label = 'Foto del Carnet (Parte Trasera)'
+        self.fields['documento_residencia'].label = 'Documento que Certifique su Residencia'

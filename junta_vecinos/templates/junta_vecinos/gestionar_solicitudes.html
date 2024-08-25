@@ -1,0 +1,29 @@
+{% extends 'junta_vecinos/base.html' %}
+
+{% block title %}Gestionar Solicitudes{% endblock %}
+
+{% block content %}
+<h2>Solicitudes de Certificados de Residencia</h2>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Vecino</th>
+            <th>Fecha de Solicitud</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for solicitud in solicitudes %}
+        <tr>
+            <td>{{ solicitud.vecino }}</td>
+            <td>{{ solicitud.fecha_solicitud }}</td>
+            <td>{{ solicitud.get_estado_display }}</td>
+            <td>
+                <a href="{% url 'ver_solicitud' solicitud.id %}" class="btn btn-primary">Ver Solicitud</a>
+            </td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

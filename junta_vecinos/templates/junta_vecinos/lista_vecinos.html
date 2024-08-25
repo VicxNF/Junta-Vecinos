@@ -3,12 +3,17 @@
 {% block title %}Lista de Vecinos{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <h2>Lista de Vecinos</h2>
+<div class="container mt-5">
+    <h2 class="mb-4">Lista de Vecinos</h2>
     <ul class="list-group">
         {% for vecino in vecinos %}
-            <li class="list-group-item">
-                <strong>{{ vecino.nombres }} {{ vecino.apellidos }}</strong> - {{ vecino.direccion }} - {{ vecino.telefono }}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <div>
+                    <h5>{{ vecino.nombres }} {{ vecino.apellidos }}</h5>
+                    <p>{{ vecino.direccion }}</p>
+                    <small>{{ vecino.telefono }}</small>
+                </div>
+                <a href="#" class="btn btn-primary">Ver Detalles</a>
             </li>
         {% endfor %}
     </ul>

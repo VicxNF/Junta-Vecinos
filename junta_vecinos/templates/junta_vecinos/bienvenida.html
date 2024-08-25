@@ -1,0 +1,22 @@
+{% extends 'junta_vecinos/base.html' %}
+
+
+{% load static %}
+
+{% block title %}Bienvenido{% endblock %}
+
+{% block content %}
+<div class="jumbotron text-center">
+    <h1 class="display-4">¿Ya formas parte de la junta de vecinos?</h1>
+    <p class="lead">Ingresa tus datos</p>
+
+    <div class="mt-4">
+        <a href="{% url 'login' %}" class="btn btn-primary btn-lg mr-3">Ingresar al Sistema</a>
+    </div>
+
+    <p class="mt-5">¿Eres nuevo? ¡Regístrate y sé parte de la junta de vecinos!</p>
+    <div class="mt-4">
+        <a href="{% url 'registro_vecino' %}" class="btn btn-success btn-lg">Crear Nueva Cuenta</a>
+    </div>
+</div>
+{% endblock %}
