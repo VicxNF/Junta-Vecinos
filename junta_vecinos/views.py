@@ -155,10 +155,33 @@ def aprobar_solicitud(request, id):
 @user_passes_test(is_admin)
 def rechazar_solicitud(request, id):
     solicitud = get_object_or_404(SolicitudCertificado, id=id)
-    solicitud.estado = 'rechazado'
-    solicitud.save()
-    messages.error(request, 'La solicitud ha sido rechazada.')
-    return redirect('gestionar_solicitudes')
+
+    if request.method == 'POST':
+        form = RechazoCertificadoForm(request.POST)
+        if form.is_valid():
+            mensaje_rechazo = form.cleaned_data['mensaje_rechazo']
+
+            # Actualizar el estado de la solicitud
+            solicitud.estado = 'rechazado'
+            solicitud.save()
+
+            # Enviar el correo al vecino con las razones del rechazo
+            send_mail(
+                'Solicitud de Certificado de Residencia Rechazada',
+                f'Hola {solicitud.vecino.user.get_full_name()},\n\n'
+                f'Tu solicitud ha sido rechazada por las siguientes razones:\n\n{mensaje_rechazo}\n\n'
+                f'Si tienes dudas, por favor contacta con la administración.',
+                settings.DEFAULT_FROM_EMAIL,
+                [solicitud.vecino.user.email]
+            )
+
+            messages.error(request, 'La solicitud ha sido rechazada y se ha enviado un correo al vecino.')
+            return redirect('gestionar_solicitudes')
+    else:
+        form = RechazoCertificadoForm()
+
+    return render(request, 'junta_vecinos/rechazar_solicitud.html', {'solicitud': solicitud, 'form': form})
+
 
 @user_passes_test(is_admin)
 def enviar_certificado(request, id):

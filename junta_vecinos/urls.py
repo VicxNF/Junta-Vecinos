@@ -16,5 +16,6 @@ urlpatterns = [
     path('aprobar-solicitud/<int:id>/', views.aprobar_solicitud, name='aprobar_solicitud'),
     path('rechazar-solicitud/<int:id>/', views.rechazar_solicitud, name='rechazar_solicitud'),
     path('solicitud/<int:id>/enviar/', views.enviar_certificado, name='enviar_certificado'),
+    path('solicitud/<int:id>/rechazar/', views.rechazar_solicitud, name='rechazar_solicitud'),
     # Agrega más rutas según sea necesario
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

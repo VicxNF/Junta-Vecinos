@@ -73,3 +73,9 @@ class EnviarCertificadoForm(forms.ModelForm):
     class Meta:
         model = CertificadoResidencia
         fields = ['documento_certificado']
+
+class RechazoCertificadoForm(forms.Form):
+    mensaje_rechazo = forms.CharField(
+        widget=forms.Textarea(attrs={'rows': 4, 'placeholder': 'Escribe las razones del rechazo...'}),
+        label="Mensaje de Rechazo"
+    )
