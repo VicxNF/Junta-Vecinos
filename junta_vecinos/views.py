@@ -20,14 +20,17 @@ def bienvenida(request):
 def index(request):
     vecinos = []
     solicitudes = []
+    postulaciones = []
 
     if request.user.is_authenticated and request.user.is_superuser:
         vecinos = Vecino.objects.all()[:5]  # Muestra solo los primeros 5 vecinos
         solicitudes = SolicitudCertificado.objects.all()[:5]  # Muestra solo las primeras 5 solicitudes
+        postulaciones = ProyectoVecinal.objects.all()[:5]  # Vista reducida de postulaciones (primeros 5)
 
     return render(request, 'junta_vecinos/index.html', {
         'vecinos': vecinos,
-        'solicitudes': solicitudes
+        'solicitudes': solicitudes,
+        'postulaciones' : postulaciones
     })
 
 def is_admin(user):
@@ -216,3 +219,86 @@ def enviar_certificado(request, id):
         form = EnviarCertificadoForm()
 
     return render(request, 'junta_vecinos/enviar_certificado.html', {'form': form, 'solicitud': solicitud})
+
+@login_required
+def postular_proyecto(request):
+    try:
+        vecino = request.user.vecino
+    except Vecino.DoesNotExist:
+        messages.error(request, 'No tienes un perfil de vecino asociado. Por favor, contacta con el administrador.')
+        return redirect('index')
+
+    if request.method == 'POST':
+        form = ProyectoVecinalForm(request.POST, request.FILES)
+        if form.is_valid():
+            proyecto = form.save(commit=False)
+            proyecto.vecino = vecino
+            proyecto.save()
+            messages.success(request, 'Tu proyecto ha sido postulado exitosamente.')
+            return redirect('index')
+    else:
+        form = ProyectoVecinalForm()
+
+    return render(request, 'junta_vecinos/postular_proyecto.html', {'form': form})
+
+
+@user_passes_test(is_admin)
+def gestionar_proyectos(request):
+    proyectos = ProyectoVecinal.objects.filter(estado='pendiente')
+    return render(request, 'junta_vecinos/gestionar_proyectos.html', {'proyectos': proyectos})
+
+@user_passes_test(is_admin)
+def ver_proyecto(request, id):
+    proyecto = get_object_or_404(ProyectoVecinal, id=id)
+    return render(request, 'junta_vecinos/ver_proyecto.html', {'proyecto': proyecto})
+
+@user_passes_test(is_admin)
+def aprobar_proyecto(request, id):
+    proyecto = get_object_or_404(ProyectoVecinal, id=id)
+    
+    if request.method == 'POST':
+        form = CorreoAprobacionForm(request.POST)
+        if form.is_valid():
+            # Cambiar estado y guardar
+            proyecto.estado = 'aprobado'
+            proyecto.save()
+            
+            # Enviar correo
+            send_mail(
+                'Proyecto Vecinal Aprobado',
+                form.cleaned_data['contenido'],
+                settings.DEFAULT_FROM_EMAIL,
+                [proyecto.vecino.user.email]
+            )
+            messages.success(request, 'El proyecto ha sido aprobado y se ha enviado un correo al vecino.')
+            return redirect('gestionar_proyectos')
+    else:
+        form = CorreoAprobacionForm()
+
+    return render(request, 'junta_vecinos/aprobar_proyecto.html', {'form': form, 'proyecto': proyecto})
+
+@user_passes_test(is_admin)
+def rechazar_proyecto(request, id):
+    proyecto = get_object_or_404(ProyectoVecinal, id=id)
+    
+    if request.method == 'POST':
+        form = CorreoRechazoForm(request.POST)
+        if form.is_valid():
+            # Cambiar estado y guardar
+            proyecto.estado = 'rechazado'
+            proyecto.save()
+            
+            # Enviar correo
+            send_mail(
+                'Proyecto Vecinal Rechazado',
+                form.cleaned_data['contenido'],
+                settings.DEFAULT_FROM_EMAIL,
+                [proyecto.vecino.user.email]
+            )
+            messages.success(request, 'El proyecto ha sido rechazado y se ha enviado un correo al vecino.')
+            return redirect('gestionar_proyectos')
+    else:
+        form = CorreoRechazoForm()
+
+    return render(request, 'junta_vecinos/rechazar_proyecto.html', {'form': form, 'proyecto': proyecto})
+

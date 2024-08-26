@@ -79,3 +79,18 @@ class RechazoCertificadoForm(forms.Form):
         widget=forms.Textarea(attrs={'rows': 4, 'placeholder': 'Escribe las razones del rechazo...'}),
         label="Mensaje de Rechazo"
     )
+
+class ProyectoVecinalForm(forms.ModelForm):
+    class Meta:
+        model = ProyectoVecinal
+        fields = ['titulo', 'descripcion', 'archivo_propuesta']
+        widgets = {
+            'descripcion': forms.Textarea(attrs={'rows': 5, 'placeholder': 'Describa su proyecto'}),
+        }
+
+
+class CorreoAprobacionForm(forms.Form):
+    contenido = forms.CharField(widget=forms.Textarea(attrs={'rows': 5}), label='Contenido del correo')
+
+class CorreoRechazoForm(forms.Form):
+    contenido = forms.CharField(widget=forms.Textarea(attrs={'rows': 5}), label='Contenido del correo')

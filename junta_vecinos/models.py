@@ -15,9 +15,9 @@ class Vecino(models.Model):
     
 class SolicitudCertificado(models.Model):
     ESTADO_CHOICES = [
-        ('pendiente', 'Pendiente'),
-        ('aprobado', 'Aprobado'),
-        ('rechazado', 'Rechazado'),
+        ('Pendiente', 'Pendiente'),
+        ('Aprobado', 'Aprobado'),
+        ('Rechazado', 'Rechazado'),
     ]
 
     vecino = models.ForeignKey(Vecino, on_delete=models.CASCADE)  # Cambio aquí
@@ -41,3 +41,20 @@ class CertificadoResidencia(models.Model):
 
     def __str__(self):
         return f"Certificado {self.numero_certificado} - {self.vecino}"
+
+class ProyectoVecinal(models.Model):
+    ESTADO_CHOICES = [
+        ('pendiente', 'Pendiente'),
+        ('aprobado', 'Aprobado'),
+        ('rechazado', 'Rechazado'),
+    ]
+
+    vecino = models.ForeignKey(Vecino, on_delete=models.CASCADE)
+    titulo = models.CharField(max_length=255)
+    descripcion = models.TextField()
+    fecha_postulacion = models.DateField(auto_now_add=True)
+    estado = models.CharField(max_length=10, choices=ESTADO_CHOICES, default='pendiente')
+    archivo_propuesta = models.FileField(upload_to='propuestas_proyectos/', blank=True, null=True)
+
+    def __str__(self):
+        return f"{self.titulo} - {self.get_estado_display()}"

@@ -1,0 +1,35 @@
+{% extends 'junta_vecinos/base.html' %}
+
+{% block title %}Proyectos Vecinales{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Proyectos Vecinales</h2>
+    <table class="table table-striped mt-3">
+        <thead>
+            <tr>
+                <th>Nombre del Proyecto</th>
+                <th>Vecino Solicitante</th>
+                <th>Estado</th>
+                <th>Acciones</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for proyecto in proyectos %}
+            <tr>
+                <td>{{ proyecto.nombre }}</td>
+                <td>{{ proyecto.vecino }}</td>
+                <td>{{ proyecto.get_estado_display }}</td>
+                <td>
+                    <a href="{% url 'ver_proyecto' proyecto.id %}" class="btn btn-primary btn-sm">Ver Proyecto</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4" class="text-center">No hay proyectos vecinales pendientes.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}
