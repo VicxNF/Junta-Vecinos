@@ -21,17 +21,24 @@ def index(request):
     vecinos = []
     solicitudes = []
     postulaciones = []
+    noticias = []
 
-    if request.user.is_authenticated and request.user.is_superuser:
-        vecinos = Vecino.objects.all()[:5]  # Muestra solo los primeros 5 vecinos
-        solicitudes = SolicitudCertificado.objects.all()[:5]  # Muestra solo las primeras 5 solicitudes
-        postulaciones = ProyectoVecinal.objects.all()[:5]  # Vista reducida de postulaciones (primeros 5)
+    if request.user.is_authenticated:
+        if request.user.is_superuser:
+            vecinos = Vecino.objects.all()[:5]  # Muestra solo los primeros 5 vecinos
+            solicitudes = SolicitudCertificado.objects.all()[:5]  # Muestra solo las primeras 5 solicitudes
+            postulaciones = ProyectoVecinal.objects.all()[:5]  # Vista reducida de postulaciones (primeros 5)
+
+        # Todos los usuarios, incluidos vecinos, verán las noticias
+        noticias = Noticia.objects.all().order_by('-fecha_publicacion')
 
     return render(request, 'junta_vecinos/index.html', {
         'vecinos': vecinos,
         'solicitudes': solicitudes,
-        'postulaciones' : postulaciones
+        'postulaciones': postulaciones,
+        'noticias': noticias
     })
+
 
 def is_admin(user):
     return user.is_superuser  # Solo permite el acceso si el usuario es un superusuario (admin)
@@ -301,4 +308,34 @@ def rechazar_proyecto(request, id):
         form = CorreoRechazoForm()
 
     return render(request, 'junta_vecinos/rechazar_proyecto.html', {'form': form, 'proyecto': proyecto})
+
+@user_passes_test(is_admin)
+def publicar_noticia(request):
+    if request.method == 'POST':
+        form = NoticiaForm(request.POST, request.FILES)
+        if form.is_valid():
+            form.save()
+            return redirect('index')
+    else:
+        form = NoticiaForm()
+    return render(request, 'junta_vecinos/publicar_noticia.html', {'form': form})
+
+
+@user_passes_test(is_admin)
+def gestionar_noticias(request):
+    noticias = Noticia.objects.all().order_by('-fecha_publicacion')
+    return render(request, 'junta_vecinos/gestionar_noticias.html', {'noticias': noticias})
+
+@user_passes_test(is_admin)
+def editar_noticia(request, id):
+    noticia = get_object_or_404(Noticia, id=id)
+    if request.method == 'POST':
+        form = NoticiaForm(request.POST, request.FILES, instance=noticia)
+        if form.is_valid():
+            form.save()
+            return redirect('gestionar_noticias')
+    else:
+        form = NoticiaForm(instance=noticia)
+    return render(request, 'junta_vecinos/editar_noticia.html', {'form': form, 'noticia': noticia})
+
 

@@ -22,5 +22,8 @@ urlpatterns = [
     path('proyecto/<int:id>/ver/', views.ver_proyecto, name='ver_proyecto'),
     path('proyecto/<int:id>/aprobar/', views.aprobar_proyecto, name='aprobar_proyecto'),
     path('proyecto/<int:id>/rechazar/', views.rechazar_proyecto, name='rechazar_proyecto'),
+    path('noticias/publicar/', views.publicar_noticia, name='publicar_noticia'),
+    path('noticias/gestionar/', views.gestionar_noticias, name='gestionar_noticias'),
+    path('noticia/<int:id>/editar/', views.editar_noticia, name='editar_noticia'),
     # Agrega más rutas según sea necesario
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -94,3 +94,12 @@ class CorreoAprobacionForm(forms.Form):
 
 class CorreoRechazoForm(forms.Form):
     contenido = forms.CharField(widget=forms.Textarea(attrs={'rows': 5}), label='Contenido del correo')
+
+
+class NoticiaForm(forms.ModelForm):
+    class Meta:
+        model = Noticia
+        fields = ['titulo', 'contenido', 'imagen']  # Incluye el campo de imagen
+        widgets = {
+            'contenido': forms.Textarea(attrs={'rows': 5, 'placeholder': 'Escribe el contenido de la noticia'}),
+        }

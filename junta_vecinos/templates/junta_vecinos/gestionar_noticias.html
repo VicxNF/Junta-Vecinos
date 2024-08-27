@@ -1,0 +1,24 @@
+{% extends 'junta_vecinos/base.html' %}
+
+{% block title %}Gestionar Noticias{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Gestionar Noticias</h2>
+    <ul class="list-group">
+        {% for noticia in noticias %}
+            <li class="list-group-item">
+                <h5>{{ noticia.titulo }}</h5>
+                <p>{{ noticia.contenido }}</p>
+                {% if noticia.imagen %}
+                    <img src="{{ noticia.imagen.url }}" alt="{{ noticia.titulo }}" class="img-fluid">
+                {% endif %}
+                <p class="card-text"><small class="text-muted">Publicado el {{ noticia.fecha_publicacion|date:"d M Y" }}</small></p>
+                <a href="{% url 'editar_noticia' noticia.id %}" class="btn btn-warning">Editar</a>
+            </li>
+        {% empty %}
+            <li class="list-group-item">No hay noticias disponibles.</li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}

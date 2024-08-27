@@ -58,3 +58,13 @@ class ProyectoVecinal(models.Model):
 
     def __str__(self):
         return f"{self.titulo} - {self.get_estado_display()}"
+
+
+class Noticia(models.Model):
+    titulo = models.CharField(max_length=255)
+    contenido = models.TextField()
+    fecha_publicacion = models.DateField(auto_now_add=True)
+    imagen = models.ImageField(upload_to='imagenes_noticias/', blank=True, null=True)  # Nuevo campo para la imagen
+
+    def __str__(self):
+        return self.titulo

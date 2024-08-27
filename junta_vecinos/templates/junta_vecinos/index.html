@@ -51,6 +51,12 @@
                 <a href="{% url 'gestionar_proyectos' %}" class="btn btn-primary">Ver todas las postulaciones</a>
             </div>
 
+            <hr class="my-4">
+            
+            <h2>Gestionar Noticias</h2>
+            <a href="{% url 'publicar_noticia' %}" class="btn btn-primary">Publicar Noticia</a>
+            <a href="{% url 'gestionar_noticias' %}" class="btn btn-secondary">Ver Todas las Noticias</a>
+
         {% else %}
             <!-- Contenido para Vecinos -->
             <p class="lead">Solicita aquí tu certificado de residencia</p>
@@ -61,6 +67,24 @@
             <div class="mt-4">
                 <a href="{% url 'postular_proyecto' %}" class="btn btn-primary btn-lg mr-3">Postular</a>
             </div>
+
+            <hr class="my-4">
+
+            <h2>Noticias Recientes</h2>
+            {% for noticia in noticias %}
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ noticia.titulo }}</h5>
+                        <p class="card-text">{{ noticia.contenido }}</p>
+                        {% if noticia.imagen %}
+                            <img src="{{ noticia.imagen.url }}" alt="{{ noticia.titulo }}" class="img-fluid">
+                        {% endif %}
+                        <p class="card-text"><small class="text-muted">Publicado el {{ noticia.fecha_publicacion|date:"d M Y" }}</small></p>
+                    </div>
+                </div>
+            {% empty %}
+                <p>No hay noticias recientes.</p>
+            {% endfor %}
         {% endif %}
     {% else %}
         <p>Por favor, inicia sesión para acceder a más funciones.</p>
