@@ -25,5 +25,9 @@ urlpatterns = [
     path('noticias/publicar/', views.publicar_noticia, name='publicar_noticia'),
     path('noticias/gestionar/', views.gestionar_noticias, name='gestionar_noticias'),
     path('noticia/<int:id>/editar/', views.editar_noticia, name='editar_noticia'),
+    path('registrar_espacio/', views.registrar_espacio, name='registrar_espacio'),
+    path('lista_espacios/', views.lista_espacios, name='lista_espacios'),
+    path('editar_espacio/<int:espacio_id>/', views.editar_espacio, name='editar_espacio'),
+    path('eliminar_espacio/<int:espacio_id>/', views.eliminar_espacio, name='eliminar_espacio'),
     # Agrega más rutas según sea necesario
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

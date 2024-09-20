@@ -10,6 +10,9 @@ from .forms import *
 import uuid
 from django.utils import timezone
 from django.db import IntegrityError
+from django.http import JsonResponse
+from django.utils.dateparse import parse_time
+import json
 
 def bienvenida(request):
     if request.user.is_authenticated:
@@ -22,12 +25,14 @@ def index(request):
     solicitudes = []
     postulaciones = []
     noticias = []
+    espacios = []
 
     if request.user.is_authenticated:
         if request.user.is_superuser:
             vecinos = Vecino.objects.all()[:5]  # Muestra solo los primeros 5 vecinos
             solicitudes = SolicitudCertificado.objects.all()[:5]  # Muestra solo las primeras 5 solicitudes
             postulaciones = ProyectoVecinal.objects.all()[:5]  # Vista reducida de postulaciones (primeros 5)
+            espacios = Espacio.objects.all()[:5] 
 
         # Todos los usuarios, incluidos vecinos, verán las noticias
         noticias = Noticia.objects.all().order_by('-fecha_publicacion')
@@ -36,7 +41,8 @@ def index(request):
         'vecinos': vecinos,
         'solicitudes': solicitudes,
         'postulaciones': postulaciones,
-        'noticias': noticias
+        'noticias': noticias,
+        'espacios': espacios
     })
 
 
@@ -339,3 +345,40 @@ def editar_noticia(request, id):
     return render(request, 'junta_vecinos/editar_noticia.html', {'form': form, 'noticia': noticia})
 
 
+@user_passes_test(is_admin)
+def registrar_espacio(request):
+    if request.method == 'POST':
+        form = EspacioForm(request.POST)
+        if form.is_valid():
+            form.save()
+            return redirect('lista_espacios')  # Redirige a una página de éxito o lista de espacios
+    else:
+        form = EspacioForm()
+    
+    return render(request, 'junta_vecinos/registrar_espacio.html', {'form': form})
+
+@user_passes_test(is_admin)
+def lista_espacios(request):
+    espacios = Espacio.objects.all()  # Obtén todos los espacios
+    return render(request, 'junta_vecinos/lista_espacios.html', {'espacios': espacios})
+
+@user_passes_test(is_admin)
+def editar_espacio(request, espacio_id):
+    espacio = get_object_or_404(Espacio, id=espacio_id)
+    
+    if request.method == 'POST':
+        form = EspacioForm(request.POST, instance=espacio)
+        if form.is_valid():
+            form.save()
+            return redirect('lista_espacios')  # Redirige a la lista de espacios
+    else:
+        form = EspacioForm(instance=espacio)
+    
+    return render(request, 'junta_vecinos/editar_espacio.html', {'form': form, 'espacio': espacio})
+
+def eliminar_espacio(request, espacio_id):
+    espacio = get_object_or_404(Espacio, id=espacio_id)
+    if request.method == 'POST':
+        espacio.delete()
+        return redirect('lista_espacios')  # Redirige a la lista después de eliminar
+    return redirect('lista_espacios')  # Por si acceden a la URL por GET

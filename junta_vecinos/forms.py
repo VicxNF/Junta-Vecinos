@@ -103,3 +103,13 @@ class NoticiaForm(forms.ModelForm):
         widgets = {
             'contenido': forms.Textarea(attrs={'rows': 5, 'placeholder': 'Escribe el contenido de la noticia'}),
         }
+
+class EspacioForm(forms.ModelForm):
+    class Meta:
+        model = Espacio
+        fields = ['nombre', 'descripcion', 'capacidad']
+        widgets = {
+            'nombre': forms.TextInput(attrs={'class': 'form-control'}),
+            'descripcion': forms.Textarea(attrs={'class': 'form-control'}),
+            'capacidad': forms.NumberInput(attrs={'class': 'form-control'}),
+        }

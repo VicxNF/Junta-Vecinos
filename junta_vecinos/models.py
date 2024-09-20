@@ -68,3 +68,21 @@ class Noticia(models.Model):
 
     def __str__(self):
         return self.titulo
+
+class Espacio(models.Model):
+    nombre = models.CharField(max_length=100)
+    descripcion = models.TextField()
+    capacidad = models.IntegerField()
+
+    def __str__(self):
+        return self.nombre
+
+class Reserva(models.Model):
+    usuario = models.ForeignKey(User, on_delete=models.CASCADE)
+    espacio = models.ForeignKey(Espacio, on_delete=models.CASCADE)
+    fecha = models.DateField()
+    hora_inicio = models.TimeField()
+    hora_fin = models.TimeField()
+
+    def __str__(self):
+        return f"{self.espacio.nombre} reservado por {self.usuario.username} el {self.fecha} de {self.hora_inicio} a {self.hora_fin}"

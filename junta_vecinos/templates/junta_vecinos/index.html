@@ -52,6 +52,20 @@
             </div>
 
             <hr class="my-4">
+
+            <h2>Espacios Comunitarios</h2>
+            <ul class="list-group">
+                {% for espacio in espacios %}
+                    <li class="list-group-item">
+                        {{ espacio.nombre }} - Capacidad: {{ espacio.capacidad }}
+                    </li>
+                {% endfor %}
+            </ul>
+            <div class="mt-3">
+                <a href="{% url 'lista_espacios' %}" class="btn btn-primary">Ver todos los espacios</a>
+            </div>
+
+            <hr class="my-4">
             
             <h2>Gestionar Noticias</h2>
             <a href="{% url 'publicar_noticia' %}" class="btn btn-primary">Publicar Noticia</a>

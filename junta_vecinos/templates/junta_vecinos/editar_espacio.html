@@ -1,0 +1,16 @@
+{% extends 'junta_vecinos/base.html' %}
+
+{% block title %}Editar Espacio{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Editar Espacio: {{ espacio.nombre }}</h2>
+    
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn btn-primary">Guardar cambios</button>
+        <a href="{% url 'lista_espacios' %}" class="btn btn-secondary">Cancelar</a>
+    </form>
+</div>
+{% endblock %}
