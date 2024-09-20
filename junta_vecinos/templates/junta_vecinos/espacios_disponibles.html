@@ -96,41 +96,44 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Agregar evento al botón de reservar en el modal de horas
     document.getElementById('reserveButton').onclick = function() {
-        var horaInicio = document.getElementById('hora_inicio').value;
-        var horaFin = document.getElementById('hora_fin').value;
+    var horaInicio = document.getElementById('hora_inicio').value;
+    var horaFin = document.getElementById('hora_fin').value;
 
-        // Validar que las horas de inicio y fin sean correctas
-        if (horaInicio && horaFin) {
-            console.log("Reserva:", { fecha: selectedDate, hora_inicio: horaInicio, hora_fin: horaFin }); // Debugging
-            fetch(`/espacio/${espacioId}/reservar/`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': '{{ csrf_token }}',
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    fecha: selectedDate,
-                    hora_inicio: horaInicio,
-                    hora_fin: horaFin
-                })
-            }).then(response => response.json())
-              .then(data => {
-                  if (data.success) {
-                      alert('Reserva realizada con éxito');
-                      $('#hoursModal').modal('hide');
-                      calendar.refetchEvents(); // Actualizar calendario
-                  } else {
-                      alert('Error al realizar la reserva: ' + data.error);
-                  }
-              })
-              .catch(error => {
-                  console.error('Error:', error);
-                  alert('Error al realizar la reserva');
-              });
-        } else {
-            alert('Por favor, selecciona las horas de inicio y fin.');
-        }
-    };
+    // Validar que las horas de inicio y fin sean correctas
+    if (horaInicio && horaFin) {
+        console.log("Reserva:", { fecha: selectedDate, hora_inicio: horaInicio, hora_fin: horaFin }); // Debugging
+        fetch(`/espacio/${espacioId}/reservar/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                fecha: selectedDate,
+                hora_inicio: horaInicio,
+                hora_fin: horaFin
+            })
+        }).then(response => response.json())
+          .then(data => {
+              if (data.success) {
+                  alert('Reserva realizada con éxito');
+                  $('#hoursModal').modal('hide');
+                  calendar.refetchEvents(); // Actualizar calendario
+                  
+                  // Redirigir al index
+                  window.location.href = '{% url "index" %}';
+              } else {
+                  alert('Error al realizar la reserva: ' + data.error);
+              }
+          })
+          .catch(error => {
+              console.error('Error:', error);
+              alert('Error al realizar la reserva');
+          });
+    } else {
+        alert('Por favor, selecciona las horas de inicio y fin.');
+    }
+};
 });
 </script>
 {% endblock %}
