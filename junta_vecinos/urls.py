@@ -29,5 +29,8 @@ urlpatterns = [
     path('lista_espacios/', views.lista_espacios, name='lista_espacios'),
     path('editar_espacio/<int:espacio_id>/', views.editar_espacio, name='editar_espacio'),
     path('eliminar_espacio/<int:espacio_id>/', views.eliminar_espacio, name='eliminar_espacio'),
+    path('espacios/', views.espacios_disponibles, name='espacios_disponibles'),
+    path('espacio/<int:espacio_id>/reservar/', views.reservar_espacio, name='reservar_espacio'),
+    path('reservas/', views.lista_reservas, name='lista_reservas'),
     # Agrega más rutas según sea necesario
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

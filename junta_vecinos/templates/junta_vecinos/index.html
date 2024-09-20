@@ -66,6 +66,22 @@
             </div>
 
             <hr class="my-4">
+        
+            <h2>Reservas de Espacios</h2>
+            <ul class="list-group">
+                {% for reserva in reservas %}
+                    <li class="list-group-item">
+                        {{ reserva.espacio.nombre }} - {{ reserva.fecha }} de {{ reserva.hora_inicio }} a {{ reserva.hora_fin }}
+                        <br>
+                        Hecha por: {{ reserva.usuario.first_name }} {{ reserva.usuario.last_name }}
+                    </li>
+                {% endfor %}
+            </ul>
+            <div class="mt-3">
+                <a href="{% url 'lista_reservas' %}" class="btn btn-primary">Ver todas las reservas</a>
+            </div>
+
+            <hr class="my-4">
             
             <h2>Gestionar Noticias</h2>
             <a href="{% url 'publicar_noticia' %}" class="btn btn-primary">Publicar Noticia</a>

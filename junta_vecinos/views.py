@@ -26,6 +26,7 @@ def index(request):
     postulaciones = []
     noticias = []
     espacios = []
+    reservas = []
 
     if request.user.is_authenticated:
         if request.user.is_superuser:
@@ -33,6 +34,7 @@ def index(request):
             solicitudes = SolicitudCertificado.objects.all()[:5]  # Muestra solo las primeras 5 solicitudes
             postulaciones = ProyectoVecinal.objects.all()[:5]  # Vista reducida de postulaciones (primeros 5)
             espacios = Espacio.objects.all()[:5] 
+            reservas = Reserva.objects.all()[:5] 
 
         # Todos los usuarios, incluidos vecinos, verán las noticias
         noticias = Noticia.objects.all().order_by('-fecha_publicacion')
@@ -42,7 +44,8 @@ def index(request):
         'solicitudes': solicitudes,
         'postulaciones': postulaciones,
         'noticias': noticias,
-        'espacios': espacios
+        'espacios': espacios,
+        'reservas': reservas
     })
 
 
@@ -376,9 +379,56 @@ def editar_espacio(request, espacio_id):
     
     return render(request, 'junta_vecinos/editar_espacio.html', {'form': form, 'espacio': espacio})
 
+@user_passes_test(is_admin)
 def eliminar_espacio(request, espacio_id):
     espacio = get_object_or_404(Espacio, id=espacio_id)
     if request.method == 'POST':
         espacio.delete()
         return redirect('lista_espacios')  # Redirige a la lista después de eliminar
     return redirect('lista_espacios')  # Por si acceden a la URL por GET
+
+@login_required
+def espacios_disponibles(request):
+    espacios = Espacio.objects.all()  # Obtenemos todos los espacios
+    return render(request, 'junta_vecinos/espacios_disponibles.html', {'espacios': espacios})
+
+@login_required
+def reservar_espacio(request, espacio_id):
+    espacio = get_object_or_404(Espacio, id=espacio_id)
+
+    if request.method == 'POST':
+        try:
+            data = json.loads(request.body)  # Leer el cuerpo de la solicitud
+            fecha = data.get('fecha')
+            hora_inicio = data.get('hora_inicio')
+            hora_fin = data.get('hora_fin')
+
+            # Verificar si ya existe una reserva para ese espacio, fecha y horas
+            reservas_existentes = Reserva.objects.filter(
+                espacio=espacio,
+                fecha=fecha,
+                hora_inicio__lt=hora_fin,
+                hora_fin__gt=hora_inicio
+            )
+            if reservas_existentes.exists():
+                return JsonResponse({'success': False, 'error': 'El espacio ya está reservado en ese horario.'})
+
+            # Crear la reserva
+            reserva = Reserva.objects.create(
+                usuario=request.user,
+                espacio=espacio,
+                fecha=fecha,
+                hora_inicio=hora_inicio,
+                hora_fin=hora_fin
+            )
+            return JsonResponse({'success': True})
+        
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+
+    return JsonResponse({'success': False, 'error': 'Método no permitido'})
+
+@login_required
+def lista_reservas(request):
+    reservas = Reserva.objects.all()  # Obtener todas las reservas
+    return render(request, 'junta_vecinos/lista_reservas.html', {'reservas': reservas})
