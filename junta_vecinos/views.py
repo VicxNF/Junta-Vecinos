@@ -121,7 +121,7 @@ def solicitar_certificado(request):
 
 @user_passes_test(is_admin)
 def gestionar_solicitudes(request):
-    solicitudes = SolicitudCertificado.objects.filter(estado='pendiente')
+    solicitudes = SolicitudCertificado.objects.all()
     return render(request, 'junta_vecinos/gestionar_solicitudes.html', {'solicitudes': solicitudes})
 
 @user_passes_test(is_admin)
