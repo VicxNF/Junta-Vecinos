@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Certificado de Residencia</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0 auto;
+            width: 80%;
+        }
+        h1 {
+            text-align: center;
+            margin-top: 50px;
+        }
+        .contenido {
+            margin-top: 50px;
+        }
+        p {
+            font-size: 14pt;
+            margin: 20px 0;
+        }
+        .firmas {
+            margin-top: 100px;
+        }
+        .firma {
+            display: inline-block;
+            width: 45%;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>Certificado de Residencia</h1>
+    <div class="contenido">
+        <p>Yo, el presidente de la Junta de Vecinos, certifico que:</p>
+        <p><strong>{{ vecino.nombres }} {{ vecino.apellidos }}</strong></p>
+        <p>Con dirección en:</p>
+        <p><strong>{{ vecino.direccion }}</strong></p>
+        <p>Es residente de nuestra comunidad y ha cumplido con los requisitos de residencia.</p>
+        <p>Número de Certificado: <strong>{{ numero_certificado }}</strong></p>
+        <p>Fecha de Emisión: <strong>{{ fecha_emision }}</strong></p>
+    </div>
+    <div class="firmas">
+        <div class="firma">
+            <p>__________________________</p>
+            <p>Presidente</p>
+        </div>
+        <div class="firma">
+            <p>__________________________</p>
+            <p>Vecino</p>
+        </div>
+    </div>
+</body>
+</html>

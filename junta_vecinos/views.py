@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.core.mail import send_mail
+from django.core.mail import send_mail, EmailMessage
 from django.conf import settings
 from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login as auth_login, logout 
@@ -13,6 +13,14 @@ from django.db import IntegrityError
 from django.http import JsonResponse
 from django.utils.dateparse import parse_time
 import json
+from django.template.loader import render_to_string
+from django.http import HttpResponse
+from weasyprint import HTML
+from django.core.files.base import ContentFile
+from datetime import date
+from django.core.files.base import ContentFile
+
+
 
 def bienvenida(request):
     if request.user.is_authenticated:
@@ -134,41 +142,41 @@ def aprobar_solicitud(request, id):
     solicitud = get_object_or_404(SolicitudCertificado, id=id)
     
     if request.method == 'POST':
-        form = DocumentoCertificadoForm(request.POST, request.FILES)
-        if form.is_valid():
-            # Generar un número de certificado único
-            while True:
-                numero_certificado = f"CERT-{solicitud.vecino.id}-{solicitud.id}-{uuid.uuid4().hex[:8].upper()}"
-                if not CertificadoResidencia.objects.filter(numero_certificado=numero_certificado).exists():
-                    break
-            
-            try:
-                # Guardar el documento del certificado
-                certificado = CertificadoResidencia.objects.create(
-                    vecino=solicitud.vecino,
-                    numero_certificado=numero_certificado,
-                    documento_certificado=form.cleaned_data['documento_certificado']
-                )
-                # Actualizar el estado de la solicitud
-                solicitud.estado = 'aprobado'
-                solicitud.save()
+        # Generar un número único de certificado
+        numero_certificado = f"CERT-{solicitud.vecino.id}-{solicitud.id}"
 
-                # Enviar un correo al vecino
-                send_mail(
-                    'Certificado de Residencia Aprobado',
-                    f'Hola {solicitud.vecino.user.get_full_name()},\n\nTu solicitud de certificado de residencia ha sido aprobada. Puedes descargar el certificado desde el siguiente enlace:\n\n{settings.SITE_URL}/media/{certificado.documento_certificado}',
-                    settings.DEFAULT_FROM_EMAIL,
-                    [solicitud.vecino.user.email]
-                )
+        # Generar el PDF del certificado
+        pdf_file = generar_certificado_pdf(solicitud.vecino, numero_certificado)
 
-                messages.success(request, 'La solicitud ha sido aprobada y el certificado generado. Se ha enviado un correo al vecino.')
-                return redirect('gestionar_solicitudes')
-            except IntegrityError:
-                messages.error(request, 'Error al generar el certificado. Inténtalo de nuevo.')
-    else:
-        form = DocumentoCertificadoForm()
+        # Guardar el certificado como un archivo
+        certificado = CertificadoResidencia.objects.create(
+            vecino=solicitud.vecino,
+            numero_certificado=numero_certificado,
+            documento_certificado=ContentFile(pdf_file, f"certificado_{numero_certificado}.pdf")
+        )
 
-    return render(request, 'junta_vecinos/aprobar_solicitud.html', {'solicitud': solicitud, 'form': form})
+        # Actualizar el estado de la solicitud
+        solicitud.estado = 'Aprobado'
+        solicitud.save()
+
+        # Enviar el correo con el PDF adjunto
+        email = EmailMessage(
+            subject='Certificado de Residencia Aprobado',
+            body=f'Hola {solicitud.vecino.nombres},\n\nEs de nuestro agrado informarle que su solicitud de certificado de residencia fue aprobado\n\nAdjunto encontrarás tu certificado de residencia.',
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            to=[solicitud.vecino.user.email],
+        )
+
+        # Adjuntar el PDF al correo
+        email.attach(f"certificado_{numero_certificado}.pdf", pdf_file, 'application/pdf')
+
+        # Enviar el correo
+        email.send()
+
+        messages.success(request, 'La solicitud ha sido aprobada y el certificado generado.')
+        return redirect('gestionar_solicitudes')
+
+    return render(request, 'junta_vecinos/aprobar_solicitud.html', {'solicitud': solicitud})
 
 
 @user_passes_test(is_admin)
@@ -181,7 +189,7 @@ def rechazar_solicitud(request, id):
             mensaje_rechazo = form.cleaned_data['mensaje_rechazo']
 
             # Actualizar el estado de la solicitud
-            solicitud.estado = 'rechazado'
+            solicitud.estado = 'Rechazado'
             solicitud.save()
 
             # Enviar el correo al vecino con las razones del rechazo
@@ -226,7 +234,7 @@ def enviar_certificado(request, id):
             )
 
             # Actualizar el estado de la solicitud
-            solicitud.estado = 'aprobado'
+            solicitud.estado = 'Aprobado'
             solicitud.save()
 
             messages.success(request, 'El certificado ha sido enviado y la solicitud ha sido aprobada.')
@@ -432,3 +440,16 @@ def reservar_espacio(request, espacio_id):
 def lista_reservas(request):
     reservas = Reserva.objects.all()  # Obtener todas las reservas
     return render(request, 'junta_vecinos/lista_reservas.html', {'reservas': reservas})
+
+def generar_certificado_pdf(vecino, numero_certificado):
+    # Renderizar el contenido HTML con los datos del vecino
+    html_content = render_to_string('junta_vecinos/certificado_residencia.html', {
+        'vecino': vecino,
+        'numero_certificado': numero_certificado,
+        'fecha_emision': date.today().strftime('%d/%m/%Y'),
+    })
+
+    # Generar el PDF usando WeasyPrint
+    pdf_file = HTML(string=html_content).write_pdf()
+
+    return pdf_file

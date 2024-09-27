@@ -20,11 +20,11 @@
             <td>{{ solicitud.fecha_solicitud }}</td>
             <td>{{ solicitud.get_estado_display }}</td>
             <td>
-                {% if solicitud.estado == 'pendiente' %}
+                {% if solicitud.estado == 'Pendiente' %}
                     <a href="{% url 'ver_solicitud' solicitud.id %}" class="btn btn-primary">Ver Solicitud</a>
-                {% elif solicitud.estado == 'aprobado' %}
+                {% elif solicitud.estado == 'Aprobado' %}
                     <span class="text-success">La solicitud ya fue aprobada</span>
-                {% elif solicitud.estado == 'rechazado' %}
+                {% elif solicitud.estado == 'Rechazado' %}
                     <span class="text-danger">La solicitud ya fue rechazada</span>
                 {% else %}
                     <span class="text-muted">No hay acciones disponibles</span>

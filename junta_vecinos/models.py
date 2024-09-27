@@ -22,7 +22,7 @@ class SolicitudCertificado(models.Model):
 
     vecino = models.ForeignKey(Vecino, on_delete=models.CASCADE)  # Cambio aquí
     fecha_solicitud = models.DateField(auto_now_add=True)
-    estado = models.CharField(max_length=10, choices=ESTADO_CHOICES, default='pendiente')
+    estado = models.CharField(max_length=10, choices=ESTADO_CHOICES, default='Pendiente')
     motivo = models.TextField()
 
     # Nuevos campos para los archivos
@@ -35,9 +35,9 @@ class SolicitudCertificado(models.Model):
 
 class CertificadoResidencia(models.Model):
     vecino = models.ForeignKey(Vecino, on_delete=models.CASCADE)
+    numero_certificado = models.CharField(max_length=50)
+    documento_certificado = models.FileField(upload_to='certificados/')
     fecha_emision = models.DateField(auto_now_add=True)
-    numero_certificado = models.CharField(max_length=20, unique=True)
-    documento_certificado = models.FileField(upload_to='certificados/', null=True, blank=True)
 
     def __str__(self):
         return f"Certificado {self.numero_certificado} - {self.vecino}"
