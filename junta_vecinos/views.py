@@ -60,6 +60,14 @@ def index(request):
 def is_admin(user):
     return user.is_superuser  # Solo permite el acceso si el usuario es un superusuario (admin)
 
+def generar_username_unico(base_username):
+    username = base_username
+    n = 1
+    while User.objects.filter(username=username).exists():
+        username = f"{base_username}{n}"
+        n += 1
+    return username
+
 @user_passes_test(is_admin)
 @login_required
 def lista_vecinos(request):
@@ -70,10 +78,40 @@ def registro_vecino(request):
     if request.method == 'POST':
         form = RegistroVecinoForm(request.POST)
         if form.is_valid():
-            vecino = form.save()
-            auth_login(request, vecino.user)  # Iniciar sesión automáticamente después del registro
-            messages.success(request, 'Registro exitoso. Has iniciado sesión automáticamente.')
-            return redirect('index')
+            try:
+                # Generar un nombre de usuario único basado en el email
+                email = form.cleaned_data['email']
+                base_username = email.split('@')[0]
+                username = generar_username_unico(base_username)
+
+                # Crear el usuario
+                user = User.objects.create_user(
+                    username=username,
+                    email=email,
+                    password=form.cleaned_data['password'],
+                    first_name=form.cleaned_data['nombres'],
+                    last_name=form.cleaned_data['apellidos']
+                )
+                user.is_active = False
+                user.save()
+
+                # Crear el vecino asociado al usuario
+                vecino = Vecino.objects.create(
+                    user=user,
+                    nombres=form.cleaned_data['nombres'],
+                    apellidos=form.cleaned_data['apellidos'],
+                    direccion=form.cleaned_data['direccion'],
+                    telefono=form.cleaned_data['telefono'],
+                    fecha_nacimiento=form.cleaned_data['fecha_nacimiento']
+                )
+
+                # Crear la solicitud de registro
+                SolicitudRegistroVecino.objects.create(vecino=vecino)
+                
+                messages.success(request, 'Su solicitud de registro ha sido enviada y está pendiente de aprobación.')
+                return redirect('login')
+            except IntegrityError as e:
+                messages.error(request, 'Ha ocurrido un error durante el registro. Por favor, inténtelo de nuevo.')
     else:
         form = RegistroVecinoForm()
     return render(request, 'junta_vecinos/registro.html', {'form': form})
@@ -88,9 +126,12 @@ def user_login(request):
                 user = User.objects.get(email=email)
                 user = authenticate(request, username=user.username, password=password)
                 if user is not None:
-                    auth_login(request, user)
-                    messages.success(request, f"¡Bienvenido {user.get_full_name()}!")
-                    return redirect('index')
+                    if user.is_active:
+                        auth_login(request, user)
+                        messages.success(request, f"¡Bienvenido {user.get_full_name()}!")
+                        return redirect('index')
+                    else:
+                        messages.error(request, "Su cuenta aún no ha sido aprobada.")
                 else:
                     messages.error(request, "Correo electrónico o contraseña incorrectos.")
             except User.DoesNotExist:
@@ -105,6 +146,79 @@ def user_logout(request):
     logout(request)
     messages.success(request, "Has cerrado sesión exitosamente.")
     return redirect('login')
+
+@login_required
+def solicitudes_registro(request):
+    if not request.user.is_staff:
+        messages.error(request, 'No tienes permiso para acceder a esta página.')
+        return redirect('index')
+    solicitudes = SolicitudRegistroVecino.objects.filter(is_approved=False)
+    return render(request, 'junta_vecinos/solicitudes_registro.html', {'solicitudes': solicitudes})
+
+@login_required
+def aprobar_registro(request, solicitud_id):
+    if not request.user.is_staff:
+        messages.error(request, 'No tienes permiso para realizar esta acción.')
+        return redirect('index')
+    
+    solicitud = get_object_or_404(SolicitudRegistroVecino, id=solicitud_id)
+    vecino = solicitud.vecino
+    user = vecino.user
+    user.is_active = True
+    user.save()
+    
+    solicitud.is_approved = True
+    solicitud.save()
+
+    # Enviar correo al vecino
+    email = EmailMessage(
+        subject='Solicitud de Registro Aprobada',
+        body=f'Hola {vecino.nombres},\n\nNos complace informarte que tu solicitud de registro ha sido aprobada. Ya puedes ingresar al sistema.\n\nSaludos!',
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=[user.email],
+    )
+    email.send()
+
+    messages.success(request, f'La solicitud de {vecino.nombres} {vecino.apellidos} ha sido aprobada y se le ha enviado un correo.')
+    return redirect('solicitudes_registro')
+
+@login_required
+def rechazar_registro(request, solicitud_id):
+    if not request.user.is_staff:
+        messages.error(request, 'No tienes permiso para realizar esta acción.')
+        return redirect('index')
+
+    solicitud = get_object_or_404(SolicitudRegistroVecino, id=solicitud_id)
+    vecino = solicitud.vecino
+    user = vecino.user
+
+    if request.method == 'POST':
+        form = RechazoCertificadoForm(request.POST)
+        if form.is_valid():
+            mensaje_rechazo = form.cleaned_data['mensaje_rechazo']
+            
+            # Eliminar al usuario y sus datos
+            user.delete()
+            vecino.delete()
+            solicitud.delete()
+
+            # Enviar correo al vecino con las razones del rechazo
+            send_mail(
+                'Solicitud de Registro Rechazada',
+                f'Hola {vecino.nombres} {vecino.apellidos},\n\n'
+                f'Lamentamos informarte que tu solicitud de registro ha sido rechazada por las siguientes razones:\n\n{mensaje_rechazo}\n\n'
+                f'Si tienes dudas, por favor contacta con la administración.',
+                settings.DEFAULT_FROM_EMAIL,
+                [user.email]
+            )
+
+            messages.error(request, 'La solicitud ha sido rechazada y se ha enviado un correo al vecino.')
+            return redirect('solicitudes_registro')
+    else:
+        form = RechazoCertificadoForm()
+
+    return render(request, 'junta_vecinos/rechazar_registro.html', {'solicitud': solicitud, 'form': form})
+
 
 @login_required
 def solicitar_certificado(request):
