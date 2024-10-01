@@ -26,7 +26,7 @@
         <div class="col-md-6">
             <h2 class="mb-4">Gráfico de Reservas</h2>
             <canvas id="reservasChart"></canvas>
-            <button class="btn btn-success mt-4" onclick="generarReporte()">Generar Reporte</button>
+            <button class="btn btn-success mt-4" onclick="window.location.href='{% url 'generar_reporte_pdf' %}'">Generar Reporte PDF</button>
         </div>
     </div>
 </div>

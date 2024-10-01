@@ -10,7 +10,7 @@ from .forms import *
 import uuid
 from django.utils import timezone
 from django.db import IntegrityError
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.utils.dateparse import parse_time
 import json
 from django.template.loader import render_to_string
@@ -22,6 +22,8 @@ from django.core.files.base import ContentFile
 import json
 from datetime import datetime, timedelta
 from django.db.models import Count
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
 
 
 
@@ -621,3 +623,48 @@ def generar_certificado_pdf(vecino, numero_certificado):
     pdf_file = HTML(string=html_content).write_pdf()
 
     return pdf_file
+
+@user_passes_test(is_admin)
+@login_required
+def generar_reporte_pdf(request):
+    # Crear el objeto HttpResponse con el tipo de contenido de PDF
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="reporte_reservas.pdf"'
+
+    # Crear el PDF
+    p = canvas.Canvas(response, pagesize=A4)
+    ancho, alto = A4
+
+    # Título
+    p.setFont("Helvetica-Bold", 16)
+    p.drawString(100, alto - 50, "Reporte de Reservas de Espacios")
+
+    # Encabezados de la tabla
+    p.setFont("Helvetica-Bold", 12)
+    p.drawString(50, alto - 100, "Espacio")
+    p.drawString(200, alto - 100, "Fecha")
+    p.drawString(300, alto - 100, "Hora Inicio")
+    p.drawString(400, alto - 100, "Hora Fin")
+    p.drawString(500, alto - 100, "Usuario")
+
+    # Listar las reservas
+    p.setFont("Helvetica", 10)
+    y = alto - 120
+    reservas = Reserva.objects.all().order_by('fecha')
+    for reserva in reservas:
+        if y < 50:
+            p.showPage()  # Crear nueva página si se acaba el espacio
+            y = alto - 50
+
+        p.drawString(50, y, reserva.espacio.nombre)
+        p.drawString(200, y, reserva.fecha.strftime("%Y-%m-%d"))
+        p.drawString(300, y, reserva.hora_inicio.strftime("%H:%M"))
+        p.drawString(400, y, reserva.hora_fin.strftime("%H:%M"))
+        p.drawString(500, y, f"{reserva.usuario.first_name} {reserva.usuario.last_name}")
+        y -= 20
+
+    # Finalizar el PDF
+    p.showPage()
+    p.save()
+    
+    return response
