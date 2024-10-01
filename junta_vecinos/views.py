@@ -19,6 +19,8 @@ from weasyprint import HTML
 from django.core.files.base import ContentFile
 from datetime import date
 from django.core.files.base import ContentFile
+import json
+from datetime import datetime, timedelta
 
 
 
@@ -511,7 +513,7 @@ def eliminar_espacio(request, espacio_id):
 
 @login_required
 def espacios_disponibles(request):
-    espacios = Espacio.objects.all()  # Obtenemos todos los espacios
+    espacios = Espacio.objects.all()
     return render(request, 'junta_vecinos/espacios_disponibles.html', {'espacios': espacios})
 
 @login_required
@@ -520,7 +522,7 @@ def reservar_espacio(request, espacio_id):
 
     if request.method == 'POST':
         try:
-            data = json.loads(request.body)  # Leer el cuerpo de la solicitud
+            data = json.loads(request.body)
             fecha = data.get('fecha')
             hora_inicio = data.get('hora_inicio')
             hora_fin = data.get('hora_fin')
@@ -549,6 +551,42 @@ def reservar_espacio(request, espacio_id):
             return JsonResponse({'success': False, 'error': str(e)})
 
     return JsonResponse({'success': False, 'error': 'Método no permitido'})
+
+@login_required
+def get_available_slots(request):
+    date = request.GET.get('date')
+    espacio_id = request.GET.get('espacio_id')
+    espacio = get_object_or_404(Espacio, id=espacio_id)
+
+    # Definir horarios disponibles (ajusta según tus necesidades)
+    start_time = datetime.strptime('08:00', '%H:%M').time()
+    end_time = datetime.strptime('22:00', '%H:%M').time()
+    slot_duration = timedelta(minutes=30)
+
+    # Obtener todas las reservas para ese día y espacio
+    reservas = Reserva.objects.filter(espacio=espacio, fecha=date)
+
+    available_slots = []
+    current_time = start_time
+    while current_time < end_time:
+        slot_end = (datetime.combine(datetime.min, current_time) + slot_duration).time()
+        if slot_end > end_time:
+            slot_end = end_time
+
+        is_available = not reservas.filter(
+            hora_inicio__lt=slot_end,
+            hora_fin__gt=current_time
+        ).exists()
+
+        if is_available:
+            available_slots.append({
+                'start': current_time.strftime('%H:%M'),
+                'end': slot_end.strftime('%H:%M')
+            })
+
+        current_time = slot_end
+
+    return JsonResponse({'slots': available_slots})
 
 @login_required
 def lista_reservas(request):

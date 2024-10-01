@@ -35,6 +35,7 @@ urlpatterns = [
     path('espacios/', views.espacios_disponibles, name='espacios_disponibles'),
     path('espacio/<int:espacio_id>/reservar/', views.reservar_espacio, name='reservar_espacio'),
     path('reservas/', views.lista_reservas, name='lista_reservas'),
+    path('api/get-available-slots/', views.get_available_slots, name='get_available_slots'),
     
     # Agrega más rutas según sea necesario
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
