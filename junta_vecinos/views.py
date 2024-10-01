@@ -21,6 +21,7 @@ from datetime import date
 from django.core.files.base import ContentFile
 import json
 from datetime import datetime, timedelta
+from django.db.models import Count
 
 
 
@@ -566,7 +567,7 @@ def get_available_slots(request):
     # Obtener todas las reservas para ese día y espacio
     reservas = Reserva.objects.filter(espacio=espacio, fecha=date)
 
-    available_slots = []
+    all_slots = []
     current_time = start_time
     while current_time < end_time:
         slot_end = (datetime.combine(datetime.min, current_time) + slot_duration).time()
@@ -578,20 +579,35 @@ def get_available_slots(request):
             hora_fin__gt=current_time
         ).exists()
 
-        if is_available:
-            available_slots.append({
-                'start': current_time.strftime('%H:%M'),
-                'end': slot_end.strftime('%H:%M')
-            })
+        all_slots.append({
+            'start': current_time.strftime('%H:%M'),
+            'end': slot_end.strftime('%H:%M'),
+            'available': is_available
+        })
 
         current_time = slot_end
 
-    return JsonResponse({'slots': available_slots})
+    return JsonResponse({'slots': all_slots})
 
+@user_passes_test(is_admin)
 @login_required
 def lista_reservas(request):
-    reservas = Reserva.objects.all()  # Obtener todas las reservas
-    return render(request, 'junta_vecinos/lista_reservas.html', {'reservas': reservas})
+    # Obtener todas las reservas
+    reservas = Reserva.objects.all()
+
+    # Agrupar las reservas por espacio y contar cuántas hay por espacio
+    reservas_por_espacio = Reserva.objects.values('espacio__nombre').annotate(total=Count('id')).order_by('espacio__nombre')
+
+    # Obtener nombres de los espacios y totales
+    espacios = [reserva['espacio__nombre'] for reserva in reservas_por_espacio]
+    totales = [reserva['total'] for reserva in reservas_por_espacio]
+
+    return render(request, 'junta_vecinos/lista_reservas.html', {
+        'reservas': reservas,
+        'espacios': espacios,
+        'totales': totales
+    })
+
 
 def generar_certificado_pdf(vecino, numero_certificado):
     # Renderizar el contenido HTML con los datos del vecino
