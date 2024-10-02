@@ -4,34 +4,73 @@
 
 {% block content %}
 <h2>Solicitudes de Certificados de Residencia</h2>
-<table class="table">
-    <thead>
-        <tr>
-            <th>Vecino</th>
-            <th>Fecha de Solicitud</th>
-            <th>Estado</th>
-            <th>Acciones</th>
-        </tr>
-    </thead>
-    <tbody>
-        {% for solicitud in solicitudes %}
-        <tr>
-            <td>{{ solicitud.vecino }}</td>
-            <td>{{ solicitud.fecha_solicitud }}</td>
-            <td>{{ solicitud.get_estado_display }}</td>
-            <td>
-                {% if solicitud.estado == 'Pendiente' %}
-                    <a href="{% url 'ver_solicitud' solicitud.id %}" class="btn btn-primary">Ver Solicitud</a>
-                {% elif solicitud.estado == 'Aprobado' %}
-                    <span class="text-success">La solicitud ya fue aprobada</span>
-                {% elif solicitud.estado == 'Rechazado' %}
-                    <span class="text-danger">La solicitud ya fue rechazada</span>
-                {% else %}
-                    <span class="text-muted">No hay acciones disponibles</span>
-                {% endif %}
-            </td>
-        </tr>
-        {% endfor %}
-    </tbody>
-</table>
+
+<div class="row">
+    <!-- Columna de la tabla (lista de solicitudes) -->
+    <div class="col-md-6">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Vecino</th>
+                    <th>Fecha de Solicitud</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for solicitud in solicitudes %}
+                <tr>
+                    <td>{{ solicitud.vecino }}</td>
+                    <td>{{ solicitud.fecha_solicitud }}</td>
+                    <td>{{ solicitud.get_estado_display }}</td>
+                    <td>
+                        {% if solicitud.estado == 'Pendiente' %}
+                            <a href="{% url 'ver_solicitud' solicitud.id %}" class="btn btn-primary">Ver Solicitud</a>
+                        {% elif solicitud.estado == 'Aprobado' %}
+                            <span class="text-success">La solicitud ya fue aprobada</span>
+                        {% elif solicitud.estado == 'Rechazado' %}
+                            <span class="text-danger">La solicitud ya fue rechazada</span>
+                        {% else %}
+                            <span class="text-muted">No hay acciones disponibles</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Columna del gráfico -->
+    <div class="col-md-6">
+        <!-- Contenedor para el gráfico -->
+        <canvas id="solicitudesChart" width="400" height="200"></canvas>
+
+        <!-- Botón para generar reporte PDF -->
+        <button class="btn btn-success mt-4" onclick="window.location.href='{% url 'generar_reporte_solicitudes_pdf' %}'">Generar Reporte PDF</button>
+    </div>
+</div>
+
+<!-- Script para Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    var ctx = document.getElementById('solicitudesChart').getContext('2d');
+    var solicitudesChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: ['Aprobadas', 'Rechazadas'],
+            datasets: [{
+                label: 'Solicitudes de Certificados',
+                data: [{{ aprobadas }}, {{ rechazadas }}],
+                backgroundColor: ['#28a745', '#dc3545'],
+            }]
+        },
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: true
+                }
+            }
+        }
+    });
+</script>
 {% endblock %}

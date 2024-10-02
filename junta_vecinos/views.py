@@ -249,7 +249,57 @@ def solicitar_certificado(request):
 @user_passes_test(is_admin)
 def gestionar_solicitudes(request):
     solicitudes = SolicitudCertificado.objects.all()
-    return render(request, 'junta_vecinos/gestionar_solicitudes.html', {'solicitudes': solicitudes})
+    
+    # Contar las solicitudes aprobadas y rechazadas
+    aprobadas = solicitudes.filter(estado='Aprobado').count()
+    rechazadas = solicitudes.filter(estado='Rechazado').count()
+    
+    return render(request, 'junta_vecinos/gestionar_solicitudes.html', {
+        'solicitudes': solicitudes,
+        'aprobadas': aprobadas,
+        'rechazadas': rechazadas
+    })
+
+@user_passes_test(is_admin)
+@login_required
+def generar_reporte_solicitudes_pdf(request):
+    # Crear el objeto HttpResponse con el tipo de contenido PDF
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="reporte_solicitudes.pdf"'
+
+    # Crear el PDF
+    p = canvas.Canvas(response, pagesize=A4)
+    ancho, alto = A4
+
+    # Título
+    p.setFont("Helvetica-Bold", 16)
+    p.drawString(100, alto - 50, "Reporte de Solicitudes de Certificados")
+
+    # Encabezados de la tabla
+    p.setFont("Helvetica-Bold", 12)
+    p.drawString(50, alto - 100, "Vecino")
+    p.drawString(200, alto - 100, "Fecha de Solicitud")
+    p.drawString(350, alto - 100, "Estado")
+
+    # Listar las solicitudes
+    p.setFont("Helvetica", 10)
+    y = alto - 120
+    solicitudes = SolicitudCertificado.objects.all().order_by('fecha_solicitud')
+    for solicitud in solicitudes:
+        if y < 50:
+            p.showPage()  # Crear nueva página si se acaba el espacio
+            y = alto - 50
+
+        p.drawString(50, y, f"{solicitud.vecino.nombres} {solicitud.vecino.apellidos}")
+        p.drawString(200, y, solicitud.fecha_solicitud.strftime("%Y-%m-%d"))
+        p.drawString(350, y, solicitud.get_estado_display())
+        y -= 20
+
+    # Finalizar el PDF
+    p.showPage()
+    p.save()
+    
+    return response
 
 @user_passes_test(is_admin)
 def ver_solicitud(request, id):

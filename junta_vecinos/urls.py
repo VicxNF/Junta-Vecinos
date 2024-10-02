@@ -37,6 +37,7 @@ urlpatterns = [
     path('reservas/', views.lista_reservas, name='lista_reservas'),
     path('api/get-available-slots/', views.get_available_slots, name='get_available_slots'),
     path('generar_reporte_pdf/', views.generar_reporte_pdf, name='generar_reporte_pdf'),
+    path('generar_reporte_solicitudes_pdf/', views.generar_reporte_solicitudes_pdf, name='generar_reporte_solicitudes_pdf'),
     
     # Agrega más rutas según sea necesario
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
