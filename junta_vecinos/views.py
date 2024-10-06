@@ -567,7 +567,24 @@ def eliminar_espacio(request, espacio_id):
 @login_required
 def espacios_disponibles(request):
     espacios = Espacio.objects.all()
-    return render(request, 'junta_vecinos/espacios_disponibles.html', {'espacios': espacios})
+    espacio_seleccionado = None
+    if request.method == 'GET' and 'espacio_id' in request.GET:
+        espacio_id = request.GET.get('espacio_id')
+        espacio_seleccionado = get_object_or_404(Espacio, id=espacio_id)
+    return render(request, 'junta_vecinos/espacios_disponibles.html', {
+        'espacios': espacios,
+        'espacio_seleccionado': espacio_seleccionado
+    })
+
+@login_required
+def get_espacio_info(request):
+    espacio_id = request.GET.get('espacio_id')
+    espacio = get_object_or_404(Espacio, id=espacio_id)
+    return JsonResponse({
+        'nombre': espacio.nombre,
+        'ubicacion': espacio.ubicacion,
+        'foto': espacio.foto.url if espacio.foto else '',
+    })
 
 @login_required
 def reservar_espacio(request, espacio_id):

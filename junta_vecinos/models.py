@@ -81,6 +81,8 @@ class Espacio(models.Model):
     nombre = models.CharField(max_length=100)
     descripcion = models.TextField()
     capacidad = models.IntegerField()
+    foto = models.ImageField(upload_to='espacios/', null=True, blank=True)
+    ubicacion = models.CharField(max_length=200, default='Ubicación no disponible')
 
     def __str__(self):
         return self.nombre

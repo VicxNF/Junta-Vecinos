@@ -11,10 +11,19 @@
                 <div class="card-body">
                     <h5 class="card-title">Selecciona un espacio</h5>
                     <select id="space-select" class="form-select">
+                        <option value="">Seleccione un espacio</option>
                         {% for espacio in espacios %}
                             <option value="{{ espacio.id }}">{{ espacio.nombre }}</option>
                         {% endfor %}
                     </select>
+                </div>
+            </div>
+            
+            <div id="espacio-info" class="card mt-3" style="width: 18rem; display: none;">
+                <img id="espacio-foto" src="" class="card-img-top" alt="Foto del espacio">
+                <div class="card-body">
+                    <h5 id="espacio-nombre" class="card-title"></h5>
+                    <p id="espacio-ubicacion" class="card-text"></p>
                 </div>
             </div>
         </div>
@@ -50,8 +59,20 @@
     
         document.getElementById('space-select').addEventListener('change', function() {
             selectedEspacioId = this.value;
-            if (selectedDate) {
-                loadTimeSlots(selectedDate);
+            if (selectedEspacioId) {
+                fetch(`/api/get-espacio-info/?espacio_id=${selectedEspacioId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        document.getElementById('espacio-foto').src = data.foto;
+                        document.getElementById('espacio-nombre').textContent = data.nombre;
+                        document.getElementById('espacio-ubicacion').textContent = data.ubicacion;
+                        document.getElementById('espacio-info').style.display = 'block';
+                    });
+                if (selectedDate) {
+                    loadTimeSlots(selectedDate);
+                }
+            } else {
+                document.getElementById('espacio-info').style.display = 'none';
             }
         });
     
@@ -109,5 +130,5 @@
               });
         }
     });
-    </script>
+</script>
 {% endblock %}
