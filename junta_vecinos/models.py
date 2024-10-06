@@ -50,14 +50,15 @@ class ProyectoVecinal(models.Model):
     ]
 
     vecino = models.ForeignKey(Vecino, on_delete=models.CASCADE)
-    titulo = models.CharField(max_length=255)
+    propuesta = models.CharField(max_length=255)  # Cambiado de titulo a propuesta
     descripcion = models.TextField()
     fecha_postulacion = models.DateField(auto_now_add=True)
     estado = models.CharField(max_length=10, choices=ESTADO_CHOICES, default='pendiente')
-    archivo_propuesta = models.FileField(upload_to='propuestas_proyectos/', blank=True, null=True)
+    evidencia = models.ImageField(upload_to='evidencias/', blank=True, null=True)  # Campo evidencia
+    razon_rechazo = models.TextField(null=True, blank=True)
 
     def __str__(self):
-        return f"{self.titulo} - {self.get_estado_display()}"
+        return f"{self.propuesta} - {self.get_estado_display()}"
 
 
 class Noticia(models.Model):

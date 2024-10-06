@@ -104,3 +104,7 @@ footer {
     color: white;
     text-align: center;
 }
+
+.text-danger {
+  color: red;
+}
