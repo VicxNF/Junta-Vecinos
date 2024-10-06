@@ -31,9 +31,19 @@
             <div id="calendar"></div>
         </div>
     </div>
-    <div class="row mt-4">
-        <div class="col-md-12">
-            <div id="time-slots" class="d-flex flex-wrap justify-content-start"></div>
+</div>
+
+<!-- Modal para mostrar los horarios disponibles -->
+<div class="modal fade" id="timeSlotModal" tabindex="-1" aria-labelledby="timeSlotModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="timeSlotModalLabel">Horarios Disponibles</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="time-slots" class="d-flex flex-wrap justify-content-start"></div>
+            </div>
         </div>
     </div>
 </div>
@@ -45,6 +55,7 @@
     document.addEventListener('DOMContentLoaded', function() {
         var selectedDate = '';
         var selectedEspacioId = '';
+        var timeSlotModal = new bootstrap.Modal(document.getElementById('timeSlotModal'));
     
         var calendarEl = document.getElementById('calendar');
         var calendar = new FullCalendar.Calendar(calendarEl, {
@@ -52,7 +63,11 @@
             initialView: 'dayGridMonth',
             dateClick: function(info) {
                 selectedDate = info.dateStr;
-                loadTimeSlots(selectedDate);
+                if (selectedEspacioId) {
+                    loadTimeSlots(selectedDate);
+                } else {
+                    alert('Por favor, selecciona un espacio primero.');
+                }
             }
         });
         calendar.render();
@@ -68,20 +83,12 @@
                         document.getElementById('espacio-ubicacion').textContent = data.ubicacion;
                         document.getElementById('espacio-info').style.display = 'block';
                     });
-                if (selectedDate) {
-                    loadTimeSlots(selectedDate);
-                }
             } else {
                 document.getElementById('espacio-info').style.display = 'none';
             }
         });
     
         function loadTimeSlots(date) {
-            if (!selectedEspacioId) {
-                alert('Por favor, selecciona un espacio primero.');
-                return;
-            }
-    
             fetch(`/api/get-available-slots/?date=${date}&espacio_id=${selectedEspacioId}`)
                 .then(response => response.json())
                 .then(data => {
@@ -100,6 +107,8 @@
                         }
                         timeSlotsContainer.appendChild(button);
                     });
+                    document.getElementById('timeSlotModalLabel').textContent = `Horarios Disponibles para ${date}`;
+                    timeSlotModal.show();
                 });
         }
     
@@ -119,7 +128,8 @@
               .then(data => {
                   if (data.success) {
                       alert('Reserva realizada con éxito');
-                      loadTimeSlots(selectedDate);  // Recargar los slots después de una reserva exitosa
+                      timeSlotModal.hide();
+                      calendar.refetchEvents();  // Actualizar el calendario si es necesario
                   } else {
                       alert('Error al realizar la reserva: ' + data.error);
                   }
