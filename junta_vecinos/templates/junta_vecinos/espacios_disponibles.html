@@ -53,92 +53,139 @@
 <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js'></script>
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        var selectedDate = '';
-        var selectedEspacioId = '';
-        var timeSlotModal = new bootstrap.Modal(document.getElementById('timeSlotModal'));
-    
-        var calendarEl = document.getElementById('calendar');
-        var calendar = new FullCalendar.Calendar(calendarEl, {
-            locale: 'es',
-            initialView: 'dayGridMonth',
-            dateClick: function(info) {
-                selectedDate = info.dateStr;
-                if (selectedEspacioId) {
-                    loadTimeSlots(selectedDate);
-                } else {
-                    alert('Por favor, selecciona un espacio primero.');
-                }
-            }
-        });
-        calendar.render();
-    
-        document.getElementById('space-select').addEventListener('change', function() {
-            selectedEspacioId = this.value;
+    var selectedDate = '';
+    var selectedEspacioId = '';
+    var timeSlotModal = new bootstrap.Modal(document.getElementById('timeSlotModal'));
+    var selectedSlots = [];
+
+    var calendarEl = document.getElementById('calendar');
+    var calendar = new FullCalendar.Calendar(calendarEl, {
+        locale: 'es',
+        initialView: 'dayGridMonth',
+        dateClick: function(info) {
+            selectedDate = info.dateStr;
             if (selectedEspacioId) {
-                fetch(`/api/get-espacio-info/?espacio_id=${selectedEspacioId}`)
-                    .then(response => response.json())
-                    .then(data => {
-                        document.getElementById('espacio-foto').src = data.foto;
-                        document.getElementById('espacio-nombre').textContent = data.nombre;
-                        document.getElementById('espacio-ubicacion').textContent = data.ubicacion;
-                        document.getElementById('espacio-info').style.display = 'block';
-                    });
+                loadTimeSlots(selectedDate);
             } else {
-                document.getElementById('espacio-info').style.display = 'none';
+                alert('Por favor, selecciona un espacio primero.');
             }
-        });
-    
-        function loadTimeSlots(date) {
-            fetch(`/api/get-available-slots/?date=${date}&espacio_id=${selectedEspacioId}`)
-                .then(response => response.json())
-                .then(data => {
-                    var timeSlotsContainer = document.getElementById('time-slots');
-                    timeSlotsContainer.innerHTML = '';
-                    data.slots.forEach(slot => {
-                        var button = document.createElement('button');
-                        button.className = slot.available ? 'btn btn-outline-primary m-1' : 'btn btn-danger m-1';
-                        button.textContent = `${slot.start} - ${slot.end}`;
-                        if (slot.available) {
-                            button.onclick = function() {
-                                reserveSlot(date, slot.start, slot.end);
-                            };
-                        } else {
-                            button.disabled = true;
-                        }
-                        timeSlotsContainer.appendChild(button);
-                    });
-                    document.getElementById('timeSlotModalLabel').textContent = `Horarios Disponibles para ${date}`;
-                    timeSlotModal.show();
-                });
-        }
-    
-        function reserveSlot(date, startTime, endTime) {
-            fetch(`/espacio/${selectedEspacioId}/reservar/`, {
-                method: 'POST',
-                headers: {
-                    'X-CSRFToken': '{{ csrf_token }}',
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    fecha: date,
-                    hora_inicio: startTime,
-                    hora_fin: endTime
-                })
-            }).then(response => response.json())
-              .then(data => {
-                  if (data.success) {
-                      alert('Reserva realizada con éxito');
-                      timeSlotModal.hide();
-                      calendar.refetchEvents();  // Actualizar el calendario si es necesario
-                  } else {
-                      alert('Error al realizar la reserva: ' + data.error);
-                  }
-              })
-              .catch(error => {
-                  console.error('Error:', error);
-                  alert('Error al realizar la reserva');
-              });
         }
     });
+    calendar.render();
+
+    document.getElementById('space-select').addEventListener('change', function() {
+        selectedEspacioId = this.value;
+        if (selectedEspacioId) {
+            fetch(`/api/get-espacio-info/?espacio_id=${selectedEspacioId}`)
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('espacio-foto').src = data.foto;
+                    document.getElementById('espacio-nombre').textContent = data.nombre;
+                    document.getElementById('espacio-ubicacion').textContent = data.ubicacion;
+                    document.getElementById('espacio-info').style.display = 'block';
+                });
+        } else {
+            document.getElementById('espacio-info').style.display = 'none';
+        }
+    });
+
+    function loadTimeSlots(date) {
+        fetch(`/api/get-available-slots/?date=${date}&espacio_id=${selectedEspacioId}`)
+            .then(response => response.json())
+            .then(data => {
+                var timeSlotsContainer = document.getElementById('time-slots');
+                timeSlotsContainer.innerHTML = '';
+                selectedSlots = [];
+                data.slots.forEach((slot, index) => {
+                    var button = document.createElement('button');
+                    button.className = slot.available ? 'btn btn-outline-primary m-1' : 'btn btn-danger m-1';
+                    button.textContent = `${slot.start} - ${slot.end}`;
+                    button.dataset.index = index;
+                    if (slot.available) {
+                        button.onclick = function() {
+                            toggleSlotSelection(this, index, data.slots);
+                        };
+                    } else {
+                        button.disabled = true;
+                    }
+                    timeSlotsContainer.appendChild(button);
+                });
+                var reserveButton = document.createElement('button');
+                reserveButton.className = 'btn btn-success mt-3';
+                reserveButton.textContent = 'Reservar';
+                reserveButton.onclick = function() {
+                    if (selectedSlots.length === 2) {
+                        reserveSlots(data.slots);
+                    } else {
+                        alert('Por favor, selecciona dos slots para hacer una reserva.');
+                    }
+                };
+                timeSlotsContainer.appendChild(reserveButton);
+                document.getElementById('timeSlotModalLabel').textContent = `Horarios Disponibles para ${date}`;
+                timeSlotModal.show();
+            });
+    }
+
+    function toggleSlotSelection(button, index, slots) {
+        var slotIndex = selectedSlots.indexOf(index);
+        if (slotIndex > -1) {
+            // Deseleccionar slot
+            selectedSlots.splice(slotIndex, 1);
+            button.classList.remove('btn-primary');
+            button.classList.add('btn-outline-primary');
+        } else {
+            // Seleccionar slot
+            if (selectedSlots.length < 2) {
+                selectedSlots.push(index);
+                button.classList.remove('btn-outline-primary');
+                button.classList.add('btn-primary');
+            } else {
+                // Ya hay dos slots seleccionados, deseleccionar el primero y seleccionar el nuevo
+                var firstSelectedButton = document.querySelector(`button[data-index="${selectedSlots[0]}"]`);
+                if (firstSelectedButton) {
+                    firstSelectedButton.classList.remove('btn-primary');
+                    firstSelectedButton.classList.add('btn-outline-primary');
+                }
+                selectedSlots.shift();
+                selectedSlots.push(index);
+                button.classList.remove('btn-outline-primary');
+                button.classList.add('btn-primary');
+            }
+        }
+        selectedSlots.sort((a, b) => a - b);
+    }
+
+    function reserveSlots(slots) {
+        var startTime = slots[selectedSlots[0]].start;
+        var endTime = slots[selectedSlots[1]].end;
+        
+        fetch(`/espacio/${selectedEspacioId}/reservar/`, {
+            method: 'POST',
+            headers: {
+                'X-CSRFToken': '{{ csrf_token }}',
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                fecha: selectedDate,
+                hora_inicio: startTime,
+                hora_fin: endTime
+            })
+        }).then(response => response.json())
+          .then(data => {
+              if (data.success) {
+                  alert('Reserva realizada con éxito');
+                  timeSlotModal.hide();
+                  calendar.refetchEvents();
+                  selectedSlots = [];
+              } else {
+                  alert('Error al realizar la reserva: ' + data.error);
+              }
+          })
+          .catch(error => {
+              console.error('Error:', error);
+              alert('Error al realizar la reserva');
+          });
+    }
+});
 </script>
 {% endblock %}

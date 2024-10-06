@@ -597,23 +597,27 @@ def reservar_espacio(request, espacio_id):
             hora_inicio = data.get('hora_inicio')
             hora_fin = data.get('hora_fin')
 
+            # Convertir las horas a objetos time
+            hora_inicio_obj = datetime.strptime(hora_inicio, '%H:%M').time()
+            hora_fin_obj = datetime.strptime(hora_fin, '%H:%M').time()
+
             # Verificar si ya existe una reserva para ese espacio, fecha y horas
             reservas_existentes = Reserva.objects.filter(
                 espacio=espacio,
                 fecha=fecha,
-                hora_inicio__lt=hora_fin,
-                hora_fin__gt=hora_inicio
+                hora_inicio__lt=hora_fin_obj,
+                hora_fin__gt=hora_inicio_obj
             )
             if reservas_existentes.exists():
-                return JsonResponse({'success': False, 'error': 'El espacio ya está reservado en ese horario.'})
+                return JsonResponse({'success': False, 'error': 'El espacio ya está reservado en parte o todo ese horario.'})
 
             # Crear la reserva
             reserva = Reserva.objects.create(
                 usuario=request.user,
                 espacio=espacio,
                 fecha=fecha,
-                hora_inicio=hora_inicio,
-                hora_fin=hora_fin
+                hora_inicio=hora_inicio_obj,
+                hora_fin=hora_fin_obj
             )
             return JsonResponse({'success': True})
         
