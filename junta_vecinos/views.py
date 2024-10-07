@@ -454,50 +454,47 @@ def ver_proyecto(request, id):
 @user_passes_test(is_admin)
 def aprobar_proyecto(request, id):
     proyecto = get_object_or_404(ProyectoVecinal, id=id)
-    
+
     if request.method == 'POST':
         form = CorreoAprobacionForm(request.POST)
         if form.is_valid():
-            # Cambiar estado y guardar
             proyecto.estado = 'aprobado'
             proyecto.save()
-            
             # Enviar correo
             send_mail(
                 'Proyecto Vecinal Aprobado',
-                form.cleaned_data['contenido'],
+                form.cleaned_data['contenido_correo'], 
                 settings.DEFAULT_FROM_EMAIL,
                 [proyecto.vecino.user.email]
             )
             messages.success(request, 'El proyecto ha sido aprobado y se ha enviado un correo al vecino.')
             return redirect('gestionar_proyectos')
+        else:
+            messages.error(request, 'Por favor corrige los errores en el formulario.')
+
     else:
         form = CorreoAprobacionForm()
 
-    return render(request, 'junta_vecinos/aprobar_proyecto.html', {'form': form, 'proyecto': proyecto})
+    return render(request, 'junta_vecinos/aprobar_proyecto.html', {
+        'form': form,
+        'proyecto': proyecto
+    })
 
 @user_passes_test(is_admin)
 def rechazar_proyecto(request, id):
     proyecto = get_object_or_404(ProyectoVecinal, id=id)
-    
+
     if request.method == 'POST':
-        form = CorreoRechazoForm(request.POST)
+        form = RechazoForm(request.POST)
         if form.is_valid():
-            # Cambiar estado y guardar
-            proyecto.estado = 'rechazado'
+            razon = form.cleaned_data['razon_rechazo']
+            proyecto.estado = 'rechazado' 
+            proyecto.razon_rechazo = razon  
             proyecto.save()
-            
-            # Enviar correo
-            send_mail(
-                'Proyecto Vecinal Rechazado',
-                form.cleaned_data['contenido'],
-                settings.DEFAULT_FROM_EMAIL,
-                [proyecto.vecino.user.email]
-            )
-            messages.success(request, 'El proyecto ha sido rechazado y se ha enviado un correo al vecino.')
+            messages.success(request, 'Proyecto rechazado con éxito.')
             return redirect('gestionar_proyectos')
     else:
-        form = CorreoRechazoForm()
+        form = RechazoForm()
 
     return render(request, 'junta_vecinos/rechazar_proyecto.html', {'form': form, 'proyecto': proyecto})
 
