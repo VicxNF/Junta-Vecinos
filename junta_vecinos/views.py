@@ -10,7 +10,7 @@ from .forms import *
 import uuid
 from django.utils import timezone
 from django.db import IntegrityError
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.utils.dateparse import parse_time
 import json
 from django.template.loader import render_to_string
@@ -19,6 +19,11 @@ from weasyprint import HTML
 from django.core.files.base import ContentFile
 from datetime import date
 from django.core.files.base import ContentFile
+import json
+from datetime import datetime, timedelta
+from django.db.models import Count
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
 
 
 
@@ -60,6 +65,14 @@ def index(request):
 def is_admin(user):
     return user.is_superuser  # Solo permite el acceso si el usuario es un superusuario (admin)
 
+def generar_username_unico(base_username):
+    username = base_username
+    n = 1
+    while User.objects.filter(username=username).exists():
+        username = f"{base_username}{n}"
+        n += 1
+    return username
+
 @user_passes_test(is_admin)
 @login_required
 def lista_vecinos(request):
@@ -70,10 +83,40 @@ def registro_vecino(request):
     if request.method == 'POST':
         form = RegistroVecinoForm(request.POST)
         if form.is_valid():
-            vecino = form.save()
-            auth_login(request, vecino.user)  # Iniciar sesión automáticamente después del registro
-            messages.success(request, 'Registro exitoso. Has iniciado sesión automáticamente.')
-            return redirect('index')
+            try:
+                # Generar un nombre de usuario único basado en el email
+                email = form.cleaned_data['email']
+                base_username = email.split('@')[0]
+                username = generar_username_unico(base_username)
+
+                # Crear el usuario
+                user = User.objects.create_user(
+                    username=username,
+                    email=email,
+                    password=form.cleaned_data['password'],
+                    first_name=form.cleaned_data['nombres'],
+                    last_name=form.cleaned_data['apellidos']
+                )
+                user.is_active = False
+                user.save()
+
+                # Crear el vecino asociado al usuario
+                vecino = Vecino.objects.create(
+                    user=user,
+                    nombres=form.cleaned_data['nombres'],
+                    apellidos=form.cleaned_data['apellidos'],
+                    direccion=form.cleaned_data['direccion'],
+                    telefono=form.cleaned_data['telefono'],
+                    fecha_nacimiento=form.cleaned_data['fecha_nacimiento']
+                )
+
+                # Crear la solicitud de registro
+                SolicitudRegistroVecino.objects.create(vecino=vecino)
+                
+                messages.success(request, 'Su solicitud de registro ha sido enviada y está pendiente de aprobación.')
+                return redirect('login')
+            except IntegrityError as e:
+                messages.error(request, 'Ha ocurrido un error durante el registro. Por favor, inténtelo de nuevo.')
     else:
         form = RegistroVecinoForm()
     return render(request, 'junta_vecinos/registro.html', {'form': form})
@@ -88,9 +131,12 @@ def user_login(request):
                 user = User.objects.get(email=email)
                 user = authenticate(request, username=user.username, password=password)
                 if user is not None:
-                    auth_login(request, user)
-                    messages.success(request, f"¡Bienvenido {user.get_full_name()}!")
-                    return redirect('index')
+                    if user.is_active:
+                        auth_login(request, user)
+                        messages.success(request, f"¡Bienvenido {user.get_full_name()}!")
+                        return redirect('index')
+                    else:
+                        messages.error(request, "Su cuenta aún no ha sido aprobada.")
                 else:
                     messages.error(request, "Correo electrónico o contraseña incorrectos.")
             except User.DoesNotExist:
@@ -105,6 +151,79 @@ def user_logout(request):
     logout(request)
     messages.success(request, "Has cerrado sesión exitosamente.")
     return redirect('login')
+
+@login_required
+def solicitudes_registro(request):
+    if not request.user.is_staff:
+        messages.error(request, 'No tienes permiso para acceder a esta página.')
+        return redirect('index')
+    solicitudes = SolicitudRegistroVecino.objects.filter(is_approved=False)
+    return render(request, 'junta_vecinos/solicitudes_registro.html', {'solicitudes': solicitudes})
+
+@login_required
+def aprobar_registro(request, solicitud_id):
+    if not request.user.is_staff:
+        messages.error(request, 'No tienes permiso para realizar esta acción.')
+        return redirect('index')
+    
+    solicitud = get_object_or_404(SolicitudRegistroVecino, id=solicitud_id)
+    vecino = solicitud.vecino
+    user = vecino.user
+    user.is_active = True
+    user.save()
+    
+    solicitud.is_approved = True
+    solicitud.save()
+
+    # Enviar correo al vecino
+    email = EmailMessage(
+        subject='Solicitud de Registro Aprobada',
+        body=f'Hola {vecino.nombres},\n\nNos complace informarte que tu solicitud de registro ha sido aprobada. Ya puedes ingresar al sistema.\n\nSaludos!',
+        from_email=settings.DEFAULT_FROM_EMAIL,
+        to=[user.email],
+    )
+    email.send()
+
+    messages.success(request, f'La solicitud de {vecino.nombres} {vecino.apellidos} ha sido aprobada y se le ha enviado un correo.')
+    return redirect('solicitudes_registro')
+
+@login_required
+def rechazar_registro(request, solicitud_id):
+    if not request.user.is_staff:
+        messages.error(request, 'No tienes permiso para realizar esta acción.')
+        return redirect('index')
+
+    solicitud = get_object_or_404(SolicitudRegistroVecino, id=solicitud_id)
+    vecino = solicitud.vecino
+    user = vecino.user
+
+    if request.method == 'POST':
+        form = RechazoCertificadoForm(request.POST)
+        if form.is_valid():
+            mensaje_rechazo = form.cleaned_data['mensaje_rechazo']
+            
+            # Eliminar al usuario y sus datos
+            user.delete()
+            vecino.delete()
+            solicitud.delete()
+
+            # Enviar correo al vecino con las razones del rechazo
+            send_mail(
+                'Solicitud de Registro Rechazada',
+                f'Hola {vecino.nombres} {vecino.apellidos},\n\n'
+                f'Lamentamos informarte que tu solicitud de registro ha sido rechazada por las siguientes razones:\n\n{mensaje_rechazo}\n\n'
+                f'Si tienes dudas, por favor contacta con la administración.',
+                settings.DEFAULT_FROM_EMAIL,
+                [user.email]
+            )
+
+            messages.error(request, 'La solicitud ha sido rechazada y se ha enviado un correo al vecino.')
+            return redirect('solicitudes_registro')
+    else:
+        form = RechazoCertificadoForm()
+
+    return render(request, 'junta_vecinos/rechazar_registro.html', {'solicitud': solicitud, 'form': form})
+
 
 @login_required
 def solicitar_certificado(request):
@@ -130,7 +249,57 @@ def solicitar_certificado(request):
 @user_passes_test(is_admin)
 def gestionar_solicitudes(request):
     solicitudes = SolicitudCertificado.objects.all()
-    return render(request, 'junta_vecinos/gestionar_solicitudes.html', {'solicitudes': solicitudes})
+    
+    # Contar las solicitudes aprobadas y rechazadas
+    aprobadas = solicitudes.filter(estado='Aprobado').count()
+    rechazadas = solicitudes.filter(estado='Rechazado').count()
+    
+    return render(request, 'junta_vecinos/gestionar_solicitudes.html', {
+        'solicitudes': solicitudes,
+        'aprobadas': aprobadas,
+        'rechazadas': rechazadas
+    })
+
+@user_passes_test(is_admin)
+@login_required
+def generar_reporte_solicitudes_pdf(request):
+    # Crear el objeto HttpResponse con el tipo de contenido PDF
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="reporte_solicitudes.pdf"'
+
+    # Crear el PDF
+    p = canvas.Canvas(response, pagesize=A4)
+    ancho, alto = A4
+
+    # Título
+    p.setFont("Helvetica-Bold", 16)
+    p.drawString(100, alto - 50, "Reporte de Solicitudes de Certificados")
+
+    # Encabezados de la tabla
+    p.setFont("Helvetica-Bold", 12)
+    p.drawString(50, alto - 100, "Vecino")
+    p.drawString(200, alto - 100, "Fecha de Solicitud")
+    p.drawString(350, alto - 100, "Estado")
+
+    # Listar las solicitudes
+    p.setFont("Helvetica", 10)
+    y = alto - 120
+    solicitudes = SolicitudCertificado.objects.all().order_by('fecha_solicitud')
+    for solicitud in solicitudes:
+        if y < 50:
+            p.showPage()  # Crear nueva página si se acaba el espacio
+            y = alto - 50
+
+        p.drawString(50, y, f"{solicitud.vecino.nombres} {solicitud.vecino.apellidos}")
+        p.drawString(200, y, solicitud.fecha_solicitud.strftime("%Y-%m-%d"))
+        p.drawString(350, y, solicitud.get_estado_display())
+        y -= 20
+
+    # Finalizar el PDF
+    p.showPage()
+    p.save()
+    
+    return response
 
 @user_passes_test(is_admin)
 def ver_solicitud(request, id):
@@ -400,8 +569,25 @@ def eliminar_espacio(request, espacio_id):
 
 @login_required
 def espacios_disponibles(request):
-    espacios = Espacio.objects.all()  # Obtenemos todos los espacios
-    return render(request, 'junta_vecinos/espacios_disponibles.html', {'espacios': espacios})
+    espacios = Espacio.objects.all()
+    espacio_seleccionado = None
+    if request.method == 'GET' and 'espacio_id' in request.GET:
+        espacio_id = request.GET.get('espacio_id')
+        espacio_seleccionado = get_object_or_404(Espacio, id=espacio_id)
+    return render(request, 'junta_vecinos/espacios_disponibles.html', {
+        'espacios': espacios,
+        'espacio_seleccionado': espacio_seleccionado
+    })
+
+@login_required
+def get_espacio_info(request):
+    espacio_id = request.GET.get('espacio_id')
+    espacio = get_object_or_404(Espacio, id=espacio_id)
+    return JsonResponse({
+        'nombre': espacio.nombre,
+        'ubicacion': espacio.ubicacion,
+        'foto': espacio.foto.url if espacio.foto else '',
+    })
 
 @login_required
 def reservar_espacio(request, espacio_id):
@@ -409,28 +595,32 @@ def reservar_espacio(request, espacio_id):
 
     if request.method == 'POST':
         try:
-            data = json.loads(request.body)  # Leer el cuerpo de la solicitud
+            data = json.loads(request.body)
             fecha = data.get('fecha')
             hora_inicio = data.get('hora_inicio')
             hora_fin = data.get('hora_fin')
+
+            # Convertir las horas a objetos time
+            hora_inicio_obj = datetime.strptime(hora_inicio, '%H:%M').time()
+            hora_fin_obj = datetime.strptime(hora_fin, '%H:%M').time()
 
             # Verificar si ya existe una reserva para ese espacio, fecha y horas
             reservas_existentes = Reserva.objects.filter(
                 espacio=espacio,
                 fecha=fecha,
-                hora_inicio__lt=hora_fin,
-                hora_fin__gt=hora_inicio
+                hora_inicio__lt=hora_fin_obj,
+                hora_fin__gt=hora_inicio_obj
             )
             if reservas_existentes.exists():
-                return JsonResponse({'success': False, 'error': 'El espacio ya está reservado en ese horario.'})
+                return JsonResponse({'success': False, 'error': 'El espacio ya está reservado en parte o todo ese horario.'})
 
             # Crear la reserva
             reserva = Reserva.objects.create(
                 usuario=request.user,
                 espacio=espacio,
                 fecha=fecha,
-                hora_inicio=hora_inicio,
-                hora_fin=hora_fin
+                hora_inicio=hora_inicio_obj,
+                hora_fin=hora_fin_obj
             )
             return JsonResponse({'success': True})
         
@@ -440,9 +630,60 @@ def reservar_espacio(request, espacio_id):
     return JsonResponse({'success': False, 'error': 'Método no permitido'})
 
 @login_required
+def get_available_slots(request):
+    date = request.GET.get('date')
+    espacio_id = request.GET.get('espacio_id')
+    espacio = get_object_or_404(Espacio, id=espacio_id)
+
+    # Definir horarios disponibles (ajusta según tus necesidades)
+    start_time = datetime.strptime('08:00', '%H:%M').time()
+    end_time = datetime.strptime('22:00', '%H:%M').time()
+    slot_duration = timedelta(minutes=30)
+
+    # Obtener todas las reservas para ese día y espacio
+    reservas = Reserva.objects.filter(espacio=espacio, fecha=date)
+
+    all_slots = []
+    current_time = start_time
+    while current_time < end_time:
+        slot_end = (datetime.combine(datetime.min, current_time) + slot_duration).time()
+        if slot_end > end_time:
+            slot_end = end_time
+
+        is_available = not reservas.filter(
+            hora_inicio__lt=slot_end,
+            hora_fin__gt=current_time
+        ).exists()
+
+        all_slots.append({
+            'start': current_time.strftime('%H:%M'),
+            'end': slot_end.strftime('%H:%M'),
+            'available': is_available
+        })
+
+        current_time = slot_end
+
+    return JsonResponse({'slots': all_slots})
+
+@user_passes_test(is_admin)
+@login_required
 def lista_reservas(request):
-    reservas = Reserva.objects.all()  # Obtener todas las reservas
-    return render(request, 'junta_vecinos/lista_reservas.html', {'reservas': reservas})
+    # Obtener todas las reservas
+    reservas = Reserva.objects.all()
+
+    # Agrupar las reservas por espacio y contar cuántas hay por espacio
+    reservas_por_espacio = Reserva.objects.values('espacio__nombre').annotate(total=Count('id')).order_by('espacio__nombre')
+
+    # Obtener nombres de los espacios y totales
+    espacios = [reserva['espacio__nombre'] for reserva in reservas_por_espacio]
+    totales = [reserva['total'] for reserva in reservas_por_espacio]
+
+    return render(request, 'junta_vecinos/lista_reservas.html', {
+        'reservas': reservas,
+        'espacios': espacios,
+        'totales': totales
+    })
+
 
 def generar_certificado_pdf(vecino, numero_certificado):
     # Renderizar el contenido HTML con los datos del vecino
@@ -456,3 +697,48 @@ def generar_certificado_pdf(vecino, numero_certificado):
     pdf_file = HTML(string=html_content).write_pdf()
 
     return pdf_file
+
+@user_passes_test(is_admin)
+@login_required
+def generar_reporte_pdf(request):
+    # Crear el objeto HttpResponse con el tipo de contenido de PDF
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="reporte_reservas.pdf"'
+
+    # Crear el PDF
+    p = canvas.Canvas(response, pagesize=A4)
+    ancho, alto = A4
+
+    # Título
+    p.setFont("Helvetica-Bold", 16)
+    p.drawString(100, alto - 50, "Reporte de Reservas de Espacios")
+
+    # Encabezados de la tabla
+    p.setFont("Helvetica-Bold", 12)
+    p.drawString(50, alto - 100, "Espacio")
+    p.drawString(200, alto - 100, "Fecha")
+    p.drawString(300, alto - 100, "Hora Inicio")
+    p.drawString(400, alto - 100, "Hora Fin")
+    p.drawString(500, alto - 100, "Usuario")
+
+    # Listar las reservas
+    p.setFont("Helvetica", 10)
+    y = alto - 120
+    reservas = Reserva.objects.all().order_by('fecha')
+    for reserva in reservas:
+        if y < 50:
+            p.showPage()  # Crear nueva página si se acaba el espacio
+            y = alto - 50
+
+        p.drawString(50, y, reserva.espacio.nombre)
+        p.drawString(200, y, reserva.fecha.strftime("%Y-%m-%d"))
+        p.drawString(300, y, reserva.hora_inicio.strftime("%H:%M"))
+        p.drawString(400, y, reserva.hora_fin.strftime("%H:%M"))
+        p.drawString(500, y, f"{reserva.usuario.first_name} {reserva.usuario.last_name}")
+        y -= 20
+
+    # Finalizar el PDF
+    p.showPage()
+    p.save()
+    
+    return response

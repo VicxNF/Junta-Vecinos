@@ -12,6 +12,14 @@ class Vecino(models.Model):
 
     def __str__(self):
         return f"{self.nombres} {self.apellidos}"
+
+class SolicitudRegistroVecino(models.Model):
+    vecino = models.OneToOneField(Vecino, on_delete=models.CASCADE)
+    is_approved = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Solicitud de registro para {self.vecino.nombres} {self.vecino.apellidos}"
     
 class SolicitudCertificado(models.Model):
     ESTADO_CHOICES = [
@@ -74,6 +82,8 @@ class Espacio(models.Model):
     nombre = models.CharField(max_length=100)
     descripcion = models.TextField()
     capacidad = models.IntegerField()
+    foto = models.ImageField(upload_to='espacios/', null=True, blank=True)
+    ubicacion = models.CharField(max_length=200, default='Ubicación no disponible')
 
     def __str__(self):
         return self.nombre

@@ -10,6 +10,9 @@ urlpatterns = [
     path('registro/', views.registro_vecino, name='registro_vecino'),
     path('login/', views.user_login, name='login'),
     path('logout/', views.user_logout, name='logout'),
+    path('registros/', views.solicitudes_registro, name='solicitudes_registro'),
+    path('aprobar/<int:solicitud_id>/', views.aprobar_registro, name='aprobar_registro'),
+    path('rechazar/<int:solicitud_id>/', views.rechazar_registro, name='rechazar_registro'),
     path('solicitar/', views.solicitar_certificado, name='solicitar_certificado'),
     path('gestionar/', views.gestionar_solicitudes, name='gestionar_solicitudes'),
     path('ver-solicitud/<int:id>/', views.ver_solicitud, name='ver_solicitud'),
@@ -32,5 +35,10 @@ urlpatterns = [
     path('espacios/', views.espacios_disponibles, name='espacios_disponibles'),
     path('espacio/<int:espacio_id>/reservar/', views.reservar_espacio, name='reservar_espacio'),
     path('reservas/', views.lista_reservas, name='lista_reservas'),
+    path('api/get-available-slots/', views.get_available_slots, name='get_available_slots'),
+    path('generar_reporte_pdf/', views.generar_reporte_pdf, name='generar_reporte_pdf'),
+    path('generar_reporte_solicitudes_pdf/', views.generar_reporte_solicitudes_pdf, name='generar_reporte_solicitudes_pdf'),
+    path('api/get-espacio-info/', views.get_espacio_info, name='get_espacio_info'),
+
     # Agrega más rutas según sea necesario
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

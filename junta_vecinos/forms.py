@@ -14,17 +14,22 @@ class RegistroVecinoForm(forms.ModelForm):
         model = Vecino
         fields = ['nombres', 'apellidos', 'direccion', 'telefono', 'fecha_nacimiento']
 
+    def clean_email(self):
+        email = self.cleaned_data.get('email')
+        # Verifica si el correo electrónico ya existe
+        if User.objects.filter(email=email).exists():
+            raise forms.ValidationError("Este correo electrónico ya está en uso.")
+        return email
+
     def save(self, commit=True):
         email = self.cleaned_data['email']
         password = self.cleaned_data['password']
         nombres = self.cleaned_data['nombres']
         apellidos = self.cleaned_data['apellidos']
         
-        # Asegúrate de usar un nombre de usuario único
-        username = email.split('@')[0]  # Puedes usar una parte del email como nombre de usuario, por ejemplo
-        
+        # Usar el correo electrónico como nombre de usuario
         user, created = User.objects.get_or_create(
-            username=username,
+            username=email,  # Usa el email como el nombre de usuario
             defaults={
                 'password': password,
                 'email': email,
@@ -66,6 +71,22 @@ class DocumentoCertificadoForm(forms.ModelForm):
 class LoginForm(forms.Form):
     email = forms.EmailField(label="Correo Electrónico")
     password = forms.CharField(label="Contraseña", widget=forms.PasswordInput)
+
+    def clean(self):
+        email = self.cleaned_data.get('email')
+        password = self.cleaned_data.get('password')
+
+        # Verificar si el usuario existe y las credenciales son correctas
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            raise forms.ValidationError("El correo electrónico no está registrado.")
+
+        if not user.check_password(password):
+            raise forms.ValidationError("Contraseña incorrecta.")
+        
+        return self.cleaned_data
+
 
 class EnviarCertificadoForm(forms.ModelForm):
     contenido_correo = forms.CharField(widget=forms.Textarea(attrs={'rows': 5, 'placeholder': 'Escribe el contenido del correo'}), label="Contenido del Correo")
