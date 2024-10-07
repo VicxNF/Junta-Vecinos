@@ -39,6 +39,11 @@ urlpatterns = [
     path('generar_reporte_pdf/', views.generar_reporte_pdf, name='generar_reporte_pdf'),
     path('generar_reporte_solicitudes_pdf/', views.generar_reporte_solicitudes_pdf, name='generar_reporte_solicitudes_pdf'),
     path('api/get-espacio-info/', views.get_espacio_info, name='get_espacio_info'),
+    path('espacio/<int:espacio_id>/reservar/', views.reservar_espacio, name='reservar_espacio'),
+    path('webpay-retorno/', views.webpay_retorno, name='webpay_retorno'),
+    path('reserva-exitosa/', views.reserva_exitosa, name='reserva_exitosa'),
+    path('error-reserva/', views.error_reserva, name='error_reserva'),
+    path('pago-fallido/', views.pago_fallido, name='pago_fallido'),
 
     # Agrega más rutas según sea necesario
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

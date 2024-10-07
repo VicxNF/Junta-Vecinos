@@ -1,0 +1,12 @@
+{% extends 'junta_vecinos/base.html' %}
+
+{% block title %}Registro de Vecinos{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>Pago Fallido</h1>
+    <p>Lo sentimos, tu pago no pudo ser procesado. Por favor, inténtalo nuevamente.</p>
+    <a href="{% url 'espacios_disponibles' %}">Volver a intentar la reserva</a>  <!-- Cambia 'reserva_nueva' por la URL correcta de la vista de nueva reserva -->
+    <a href="{% url 'index' %}">Volver a la página principal</a>
+</div>
+{% endblock %}

@@ -141,3 +141,10 @@ EMAIL_HOST_USER = 'victormanuelnf12@gmail.com'
 EMAIL_HOST_PASSWORD = 'qane qcey dmbz zjbr'
 DEFAULT_FROM_EMAIL = 'victormanuelnf12@gmail.com'
 SITE_URL = 'http://localhost:8000'  # Cambia esto por la URL de tu sitio
+
+SESSION_ENGINE = 'django.contrib.sessions.backends.db'
+
+
+WEBPAY_COMMERCE_CODE = '597055555532'
+WEBPAY_API_KEY = '579B532A7440BB0C9079DED94D31EA1615BACEB56610332264630D42D0A36B1C'
+WEBPAY_ENVIRONMENT = 'integration'

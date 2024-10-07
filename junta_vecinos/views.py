@@ -10,20 +10,26 @@ from .forms import *
 import uuid
 from django.utils import timezone
 from django.db import IntegrityError
-from django.http import JsonResponse, HttpResponse
+from django.http import HttpResponseBadRequest, JsonResponse, HttpResponse
 from django.utils.dateparse import parse_time
 import json
 from django.template.loader import render_to_string
 from django.http import HttpResponse
 from weasyprint import HTML
 from django.core.files.base import ContentFile
-from datetime import date
+from datetime import datetime, date
 from django.core.files.base import ContentFile
 import json
 from datetime import datetime, timedelta
 from django.db.models import Count
 from reportlab.lib.pagesizes import A4
 from reportlab.pdfgen import canvas
+from django.shortcuts import redirect
+from django.urls import reverse
+from transbank.webpay.webpay_plus.transaction import Transaction
+from django.views.decorators.csrf import csrf_exempt
+from decimal import Decimal
+
 
 
 
@@ -611,20 +617,95 @@ def reservar_espacio(request, espacio_id):
             if reservas_existentes.exists():
                 return JsonResponse({'success': False, 'error': 'El espacio ya está reservado en parte o todo ese horario.'})
 
-            # Crear la reserva
-            reserva = Reserva.objects.create(
-                usuario=request.user,
-                espacio=espacio,
-                fecha=fecha,
-                hora_inicio=hora_inicio_obj,
-                hora_fin=hora_fin_obj
-            )
-            return JsonResponse({'success': True})
+            # Calcular el monto a pagar (esto dependerá de tu lógica de negocio)
+            monto = calcular_monto(espacio, hora_inicio_obj, hora_fin_obj)
+
+            # Iniciar transacción WebPay
+            buy_order = f"RES-{espacio.id}-{request.user.id}-{int(datetime.now().timestamp())}"
+            session_id = request.session.session_key
+            return_url = request.build_absolute_uri(reverse('webpay_retorno'))
+
+            transaction = Transaction()
+            response = transaction.create(buy_order, session_id, monto, return_url)
+
+            # Guardar datos de la reserva en sesión para procesarla después del pago
+            request.session['reserva_pendiente'] = {
+                'espacio_id': espacio.id,
+                'fecha': fecha,
+                'hora_inicio': hora_inicio,
+                'hora_fin': hora_fin,
+                'monto': monto,
+                'buy_order': buy_order
+            }
+
+            # Devolver la URL de pago y el token para que el frontend redirija
+            return JsonResponse({
+                'success': True,
+                'payment_url': response['url'],
+                'token': response['token']
+            })
         
         except Exception as e:
             return JsonResponse({'success': False, 'error': str(e)})
 
     return JsonResponse({'success': False, 'error': 'Método no permitido'})
+
+def calcular_monto(espacio, hora_inicio, hora_fin):
+    # Calcular la duración en horas
+    duracion = datetime.combine(datetime.min, hora_fin) - datetime.combine(datetime.min, hora_inicio)
+    horas = Decimal(duracion.total_seconds()) / Decimal(3600)  # Convertimos a Decimal
+
+    # Multiplicar el precio por hora (Decimal) con las horas (Decimal)
+    return int(espacio.precio_por_hora * horas)
+
+@csrf_exempt
+def webpay_retorno(request):
+    if request.method == 'POST' or request.method == 'GET':
+        token = request.POST.get('token_ws') if request.method == 'POST' else request.GET.get('token_ws')
+        
+        if not token:
+            return render(request, 'junta_vecinos/error_reserva.html', {'error': 'Token de pago no recibido'})
+        
+        transaction = Transaction()
+        response = transaction.commit(token)
+
+        if response['response_code'] == 0:
+            # Pago exitoso
+            reserva_data = request.session.get('reserva_pendiente')
+            if reserva_data and reserva_data['buy_order'] == response['buy_order']:
+                # Crear la reserva
+                espacio = get_object_or_404(Espacio, id=reserva_data['espacio_id'])
+                reserva = Reserva.objects.create(
+                    usuario=request.user,
+                    espacio=espacio,
+                    fecha=reserva_data['fecha'],
+                    hora_inicio=datetime.strptime(reserva_data['hora_inicio'], '%H:%M').time(),
+                    hora_fin=datetime.strptime(reserva_data['hora_fin'], '%H:%M').time(),
+                    monto_pagado=response['amount']
+                )
+                del request.session['reserva_pendiente']
+                return render(request, 'junta_vecinos/reserva_exitosa.html', {'reserva': reserva})
+            else:
+                return render(request, 'junta_vecinos/error_reserva.html', {'error': 'Datos de reserva no coinciden'})
+        else:
+            # Pago fallido
+            return render(request, 'junta_vecinos/pago_fallido.html')
+    
+    return HttpResponseBadRequest('Método no permitido')
+
+# Vista para reserva exitosa
+def reserva_exitosa(request):
+    return render(request, 'junta_vecinos/reserva_exitosa.html')
+
+# Vista para error en la reserva
+def error_reserva(request):
+    error = "Hubo un problema con tu reserva."  # Puedes pasar un mensaje de error personalizado
+    return render(request, 'junta_vecinos/error_reserva.html', {'error': error})
+
+# Vista para pago fallido
+def pago_fallido(request):
+    return render(request, 'junta_vecinos/pago_fallido.html')
+
 
 @login_required
 def get_available_slots(request):

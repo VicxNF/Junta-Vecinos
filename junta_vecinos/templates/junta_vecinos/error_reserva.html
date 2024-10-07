@@ -1,0 +1,13 @@
+{% extends 'junta_vecinos/base.html' %}
+
+{% block title %}Registro de Vecinos{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h1>Error en la Reserva</h1>
+    <p>Lo sentimos, ocurrió un error al procesar tu reserva.</p>
+    <p><strong>Error:</strong> {{ error }}</p>
+    <a href="{% url 'index' %}">Volver a la página principal</a>
+    <a href="{% url 'espacios_disponibles' %}">Intentar de nuevo</a>  <!-- Cambia 'reserva_nueva' por la URL correcta de la vista de nueva reserva -->
+</div>
+{% endblock %}

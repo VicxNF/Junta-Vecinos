@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
+from decimal import Decimal
 
 # Modelo para representar a un vecino
 class Vecino(models.Model):
@@ -92,6 +93,8 @@ class Espacio(models.Model):
     capacidad = models.IntegerField()
     foto = models.ImageField(upload_to='espacios/', null=True, blank=True)
     ubicacion = models.CharField(max_length=200, default='Ubicación no disponible')
+    precio_por_hora = models.DecimalField(max_digits=10, decimal_places=2)  # Agregar este campo
+
 
     def __str__(self):
         return self.nombre
@@ -102,6 +105,7 @@ class Reserva(models.Model):
     fecha = models.DateField()
     hora_inicio = models.TimeField()
     hora_fin = models.TimeField()
+    monto_pagado = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))  # Agrega este campo
 
     def __str__(self):
         return f"{self.espacio.nombre} reservado por {self.usuario.username} el {self.fecha} de {self.hora_inicio} a {self.hora_fin}"
