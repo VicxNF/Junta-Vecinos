@@ -8,17 +8,24 @@ class RegistroVecinoForm(forms.ModelForm):
     password = forms.CharField(label="Contraseña", widget=forms.PasswordInput)
     email = forms.EmailField(label="Correo Electrónico")
     fecha_nacimiento = forms.DateField(widget=forms.DateInput(attrs={'type': 'date'}), label="Fecha de Nacimiento")
+    rut = forms.CharField(label="RUT", max_length=12)
+    comuna = forms.ChoiceField(label="Comuna", choices=Vecino.COMUNA_CHOICES)
 
     class Meta:
         model = Vecino
-        fields = ['nombres', 'apellidos', 'direccion', 'telefono', 'fecha_nacimiento']
+        fields = ['nombres', 'apellidos', 'direccion', 'telefono', 'fecha_nacimiento', 'rut', 'comuna']
 
     def clean_email(self):
         email = self.cleaned_data.get('email')
-        # Verifica si el correo electrónico ya existe
         if User.objects.filter(email=email).exists():
             raise forms.ValidationError("Este correo electrónico ya está en uso.")
         return email
+
+    def clean_rut(self):
+        rut = self.cleaned_data.get('rut')
+        if Vecino.objects.filter(rut=rut).exists():
+            raise forms.ValidationError("Este RUT ya está registrado.")
+        return rut
 
     def save(self, commit=True):
         email = self.cleaned_data['email']
@@ -26,9 +33,8 @@ class RegistroVecinoForm(forms.ModelForm):
         nombres = self.cleaned_data['nombres']
         apellidos = self.cleaned_data['apellidos']
         
-        # Usar el correo electrónico como nombre de usuario
         user, created = User.objects.get_or_create(
-            username=email,  # Usa el email como el nombre de usuario
+            username=email,
             defaults={
                 'password': password,
                 'email': email,
@@ -44,9 +50,12 @@ class RegistroVecinoForm(forms.ModelForm):
         vecino.user = user
         vecino.nombres = nombres
         vecino.apellidos = apellidos
+        vecino.rut = self.cleaned_data['rut']
+        vecino.comuna = self.cleaned_data['comuna']
         if commit:
             vecino.save()
         return vecino
+
     
 class SolicitudCertificadoForm(forms.ModelForm):
     class Meta:

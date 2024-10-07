@@ -3,15 +3,24 @@ from django.contrib.auth.models import User
 
 # Modelo para representar a un vecino
 class Vecino(models.Model):
+    COMUNA_CHOICES = [
+        ('ÑUÑOA', 'Ñuñoa'),
+        ('PUENTE_ALTO', 'Puente Alto'),
+        ('LA_FLORIDA', 'La Florida'),
+    ]
+
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     nombres = models.CharField(max_length=255)
     apellidos = models.CharField(max_length=255)
     direccion = models.CharField(max_length=255)
     telefono = models.CharField(max_length=15)
     fecha_nacimiento = models.DateField()
+    rut = models.CharField(max_length=12, unique=True)  # Agregado campo RUT
+    comuna = models.CharField(max_length=20, choices=COMUNA_CHOICES, default='Ñuñoa')  # Agregado campo Comuna con opciones
 
     def __str__(self):
         return f"{self.nombres} {self.apellidos}"
+
 
 class SolicitudRegistroVecino(models.Model):
     vecino = models.OneToOneField(Vecino, on_delete=models.CASCADE)
