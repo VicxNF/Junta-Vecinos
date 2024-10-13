@@ -45,5 +45,7 @@ urlpatterns = [
     path('error-reserva/', views.error_reserva, name='error_reserva'),
     path('pago-fallido/', views.pago_fallido, name='pago_fallido'),
 
+]
     # Agrega más rutas según sea necesario
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

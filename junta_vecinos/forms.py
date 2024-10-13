@@ -29,32 +29,32 @@ class RegistroVecinoForm(forms.ModelForm):
         return rut
 
     def save(self, commit=True):
-        email = self.cleaned_data['email']
-        password = self.cleaned_data['password']
-        nombres = self.cleaned_data['nombres']
-        apellidos = self.cleaned_data['apellidos']
-        
-        user, created = User.objects.get_or_create(
-            username=email,
-            defaults={
-                'password': password,
-                'email': email,
-                'first_name': nombres,
-                'last_name': apellidos
-            }
+        user = User.objects.create_user(
+            username=self.cleaned_data['email'],
+            email=self.cleaned_data['email'],
+            password=self.cleaned_data['password'],
+            first_name=self.cleaned_data['nombres'],
+            last_name=self.cleaned_data['apellidos']
         )
-        if created:
-            user.set_password(password)
-            user.save()
+        user.is_active = False
+        user.save()
         
         vecino = super().save(commit=False)
         vecino.user = user
-        vecino.nombres = nombres
-        vecino.apellidos = apellidos
-        vecino.rut = self.cleaned_data['rut']
         vecino.comuna = self.cleaned_data['comuna']
+        
+        try:
+            administrador = AdministradorComuna.objects.get(comuna=vecino.comuna)
+            vecino.administrador = administrador
+        except AdministradorComuna.DoesNotExist:
+            # Manejar el caso en que no exista un administrador para la comuna
+            # Podrías lanzar una excepción, establecer un valor por defecto, o manejarlo de otra manera
+            pass
+        
         if commit:
             vecino.save()
+            SolicitudRegistroVecino.objects.create(vecino=vecino)
+        
         return vecino
 
     
@@ -177,12 +177,26 @@ class NoticiaForm(forms.ModelForm):
 class EspacioForm(forms.ModelForm):
     class Meta:
         model = Espacio
-        fields = ['nombre', 'descripcion', 'capacidad']
+        fields = ['nombre', 'descripcion', 'capacidad', 'foto', 'ubicacion', 'precio_por_hora']
         widgets = {
             'nombre': forms.TextInput(attrs={'class': 'form-control'}),
             'descripcion': forms.Textarea(attrs={'class': 'form-control'}),
             'capacidad': forms.NumberInput(attrs={'class': 'form-control'}),
+            'ubicacion': forms.TextInput(attrs={'class': 'form-control'}),
+            'precio_por_hora': forms.NumberInput(attrs={'class': 'form-control'}),
         }
+
+    def __init__(self, *args, **kwargs):
+        self.admin = kwargs.pop('admin', None)
+        super(EspacioForm, self).__init__(*args, **kwargs)
+
+    def save(self, commit=True):
+        espacio = super(EspacioForm, self).save(commit=False)
+        if self.admin:
+            espacio.comuna = self.admin.administradorcomuna
+        if commit:
+            espacio.save()
+        return espacio
 
 class RechazoForm(forms.Form):
     razon_rechazo = forms.CharField(

@@ -3,7 +3,7 @@
 {% block title %}Gestionar Solicitudes de Registro{% endblock %}
 
 {% block content %}
-<h2>Solicitudes de Registro de Vecinos</h2>
+<h2>Solicitudes de Registro de Vecinos - {{ request.user.administradorcomuna.get_comuna_display }}</h2>
 <table class="table">
     <thead>
         <tr>
@@ -32,7 +32,7 @@
         </tr>
         {% empty %}
         <tr>
-            <td colspan="5" class="text-center">No hay solicitudes de registro pendientes.</td>
+            <td colspan="5" class="text-center">No hay solicitudes de registro pendientes para {{ request.user.administradorcomuna.get_comuna_display }}.</td>
         </tr>
         {% endfor %}
     </tbody>

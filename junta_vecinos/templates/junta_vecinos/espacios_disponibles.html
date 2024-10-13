@@ -19,11 +19,11 @@
                 </div>
             </div>
             
-            <div id="espacio-info" class="card mt-3" style="width: 18rem; display: none;">
-                <img id="espacio-foto" src="" class="card-img-top" alt="Foto del espacio">
+            <div id="espacio-info" class="card mt-3" style="width: 18rem; display: {% if espacio_seleccionado %}block{% else %}none{% endif %};">
+                <img id="espacio-foto" src="{{ espacio_seleccionado.foto.url }}" class="card-img-top" alt="Foto del espacio">
                 <div class="card-body">
-                    <h5 id="espacio-nombre" class="card-title"></h5>
-                    <p id="espacio-ubicacion" class="card-text"></p>
+                    <h5 id="espacio-nombre" class="card-title">{{ espacio_seleccionado.nombre }}</h5>
+                    <p id="espacio-ubicacion" class="card-text">{{ espacio_seleccionado.ubicacion }}</p>
                 </div>
             </div>
         </div>

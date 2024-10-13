@@ -2,6 +2,20 @@ from django.db import models
 from django.contrib.auth.models import User
 from decimal import Decimal
 
+class AdministradorComuna(models.Model):
+    COMUNA_CHOICES = [
+        ('ÑUÑOA', 'Ñuñoa'),
+        ('PUENTE_ALTO', 'Puente Alto'),
+        ('LA_FLORIDA', 'La Florida'),
+    ]
+
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    comuna = models.CharField(max_length=20, choices=COMUNA_CHOICES, unique=True)
+
+    def __str__(self):
+        return f"Administrador de {self.get_comuna_display()}"
+
+
 # Modelo para representar a un vecino
 class Vecino(models.Model):
     COMUNA_CHOICES = [
@@ -16,11 +30,17 @@ class Vecino(models.Model):
     direccion = models.CharField(max_length=255)
     telefono = models.CharField(max_length=15)
     fecha_nacimiento = models.DateField()
-    rut = models.CharField(max_length=12, unique=True)  # Agregado campo RUT
-    comuna = models.CharField(max_length=20, choices=COMUNA_CHOICES, default='Ñuñoa')  # Agregado campo Comuna con opciones
+    rut = models.CharField(max_length=12, unique=True)
+    comuna = models.CharField(max_length=20, choices=COMUNA_CHOICES, default='ÑUÑOA')
+    administrador = models.ForeignKey(AdministradorComuna, on_delete=models.SET_NULL, null=True, related_name='vecinos')
 
     def __str__(self):
         return f"{self.nombres} {self.apellidos}"
+
+    def save(self, *args, **kwargs):
+        if not self.administrador:
+            self.administrador = AdministradorComuna.objects.get(comuna=self.comuna)
+        super().save(*args, **kwargs)
 
 
 class SolicitudRegistroVecino(models.Model):
@@ -83,10 +103,12 @@ class Noticia(models.Model):
     titulo = models.CharField(max_length=255)
     contenido = models.TextField()
     fecha_publicacion = models.DateField(auto_now_add=True)
-    imagen = models.ImageField(upload_to='imagenes_noticias/', blank=True, null=True)  # Nuevo campo para la imagen
+    imagen = models.ImageField(upload_to='imagenes_noticias/', blank=True, null=True)
+    comuna = models.ForeignKey(AdministradorComuna, on_delete=models.CASCADE, related_name='noticias')
 
     def __str__(self):
         return self.titulo
+
 
 class Espacio(models.Model):
     nombre = models.CharField(max_length=100)
@@ -94,8 +116,8 @@ class Espacio(models.Model):
     capacidad = models.IntegerField()
     foto = models.ImageField(upload_to='espacios/', null=True, blank=True)
     ubicacion = models.CharField(max_length=200, default='Ubicación no disponible')
-    precio_por_hora = models.DecimalField(max_digits=10, decimal_places=2)  # Agregar este campo
-
+    precio_por_hora = models.DecimalField(max_digits=10, decimal_places=2)
+    comuna = models.ForeignKey(AdministradorComuna, on_delete=models.CASCADE, related_name='espacios')
 
     def __str__(self):
         return self.nombre

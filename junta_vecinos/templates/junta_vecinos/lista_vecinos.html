@@ -4,7 +4,7 @@
 
 {% block content %}
 <div class="container mt-5">
-    <h2 class="mb-4">Lista de Vecinos</h2>
+    <h2 class="mb-4">Lista de Vecinos - {{ request.user.administradorcomuna.get_comuna_display }}</h2>
     <ul class="list-group">
         {% for vecino in vecinos %}
             <li class="list-group-item d-flex justify-content-between align-items-center">
@@ -12,6 +12,7 @@
                     <h5>{{ vecino.nombres }} {{ vecino.apellidos }}</h5>
                     <p>{{ vecino.direccion }}</p>
                     <small>{{ vecino.telefono }}</small>
+                    <small class="d-block">Comuna: {{ vecino.get_comuna_display }}</small>
                 </div>
                 <a href="#" class="btn btn-primary">Ver Detalles</a>
             </li>

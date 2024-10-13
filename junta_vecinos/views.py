@@ -46,17 +46,26 @@ def index(request):
     noticias = []
     espacios = []
     reservas = []
+    comuna = ""
 
     if request.user.is_authenticated:
         if request.user.is_superuser:
-            vecinos = Vecino.objects.all()[:5]  # Muestra solo los primeros 5 vecinos
-            solicitudes = SolicitudCertificado.objects.all()[:5]  # Muestra solo las primeras 5 solicitudes
-            postulaciones = ProyectoVecinal.objects.all()[:5]  # Vista reducida de postulaciones (primeros 5)
-            espacios = Espacio.objects.all()[:5] 
-            reservas = Reserva.objects.all()[:5] 
-
-        # Todos los usuarios, incluidos vecinos, verán las noticias
-        noticias = Noticia.objects.all().order_by('-fecha_publicacion')
+            admin = AdministradorComuna.objects.get(user=request.user)
+            comuna = admin.get_comuna_display()
+            
+            vecinos = Vecino.objects.filter(administrador=admin)[:5]
+            solicitudes = SolicitudCertificado.objects.filter(vecino__administrador=admin)[:5]
+            postulaciones = ProyectoVecinal.objects.filter(vecino__administrador=admin)[:5]
+            espacios = Espacio.objects.filter(comuna=admin)[:5]
+            reservas = Reserva.objects.filter(espacio__comuna=admin)[:5]
+            noticias = Noticia.objects.filter(comuna=admin).order_by('-fecha_publicacion')[:5]
+        else:
+            try:
+                vecino = Vecino.objects.get(user=request.user)
+                comuna = vecino.get_comuna_display()
+                noticias = Noticia.objects.filter(comuna__comuna=vecino.comuna).order_by('-fecha_publicacion')[:5]
+            except Vecino.DoesNotExist:
+                noticias = []
 
     return render(request, 'junta_vecinos/index.html', {
         'vecinos': vecinos,
@@ -64,12 +73,13 @@ def index(request):
         'postulaciones': postulaciones,
         'noticias': noticias,
         'espacios': espacios,
-        'reservas': reservas
+        'reservas': reservas,
+        'comuna': comuna
     })
 
 
 def is_admin(user):
-    return user.is_superuser  # Solo permite el acceso si el usuario es un superusuario (admin)
+    return hasattr(user, 'administradorcomuna')  # Solo permite el acceso si el usuario es un superusuario (admin)
 
 def generar_username_unico(base_username):
     username = base_username
@@ -82,47 +92,17 @@ def generar_username_unico(base_username):
 @user_passes_test(is_admin)
 @login_required
 def lista_vecinos(request):
-    vecinos = Vecino.objects.all()
+    admin = request.user.administradorcomuna
+    vecinos = Vecino.objects.filter(comuna=admin.comuna)
     return render(request, 'junta_vecinos/lista_vecinos.html', {'vecinos': vecinos})
 
 def registro_vecino(request):
     if request.method == 'POST':
         form = RegistroVecinoForm(request.POST)
         if form.is_valid():
-            try:
-                # Generar un nombre de usuario único basado en el email
-                email = form.cleaned_data['email']
-                base_username = email.split('@')[0]
-                username = generar_username_unico(base_username)
-
-                # Crear el usuario
-                user = User.objects.create_user(
-                    username=username,
-                    email=email,
-                    password=form.cleaned_data['password'],
-                    first_name=form.cleaned_data['nombres'],
-                    last_name=form.cleaned_data['apellidos']
-                )
-                user.is_active = False
-                user.save()
-
-                # Crear el vecino asociado al usuario
-                vecino = Vecino.objects.create(
-                    user=user,
-                    nombres=form.cleaned_data['nombres'],
-                    apellidos=form.cleaned_data['apellidos'],
-                    direccion=form.cleaned_data['direccion'],
-                    telefono=form.cleaned_data['telefono'],
-                    fecha_nacimiento=form.cleaned_data['fecha_nacimiento']
-                )
-
-                # Crear la solicitud de registro
-                SolicitudRegistroVecino.objects.create(vecino=vecino)
-                
-                messages.success(request, 'Su solicitud de registro ha sido enviada y está pendiente de aprobación.')
-                return redirect('login')
-            except IntegrityError as e:
-                messages.error(request, 'Ha ocurrido un error durante el registro. Por favor, inténtelo de nuevo.')
+            vecino = form.save()
+            messages.success(request, 'Su solicitud de registro ha sido enviada y está pendiente de aprobación.')
+            return redirect('login')
     else:
         form = RegistroVecinoForm()
     return render(request, 'junta_vecinos/registro.html', {'form': form})
@@ -160,19 +140,30 @@ def user_logout(request):
 
 @login_required
 def solicitudes_registro(request):
-    if not request.user.is_staff:
+    if not hasattr(request.user, 'administradorcomuna'):
         messages.error(request, 'No tienes permiso para acceder a esta página.')
         return redirect('index')
-    solicitudes = SolicitudRegistroVecino.objects.filter(is_approved=False)
+    
+    admin = request.user.administradorcomuna
+    solicitudes = SolicitudRegistroVecino.objects.filter(
+        vecino__comuna=admin.comuna,
+        is_approved=False
+    )
     return render(request, 'junta_vecinos/solicitudes_registro.html', {'solicitudes': solicitudes})
 
 @login_required
 def aprobar_registro(request, solicitud_id):
-    if not request.user.is_staff:
+    if not hasattr(request.user, 'administradorcomuna'):
         messages.error(request, 'No tienes permiso para realizar esta acción.')
         return redirect('index')
     
     solicitud = get_object_or_404(SolicitudRegistroVecino, id=solicitud_id)
+    
+    # Verificar que el administrador pertenece a la misma comuna que el vecino
+    if solicitud.vecino.comuna != request.user.administradorcomuna.comuna:
+        messages.error(request, 'No tienes permiso para aprobar esta solicitud.')
+        return redirect('solicitudes_registro')
+    
     vecino = solicitud.vecino
     user = vecino.user
     user.is_active = True
@@ -181,25 +172,29 @@ def aprobar_registro(request, solicitud_id):
     solicitud.is_approved = True
     solicitud.save()
 
-    # Enviar correo al vecino
-    email = EmailMessage(
-        subject='Solicitud de Registro Aprobada',
-        body=f'Hola {vecino.nombres},\n\nNos complace informarte que tu solicitud de registro ha sido aprobada. Ya puedes ingresar al sistema.\n\nSaludos!',
-        from_email=settings.DEFAULT_FROM_EMAIL,
-        to=[user.email],
+    send_mail(
+        'Solicitud de Registro Aprobada',
+        f'Hola {vecino.nombres},\n\nNos complace informarte que tu solicitud de registro ha sido aprobada. Ya puedes ingresar al sistema.\n\nSaludos!',
+        settings.DEFAULT_FROM_EMAIL,
+        [user.email],
     )
-    email.send()
 
     messages.success(request, f'La solicitud de {vecino.nombres} {vecino.apellidos} ha sido aprobada y se le ha enviado un correo.')
     return redirect('solicitudes_registro')
 
 @login_required
 def rechazar_registro(request, solicitud_id):
-    if not request.user.is_staff:
+    if not hasattr(request.user, 'administradorcomuna'):
         messages.error(request, 'No tienes permiso para realizar esta acción.')
         return redirect('index')
 
     solicitud = get_object_or_404(SolicitudRegistroVecino, id=solicitud_id)
+    
+    # Verificar que el administrador pertenece a la misma comuna que el vecino
+    if solicitud.vecino.comuna != request.user.administradorcomuna.comuna:
+        messages.error(request, 'No tienes permiso para rechazar esta solicitud.')
+        return redirect('solicitudes_registro')
+
     vecino = solicitud.vecino
     user = vecino.user
 
@@ -213,7 +208,6 @@ def rechazar_registro(request, solicitud_id):
             vecino.delete()
             solicitud.delete()
 
-            # Enviar correo al vecino con las razones del rechazo
             send_mail(
                 'Solicitud de Registro Rechazada',
                 f'Hola {vecino.nombres} {vecino.apellidos},\n\n'
@@ -503,7 +497,10 @@ def publicar_noticia(request):
     if request.method == 'POST':
         form = NoticiaForm(request.POST, request.FILES)
         if form.is_valid():
-            form.save()
+            noticia = form.save(commit=False)
+            admin = AdministradorComuna.objects.get(user=request.user)
+            noticia.comuna = admin
+            noticia.save()
             return redirect('index')
     else:
         form = NoticiaForm()
@@ -512,8 +509,11 @@ def publicar_noticia(request):
 
 @user_passes_test(is_admin)
 def gestionar_noticias(request):
-    noticias = Noticia.objects.all().order_by('-fecha_publicacion')
+    admin = AdministradorComuna.objects.get(user=request.user)  # Obtener el administrador actual
+    noticias = Noticia.objects.filter(comuna=admin).order_by('-fecha_publicacion')  # Filtrar noticias por administrador
     return render(request, 'junta_vecinos/gestionar_noticias.html', {'noticias': noticias})
+
+
 
 @user_passes_test(is_admin)
 def editar_noticia(request, id):
@@ -531,18 +531,31 @@ def editar_noticia(request, id):
 @user_passes_test(is_admin)
 def registrar_espacio(request):
     if request.method == 'POST':
-        form = EspacioForm(request.POST)
+        form = EspacioForm(request.POST, request.FILES)
         if form.is_valid():
-            form.save()
+            espacio = form.save(commit=False)
+            admin = AdministradorComuna.objects.get(user=request.user)
+            espacio.comuna = admin
+            espacio.save()
             return redirect('lista_espacios')  # Redirige a una página de éxito o lista de espacios
     else:
         form = EspacioForm()
     
-    return render(request, 'junta_vecinos/registrar_espacio.html', {'form': form})
+    admin = AdministradorComuna.objects.get(user=request.user)
+    context = {
+        'form': form,
+        'comuna': admin.get_comuna_display()
+    }
+    return render(request, 'junta_vecinos/registrar_espacio.html', context)
 
 @user_passes_test(is_admin)
 def lista_espacios(request):
-    espacios = Espacio.objects.all()  # Obtén todos los espacios
+    # Obtener la comuna del administrador autenticado
+    administrador = AdministradorComuna.objects.get(user=request.user)
+    
+    # Filtrar los espacios según la comuna del administrador
+    espacios = Espacio.objects.filter(comuna=administrador)
+    
     return render(request, 'junta_vecinos/lista_espacios.html', {'espacios': espacios})
 
 @user_passes_test(is_admin)
@@ -569,15 +582,24 @@ def eliminar_espacio(request, espacio_id):
 
 @login_required
 def espacios_disponibles(request):
-    espacios = Espacio.objects.all()
+    # Obtener el vecino asociado al usuario actual
+    vecino = get_object_or_404(Vecino, user=request.user)
+    
+    # Filtrar los espacios según la comuna del vecino
+    espacios = Espacio.objects.filter(comuna__comuna=vecino.comuna)
+    
     espacio_seleccionado = None
     if request.method == 'GET' and 'espacio_id' in request.GET:
         espacio_id = request.GET.get('espacio_id')
-        espacio_seleccionado = get_object_or_404(Espacio, id=espacio_id)
+        # Asegurarse de que el espacio seleccionado también pertenece a la comuna del vecino
+        espacio_seleccionado = get_object_or_404(Espacio, id=espacio_id, comuna__comuna=vecino.comuna)
+    
     return render(request, 'junta_vecinos/espacios_disponibles.html', {
         'espacios': espacios,
         'espacio_seleccionado': espacio_seleccionado
     })
+
+
 
 @login_required
 def get_espacio_info(request):
