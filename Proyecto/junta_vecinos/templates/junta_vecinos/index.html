@@ -1,0 +1,130 @@
+{% extends 'junta_vecinos/base.html' %}
+
+{% block title %}Inicio{% endblock %}
+
+{% block content %}
+<div class="jumbotron text-center">
+    <h1 class="display-4">Bienvenido al Sistema de la Junta de Vecinos de {{ comuna }}</h1>
+    <p class="lead">Este es el portal principal.</p>
+    <hr class="my-4">
+
+    {% if user.is_authenticated %}
+        {% if user.is_superuser %}
+            <!-- Contenido para Administradores -->
+            <h2>Lista de Vecinos</h2>
+            <ul class="list-group">
+                {% for vecino in vecinos %}
+                    <li class="list-group-item">
+                        {{ vecino.nombres }} {{ vecino.apellidos }}
+                    </li>
+                {% endfor %}
+            </ul>
+            <div class="mt-3">
+                <a href="{% url 'lista_vecinos' %}" class="btn btn-primary">Ver todos los vecinos</a>
+            </div>
+
+            <hr class="my-4">
+
+            <h2>Solicitudes de Certificado</h2>
+            <ul class="list-group">
+                {% for solicitud in solicitudes %}
+                    <li class="list-group-item">
+                        {{ solicitud.vecino.nombres }} {{ solicitud.vecino.apellidos }} - Estado: {{ solicitud.estado }}
+                    </li>
+                {% endfor %}
+            </ul>
+            <div class="mt-3">
+                <a href="{% url 'gestionar_solicitudes' %}" class="btn btn-primary">Ver todas las solicitudes</a>
+            </div>
+
+            <hr class="my-4">
+
+            <h2>Postulaciones de Proyectos</h2>
+            <ul class="list-group">
+                {% for postulacion in postulaciones %}
+                    <li class="list-group-item">
+                        {{ postulacion.titulo }} - Estado: {{ postulacion.estado }}
+                    </li>
+                {% endfor %}
+            </ul>
+            <div class="mt-3">
+                <a href="{% url 'gestionar_proyectos' %}" class="btn btn-primary">Ver todas las postulaciones</a>
+            </div>
+
+            <hr class="my-4">
+
+            <h2>Espacios Comunitarios</h2>
+            <ul class="list-group">
+                {% for espacio in espacios %}
+                    <li class="list-group-item">
+                        {{ espacio.nombre }} - Capacidad: {{ espacio.capacidad }}
+                    </li>
+                {% endfor %}
+            </ul>
+            <div class="mt-3">
+                <a href="{% url 'lista_espacios' %}" class="btn btn-primary">Ver todos los espacios</a>
+            </div>
+
+            <hr class="my-4">
+        
+            <h2>Reservas de Espacios</h2>
+            <ul class="list-group">
+                {% for reserva in reservas %}
+                    <li class="list-group-item">
+                        {{ reserva.espacio.nombre }} - {{ reserva.fecha }} de {{ reserva.hora_inicio }} a {{ reserva.hora_fin }}
+                        <br>
+                        Hecha por: {{ reserva.usuario.first_name }} {{ reserva.usuario.last_name }}
+                    </li>
+                {% endfor %}
+            </ul>
+            <div class="mt-3">
+                <a href="{% url 'lista_reservas' %}" class="btn btn-primary">Ver todas las reservas</a>
+            </div>
+
+            <hr class="my-4">
+            
+            <h2>Gestionar Noticias</h2>
+            <a href="{% url 'publicar_noticia' %}" class="btn btn-primary">Publicar Noticia</a>
+            <a href="{% url 'gestionar_noticias' %}" class="btn btn-secondary">Ver Todas las Noticias</a>
+
+        {% else %}
+            <!-- Contenido para Vecinos -->
+            <p class="lead">Solicita aquí tu certificado de residencia</p>
+            <div class="mt-4">
+                <a href="{% url 'solicitar_certificado' %}" class="btn btn-primary btn-lg mr-3">Solicitar certificado</a>
+            </div>
+            <p class="lead">Postula aquí a nuestros proyectos</p>
+            <div class="mt-4">
+                <a href="{% url 'postular_proyecto' %}" class="btn btn-primary btn-lg mr-3">Postular</a>
+            </div>
+
+            <hr class="my-4">
+
+            <p class="lead">Revisa aquí los espacios disponibles para arriendo</p>
+            <div class="mt-4">
+                <a href="{% url 'espacios_disponibles' %}" class="btn btn-primary btn-lg mr-3">Ver espacios</a>
+            </div>
+
+            <hr class="my-4">
+
+            <h2>Noticias Recientes</h2>
+            {% for noticia in noticias %}
+                <div class="card mb-3">
+                    <div class="card-body">
+                        <h5 class="card-title">{{ noticia.titulo }}</h5>
+                        <p class="card-text">{{ noticia.contenido }}</p>
+                        {% if noticia.imagen %}
+                            <img src="{{ noticia.imagen.url }}" alt="{{ noticia.titulo }}" class="img-fluid">
+                        {% endif %}
+                        <p class="card-text"><small class="text-muted">Publicado el {{ noticia.fecha_publicacion|date:"d M Y" }}</small></p>
+                    </div>
+                </div>
+            {% empty %}
+                <p>No hay noticias recientes.</p>
+            {% endfor %}
+        {% endif %}
+    {% else %}
+        <p>Por favor, inicia sesión para acceder a más funciones.</p>
+    {% endif %}
+</div>
+{% endblock %}

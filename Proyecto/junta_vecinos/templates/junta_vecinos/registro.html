@@ -1,0 +1,14 @@
+{% extends 'junta_vecinos/base.html' %}
+
+{% block title %}Registro de Vecinos{% endblock %}
+
+{% block content %}
+<div class="container form-container mt-4">
+    <h2 class="form-title">Registro de Vecinos</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn btn-primary">Registrarse</button>
+    </form>
+</div>
+{% endblock %}

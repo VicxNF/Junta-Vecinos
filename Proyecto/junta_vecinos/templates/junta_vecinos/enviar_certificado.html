@@ -1,0 +1,14 @@
+{% extends 'junta_vecinos/base.html' %}
+
+{% block title %}Enviar Certificado{% endblock %}
+
+{% block content %}
+<h2>Enviar Certificado</h2>
+
+<form method="post" enctype="multipart/form-data">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="btn btn-primary">Enviar Certificado</button>
+</form>
+
+{% endblock %}

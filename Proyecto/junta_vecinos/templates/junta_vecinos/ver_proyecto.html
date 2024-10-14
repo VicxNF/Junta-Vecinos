@@ -1,0 +1,64 @@
+{% extends 'junta_vecinos/base.html' %}
+
+{% block title %}Ver Proyecto{% endblock %}
+
+{% block content %}
+<div class="container mt-5">
+    <div class="card shadow-lg">
+        <div class="card-header bg-primary text-white">
+            <!-- Cambié el color del texto a blanco con una clase adicional -->
+            <h3 class="mb-0 text-white">Detalles del Proyecto</h3>
+        </div>
+        <div class="card-body">
+            <!-- Información general del proyecto -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <h5><strong>Vecino Solicitante:</strong></h5>
+                    <p>{{ proyecto.vecino }}</p>
+                </div>
+                <div class="col-md-6">
+                    <h5><strong>Nombre del Proyecto:</strong></h5>
+                    <p>{{ proyecto.propuesta }}</p>
+                </div>
+            </div>
+
+            <!-- Descripción del proyecto -->
+            <div class="mb-4">
+                <h5><strong>Descripción:</strong></h5>
+                <p>{{ proyecto.descripcion }}</p>
+            </div>
+
+            <!-- Fecha de postulación -->
+            <div class="row mb-4">
+                <div class="col-md-6">
+                    <h5><strong>Fecha de Postulación:</strong></h5>
+                    <p>{{ proyecto.fecha_postulacion }}</p>
+                </div>
+                <div class="col-md-6">
+                    <h5><strong>Estado del Proyecto:</strong></h5>
+                    <p><strong>Estado del Proyecto:</strong> {{ proyecto.get_estado_display }}</p>
+                </div>
+            </div>
+
+            <!-- Evidencia del proyecto -->
+            <div class="mb-4">
+                <h5><strong>Evidencia:</strong></h5>
+                {% if proyecto.evidencia %}
+                    <div class="text-center">
+                        <img src="{{ proyecto.evidencia.url }}" alt="Evidencia del proyecto" class="img-thumbnail" style="max-width: 400px;">
+                    </div>
+                {% else %}
+                    <p>No se ha proporcionado evidencia.</p>
+                {% endif %}
+            </div>
+
+            <!-- Acciones para el proyecto -->
+            <div class="text-center mt-5">
+                <h5>Acciones</h5>
+                <a href="{% url 'aprobar_proyecto' proyecto.id %}" class="btn btn-lg btn-success mr-3"><i class="fas fa-check-circle"></i> Aprobar Proyecto</a>
+                <a href="{% url 'rechazar_proyecto' proyecto.id %}" class="btn btn-lg btn-danger"><i class="fas fa-times-circle"></i> Rechazar Proyecto</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
