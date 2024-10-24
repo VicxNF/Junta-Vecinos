@@ -9,47 +9,67 @@
             font-family: Arial, sans-serif;
             margin: 0 auto;
             width: 80%;
+            line-height: 1.6;
         }
-        h1 {
+        .container {
+            border: 1px solid #000;
+            padding: 20px;
+            margin-top: 20px;
+        }
+        .header {
             text-align: center;
-            margin-top: 50px;
+            margin-bottom: 20px;
         }
-        .contenido {
-            margin-top: 50px;
-        }
-        p {
-            font-size: 14pt;
+        .title {
+            text-align: center;
+            font-weight: bold;
+            font-size: 18pt;
             margin: 20px 0;
         }
-        .firmas {
-            margin-top: 100px;
+        .content {
+            margin-top: 20px;
         }
-        .firma {
-            display: inline-block;
-            width: 45%;
+        .signature {
+            margin-top: 50px;
             text-align: center;
+        }
+        .footer {
+            margin-top: 30px;
+            text-align: center;
+        }
+        .underline {
+            border-bottom: 1px solid #000;
+            padding-bottom: 2px;
         }
     </style>
 </head>
 <body>
-    <h1>Certificado de Residencia</h1>
-    <div class="contenido">
-        <p>Yo, el presidente de la Junta de Vecinos, certifico que:</p>
-        <p><strong>{{ vecino.nombres }} {{ vecino.apellidos }}</strong></p>
-        <p>Con dirección en:</p>
-        <p><strong>{{ vecino.direccion }}</strong></p>
-        <p>Es residente de nuestra comunidad y ha cumplido con los requisitos de residencia.</p>
-        <p>Número de Certificado: <strong>{{ numero_certificado }}</strong></p>
-        <p>Fecha de Emisión: <strong>{{ fecha_emision }}</strong></p>
-    </div>
-    <div class="firmas">
-        <div class="firma">
-            <p>__________________________</p>
-            <p>Presidente</p>
+    <div class="container">
+        <div class="header">
+            JUNTA DE VECINOS "<span class="underline">{{ junta_nombre }}</span>"<br>
+            <span class="underline">{{ comuna }}</span>, comuna de <span class="underline">{{ comuna }}</span>, región <span class="underline">{{ region }}</span>
         </div>
-        <div class="firma">
-            <p>__________________________</p>
-            <p>Vecino</p>
+
+        <div class="title">CERTIFICADO DE RESIDENCIA</div>
+
+        <div class="content">
+            <p><span class="underline">{{ presidente_nombre }}</span>, Cédula Nacional de Identidad N° <span class="underline">{{ presidente_ci }}</span>, en calidad de Presidente de la Junta de Vecinos denominada <span class="underline">{{ junta_nombre }}</span>, de la comuna de <span class="underline">{{ comuna }}</span>,</p>
+
+            <p><strong>CERTIFICA</strong></p>
+
+            <p>Que, <span class="underline">{{ vecino.nombres }} {{ vecino.apellidos }}</span>, Cédula Nacional de Identidad N° <span class="underline">{{ vecino.rut }}</span>, registra su domicilio particular en <span class="underline">{{ vecino.direccion }}</span>, comuna de <span class="underline">{{ vecino.comuna }}</span>, región <span class="underline">{{ region }}</span>, ubicado en el territorio donde esta Junta de Vecinos desarrolla sus funciones.</p>
+
+            <p>Se extiende el presente certificado a petición de la persona interesada para postular a créditos financieros o bancarios.</p>
+        </div>
+
+        <div class="signature">
+            <p>____________________________<br>(firma)</p>
+            <p><strong>FIRMA PRESIDENTE</strong></p>
+            <p>Cédula Nacional de Identidad N° <span class="underline">{{ presidente_ci }}</span></p>
+        </div>
+
+        <div class="footer">
+            <p>En <span class="underline">{{ comuna }}</span>, a <span class="underline">{{ fecha_emision }}</span></p>
         </div>
     </div>
 </body>

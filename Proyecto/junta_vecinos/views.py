@@ -788,6 +788,11 @@ def generar_certificado_pdf(vecino, numero_certificado):
         'vecino': vecino,
         'numero_certificado': numero_certificado,
         'fecha_emision': date.today().strftime('%d/%m/%Y'),
+        'junta_nombre': "Nombre de la Junta",  # Agregar el nombre real
+        'comuna': vecino.comuna,
+        'region': "Metropolitana",  # Agregar la región correspondiente
+        'presidente_nombre': "Nombre del Presidente",  # Agregar el nombre real del presidente
+        'presidente_ci': "12345678-9",  # Agregar el CI real del presidente
     })
 
     # Generar el PDF usando WeasyPrint
