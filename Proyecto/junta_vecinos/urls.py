@@ -44,6 +44,13 @@ urlpatterns = [
     path('reserva-exitosa/', views.reserva_exitosa, name='reserva_exitosa'),
     path('error-reserva/', views.error_reserva, name='error_reserva'),
     path('pago-fallido/', views.pago_fallido, name='pago_fallido'),
+    path('actividades/', views.lista_actividades, name='lista_actividades'),
+    path('actividades/crear/', views.crear_actividad, name='crear_actividad'),
+    path('actividades/<int:actividad_id>/inscribir/', views.inscribir_actividad, name='inscribir_actividad'),
+    path('actividades/<int:actividad_id>/cancelar/', views.cancelar_actividad, name='cancelar_actividad'),
+    path('actividades/<int:actividad_id>/asistencia/', views.registrar_asistencia, name='registrar_asistencia'),
+    path('noticia/<int:noticia_id>/', views.detalle_noticia, name='detalle_noticia'),
+
 
 ]
     # Agrega más rutas según sea necesario

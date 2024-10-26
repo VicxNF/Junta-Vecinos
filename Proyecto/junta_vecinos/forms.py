@@ -218,4 +218,13 @@ class AprobacionForm(forms.Form):
     )
 
 
-from django import forms
+class ActividadVecinalForm(forms.ModelForm):
+    class Meta:
+        model = ActividadVecinal
+        fields = ['titulo', 'descripcion', 'fecha', 'hora_inicio', 'hora_fin', 
+                 'lugar', 'cupo_maximo', 'imagen']
+        widgets = {
+            'fecha': forms.DateInput(attrs={'type': 'date'}),
+            'hora_inicio': forms.TimeInput(attrs={'type': 'time'}),
+            'hora_fin': forms.TimeInput(attrs={'type': 'time'}),
+        }

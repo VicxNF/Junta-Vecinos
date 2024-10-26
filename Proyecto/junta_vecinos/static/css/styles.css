@@ -57,7 +57,7 @@ body {
 
 /* Títulos */
 h1, h2, h3, h4, h5, h6 {
-  color: var(--primary-color);
+  color: black;
 }
 
 /* Animaciones para elementos interactivos */
@@ -280,4 +280,391 @@ form input:focus, form select:focus, form textarea:focus {
 /* Sombra flotante para el formulario en hover */
 .form-container:hover {
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* Variables adicionales */
+:root {
+  --gradient-primary: linear-gradient(135deg, #4a90e2, #50e3c2);
+  --gradient-secondary: linear-gradient(135deg, #f39c12, #e74c3c);
+  --shadow-sm: 0 2px 4px rgba(0,0,0,0.1);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
+  --shadow-lg: 0 10px 15px rgba(0,0,0,0.1);
+  --transition-base: all 0.3s ease;
+}
+
+/* Animaciones globales */
+@keyframes slideInFromTop {
+  0% {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeInScale {
+  0% {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Estilos para el jumbotron */
+.jumbotron {
+  background: var(--gradient-primary);
+  border-radius: 20px;
+  padding: 3rem 2rem;
+  margin-bottom: 2rem;
+  color: white;
+  animation: fadeInScale 0.6s ease-out;
+  box-shadow: var(--shadow-lg);
+}
+
+.jumbotron h1 {
+  color: white;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  animation: slideInFromTop 0.8s ease-out;
+}
+
+/* Estilos mejorados para las cards */
+.card {
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+  animation: fadeInScale 0.6s ease-out;
+}
+
+.card-body {
+  position: relative;
+  z-index: 1;
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--gradient-primary);
+  opacity: 0;
+  transition: var(--transition-base);
+  z-index: 0;
+}
+
+.card:hover::before {
+  opacity: 0.1;
+}
+
+/* Mejoras para la lista de grupos */
+.list-group-item {
+  transform-origin: left;
+  animation: fadeInScale 0.6s ease-out;
+  transition: var(--transition-base);
+}
+
+.list-group-item:hover {
+  transform: translateX(10px) scale(1.02);
+  background: linear-gradient(to right, white, #f8f9fa);
+}
+
+/* Botones animados */
+.btn {
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+  transition: var(--transition-base);
+}
+
+.btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(255,255,255,0.2);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: width 0.6s ease, height 0.6s ease;
+  z-index: -1;
+}
+
+.btn:hover::before {
+  width: 300px;
+  height: 300px;
+}
+
+/* Animación para imágenes en noticias */
+.card img {
+  transition: var(--transition-base);
+}
+
+.card:hover img {
+  transform: scale(1.05);
+}
+
+/* Efecto de loading para elementos */
+.loading-effect {
+  position: relative;
+  overflow: hidden;
+}
+
+.loading-effect::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255,255,255,0.2),
+    transparent
+  );
+  animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 200%;
+  }
+}
+
+/* Mejoras para dispositivos móviles */
+@media (max-width: 768px) {
+  .jumbotron {
+    padding: 2rem 1rem;
+  }
+  
+  .card:hover {
+    transform: translateY(-3px);
+  }
+  
+  .list-group-item:hover {
+    transform: translateX(5px) scale(1.01);
+  }
+}
+
+/* Animaciones para los elementos del administrador */
+.admin-section {
+  opacity: 0;
+  animation: fadeInScale 0.6s ease-out forwards;
+}
+
+.admin-section:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.admin-section:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+/* Efecto de hover para los enlaces */
+a:not(.btn) {
+  position: relative;
+  text-decoration: none;
+}
+
+a:not(.btn)::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--accent-color);
+  transition: var(--transition-base);
+}
+
+a:not(.btn):hover::after {
+  width: 100%;
+}
+
+/* Estilos mejorados para la sección de noticias */
+.news-section {
+  max-width: 1200px;
+  margin: 2rem auto;
+  padding: 20px;
+}
+
+.news-section h2 {
+  font-size: 2.5rem;
+  color: var(--primary-color);
+  text-align: center;
+  margin-bottom: 2rem;
+  font-weight: 700;
+}
+
+.news-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  padding: 1rem;
+}
+
+.news-card {
+  display: flex;
+  flex-direction: column;
+  background: white;
+  border-radius: 15px;
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  transition: all 0.3s ease;
+  text-decoration: none;
+  color: inherit;
+  height: 100%;
+}
+
+.news-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+.news-thumbnail {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+}
+
+.news-content {
+  padding: 1.5rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.news-source {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(0,0,0,0.1);
+}
+
+.news-source-logo {
+  width: 32px;
+  height: 32px;
+  margin-right: 12px;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.news-source-name {
+  font-size: 0.9rem;
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+.news-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #2c3e50;
+  margin: 0 0 1rem 0;
+  line-height: 1.4;
+}
+
+.news-excerpt {
+  font-size: 0.95rem;
+  color: #666;
+  margin-bottom: 1rem;
+  line-height: 1.6;
+  flex: 1;
+}
+
+.news-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(0,0,0,0.1);
+}
+
+.news-time {
+  font-size: 0.85rem;
+  color: #888;
+}
+
+.news-read-more {
+  font-size: 0.9rem;
+  color: var(--primary-color);
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.news-read-more:hover {
+  color: var(--accent-color);
+}
+
+.empty-news {
+  text-align: center;
+  padding: 3rem;
+  background: rgba(255,255,255,0.9);
+  border-radius: 15px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.empty-news p {
+  font-size: 1.2rem;
+  color: #666;
+  margin: 0;
+}
+
+/* Animación de entrada para las noticias */
+@keyframes newsCardIn {
+  from {
+      opacity: 0;
+      transform: translateY(20px);
+  }
+  to {
+      opacity: 1;
+      transform: translateY(0);
+  }
+}
+
+.news-card {
+  animation: newsCardIn 0.5s ease-out forwards;
+}
+
+.news-grid .news-card:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.news-grid .news-card:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+/* Responsividad */
+@media (max-width: 768px) {
+  .news-section {
+      padding: 15px;
+  }
+  
+  .news-grid {
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1rem;
+  }
+  
+  .news-thumbnail {
+      height: 180px;
+  }
+  
+  .news-content {
+      padding: 1rem;
+  }
+  
+  .news-title {
+      font-size: 1.1rem;
+  }
 }

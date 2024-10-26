@@ -132,3 +132,38 @@ class Reserva(models.Model):
 
     def __str__(self):
         return f"{self.espacio.nombre} reservado por {self.usuario.username} el {self.fecha} de {self.hora_inicio} a {self.hora_fin}"
+    
+class ActividadVecinal(models.Model):
+    ESTADO_CHOICES = [
+        ('activa', 'Activa'),
+        ('cancelada', 'Cancelada'),
+        ('finalizada', 'Finalizada'),
+    ]
+
+    titulo = models.CharField(max_length=200)
+    descripcion = models.TextField()
+    fecha = models.DateField()
+    hora_inicio = models.TimeField()
+    hora_fin = models.TimeField()
+    lugar = models.CharField(max_length=200)
+    cupo_maximo = models.PositiveIntegerField()
+    cupo_actual = models.PositiveIntegerField(default=0)
+    estado = models.CharField(max_length=10, choices=ESTADO_CHOICES, default='activa')
+    imagen = models.ImageField(upload_to='actividades/', null=True, blank=True)
+    comuna = models.ForeignKey('AdministradorComuna', on_delete=models.CASCADE)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+
+    def espacios_disponibles(self):
+        return self.cupo_maximo - self.cupo_actual
+
+    def esta_llena(self):
+        return self.cupo_actual >= self.cupo_maximo
+
+class InscripcionActividad(models.Model):
+    actividad = models.ForeignKey(ActividadVecinal, on_delete=models.CASCADE)
+    vecino = models.ForeignKey('Vecino', on_delete=models.CASCADE)
+    fecha_inscripcion = models.DateTimeField(auto_now_add=True)
+    asistio = models.BooleanField(default=False)
+
+    class Meta:
+        unique_together = ('actividad', 'vecino')    

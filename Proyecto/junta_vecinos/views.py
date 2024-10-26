@@ -527,6 +527,26 @@ def editar_noticia(request, id):
         form = NoticiaForm(instance=noticia)
     return render(request, 'junta_vecinos/editar_noticia.html', {'form': form, 'noticia': noticia})
 
+@login_required
+def detalle_noticia(request, noticia_id):
+    # Obtener la noticia o devolver 404 si no existe
+    noticia = get_object_or_404(Noticia, id=noticia_id)
+    
+    # Obtener la comuna desde el contexto o configuración
+    try:
+        from django.conf import settings
+        comuna = settings.COMUNA_NOMBRE
+    except:
+        comuna = "Comuna"
+
+    # Contexto para la plantilla
+    context = {
+        'noticia': noticia,
+        'comuna': comuna
+    }
+    
+    return render(request, 'junta_vecinos/detalle_noticia.html', context)
+
 
 @user_passes_test(is_admin)
 def registrar_espacio(request):
@@ -844,3 +864,139 @@ def generar_reporte_pdf(request):
     p.save()
     
     return response
+
+@user_passes_test(is_admin)
+def crear_actividad(request):
+    if request.method == 'POST':
+        form = ActividadVecinalForm(request.POST, request.FILES)
+        if form.is_valid():
+            actividad = form.save(commit=False)
+            admin = request.user.administradorcomuna
+            actividad.comuna = admin
+            actividad.save()
+            
+            # Notificar a todos los vecinos de la comuna
+            vecinos = Vecino.objects.filter(comuna=admin.comuna)
+            for vecino in vecinos:
+                send_mail(
+                    'Nueva Actividad Vecinal',
+                    f'Se ha creado una nueva actividad: {actividad.titulo}\n'
+                    f'Fecha: {actividad.fecha}\n'
+                    f'Lugar: {actividad.lugar}\n'
+                    f'Cupos disponibles: {actividad.cupo_maximo}',
+                    settings.DEFAULT_FROM_EMAIL,
+                    [vecino.user.email]
+                )
+            
+            messages.success(request, 'Actividad creada exitosamente.')
+            return redirect('lista_actividades')
+    else:
+        form = ActividadVecinalForm()
+    
+    return render(request, 'junta_vecinos/crear_actividad.html', {'form': form})
+
+@login_required
+def lista_actividades(request):
+    if hasattr(request.user, 'administradorcomuna'):
+        # Si es admin, mostrar actividades de su comuna
+        actividades = ActividadVecinal.objects.filter(
+            comuna=request.user.administradorcomuna
+        ).order_by('fecha', 'hora_inicio')
+    else:
+        # Si es vecino, mostrar actividades de su comuna
+        vecino = get_object_or_404(Vecino, user=request.user)
+        actividades = ActividadVecinal.objects.filter(
+            comuna__comuna=vecino.comuna,
+            estado='activa'
+        ).order_by('fecha', 'hora_inicio')
+
+        # Añadir información de inscripción para cada actividad
+        for actividad in actividades:
+            actividad.usuario_inscrito = InscripcionActividad.objects.filter(
+                actividad=actividad,
+                vecino=vecino
+            ).exists()
+    
+    return render(request, 'junta_vecinos/lista_actividades.html', {
+        'actividades': actividades
+    })
+
+@login_required
+def inscribir_actividad(request, actividad_id):
+    actividad = get_object_or_404(ActividadVecinal, id=actividad_id)
+    vecino = get_object_or_404(Vecino, user=request.user)
+    
+    if actividad.esta_llena():
+        messages.error(request, 'Lo sentimos, esta actividad ya no tiene cupos disponibles.')
+        return redirect('lista_actividades')
+    
+    try:
+        InscripcionActividad.objects.create(
+            actividad=actividad,
+            vecino=vecino
+        )
+        actividad.cupo_actual += 1
+        actividad.save()
+        
+        # Enviar correo de confirmación
+        send_mail(
+            'Inscripción a Actividad Vecinal Confirmada',
+            f'Te has inscrito exitosamente a la actividad: {actividad.titulo}\n'
+            f'Fecha: {actividad.fecha}\n'
+            f'Hora: {actividad.hora_inicio}\n'
+            f'Lugar: {actividad.lugar}',
+            settings.DEFAULT_FROM_EMAIL,
+            [request.user.email]
+        )
+        
+        messages.success(request, 'Te has inscrito exitosamente en la actividad.')
+    except IntegrityError:
+        messages.error(request, 'Ya estás inscrito en esta actividad.')
+    
+    return redirect('lista_actividades')
+
+@user_passes_test(is_admin)
+def cancelar_actividad(request, actividad_id):
+    actividad = get_object_or_404(ActividadVecinal, id=actividad_id)
+    
+    if request.method == 'POST':
+        actividad.estado = 'cancelada'
+        actividad.save()
+        
+        # Notificar a los inscritos
+        inscripciones = InscripcionActividad.objects.filter(actividad=actividad)
+        for inscripcion in inscripciones:
+            send_mail(
+                'Actividad Vecinal Cancelada',
+                f'La actividad {actividad.titulo} ha sido cancelada.\n'
+                f'Lamentamos los inconvenientes causados.',
+                settings.DEFAULT_FROM_EMAIL,
+                [inscripcion.vecino.user.email]
+            )
+        
+        messages.success(request, 'Actividad cancelada exitosamente.')
+        return redirect('lista_actividades')
+    
+    return render(request, 'junta_vecinos/cancelar_actividad.html', {
+        'actividad': actividad
+    })
+
+@user_passes_test(is_admin)
+def registrar_asistencia(request, actividad_id):
+    actividad = get_object_or_404(ActividadVecinal, id=actividad_id)
+    inscripciones = InscripcionActividad.objects.filter(actividad=actividad)
+    
+    if request.method == 'POST':
+        asistentes = request.POST.getlist('asistentes')
+        
+        for inscripcion in inscripciones:
+            inscripcion.asistio = str(inscripcion.id) in asistentes
+            inscripcion.save()
+        
+        messages.success(request, 'Asistencia registrada exitosamente.')
+        return redirect('lista_actividades')
+    
+    return render(request, 'junta_vecinos/registrar_asistencia.html', {
+        'actividad': actividad,
+        'inscripciones': inscripciones
+    })

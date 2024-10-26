@@ -9,4 +9,6 @@ admin.site.register(Noticia)
 admin.site.register(Espacio)
 admin.site.register(Reserva)
 admin.site.register(SolicitudRegistroVecino)
+admin.site.register(ActividadVecinal)
+admin.site.register(InscripcionActividad)
 
