@@ -50,8 +50,9 @@ urlpatterns = [
     path('actividades/<int:actividad_id>/cancelar/', views.cancelar_actividad, name='cancelar_actividad'),
     path('actividades/<int:actividad_id>/asistencia/', views.registrar_asistencia, name='registrar_asistencia'),
     path('noticia/<int:noticia_id>/', views.detalle_noticia, name='detalle_noticia'),
-
-
+    path('webpay/retorno_actividad/', views.webpay_retorno_actividad, name='webpay_retorno_actividad'),
+    path('actividades/inscripcion-exitosa/', views.inscripcion_exitosa, name='inscripcion_exitosa'),
+    path('actividades/error-inscripcion/', views.error_inscripcion, name='error_inscripcion'),
 ]
     # Agrega más rutas según sea necesario
 if settings.DEBUG:

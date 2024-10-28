@@ -5,10 +5,29 @@
 {% block content %}
 <div class="container form-container mt-4">
     <h2 class="form-title">Registro de Vecinos</h2>
-    <form method="post">
+    <form method="post" id="registro-form">
         {% csrf_token %}
         {{ form.as_p }}
-        <button type="submit" class="btn btn-primary">Registrarse</button>
+        <button type="button" class="btn btn-primary" onclick="confirmarRegistro()">Registrarse</button>
     </form>
 </div>
+
+<script>
+    function confirmarRegistro() {
+        Swal.fire({
+            title: '¿Está seguro?',
+            text: "Asegúrese de que los datos sean correctos antes de continuar.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Sí, registrarme',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                document.getElementById("registro-form").submit();
+            }
+        });
+    }
+</script>
 {% endblock %}

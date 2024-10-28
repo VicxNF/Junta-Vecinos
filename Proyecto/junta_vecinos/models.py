@@ -152,6 +152,7 @@ class ActividadVecinal(models.Model):
     imagen = models.ImageField(upload_to='actividades/', null=True, blank=True)
     comuna = models.ForeignKey('AdministradorComuna', on_delete=models.CASCADE)
     fecha_creacion = models.DateTimeField(auto_now_add=True)
+    precio = models.DecimalField(max_digits=10, decimal_places=2, default=Decimal('0.00'))
 
     def espacios_disponibles(self):
         return self.cupo_maximo - self.cupo_actual

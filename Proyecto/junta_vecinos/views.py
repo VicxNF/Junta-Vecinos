@@ -930,30 +930,75 @@ def inscribir_actividad(request, actividad_id):
         messages.error(request, 'Lo sentimos, esta actividad ya no tiene cupos disponibles.')
         return redirect('lista_actividades')
     
-    try:
-        InscripcionActividad.objects.create(
-            actividad=actividad,
-            vecino=vecino
-        )
-        actividad.cupo_actual += 1
-        actividad.save()
+    if request.method == 'POST':
+        try:
+            
+            # Crear transacción en WebPay
+            buy_order = f"ACT-{actividad.id}-{vecino.user.id}-{int(datetime.now().timestamp())}"
+            session_id = request.session.session_key
+            return_url = request.build_absolute_uri(reverse('webpay_retorno_actividad'))
+            monto = str(actividad.precio) 
+            
+            transaction = Transaction()
+            response = transaction.create(buy_order, session_id, monto, return_url)
+
+            # Guardar en la sesión los datos de inscripción
+            request.session['inscripcion_pendiente'] = {
+                'actividad_id': actividad.id,
+                'monto': monto,
+                'buy_order': buy_order
+            }
+
+            return JsonResponse({
+                'success': True,
+                'payment_url': response['url'],
+                'token': response['token']
+            })
         
-        # Enviar correo de confirmación
-        send_mail(
-            'Inscripción a Actividad Vecinal Confirmada',
-            f'Te has inscrito exitosamente a la actividad: {actividad.titulo}\n'
-            f'Fecha: {actividad.fecha}\n'
-            f'Hora: {actividad.hora_inicio}\n'
-            f'Lugar: {actividad.lugar}',
-            settings.DEFAULT_FROM_EMAIL,
-            [request.user.email]
-        )
-        
-        messages.success(request, 'Te has inscrito exitosamente en la actividad.')
-    except IntegrityError:
-        messages.error(request, 'Ya estás inscrito en esta actividad.')
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
     
-    return redirect('lista_actividades')
+    return JsonResponse({'success': False, 'error': 'Método no permitido'})
+
+@csrf_exempt
+def webpay_retorno_actividad(request):
+    if request.method == 'POST' or request.method == 'GET':
+        token = request.POST.get('token_ws') if request.method == 'POST' else request.GET.get('token_ws')
+        
+        if not token:
+            return render(request, 'junta_vecinos/error_inscripcion.html', {'error': 'Token de pago no recibido'})
+        
+        transaction = Transaction()
+        response = transaction.commit(token)
+
+        if response['response_code'] == 0:
+            inscripcion_data = request.session.get('inscripcion_pendiente')
+            if inscripcion_data and inscripcion_data['buy_order'] == response['buy_order']:
+                # Crear la inscripción
+                actividad = get_object_or_404(ActividadVecinal, id=inscripcion_data['actividad_id'])
+                vecino = get_object_or_404(Vecino, user=request.user)
+                InscripcionActividad.objects.create(actividad=actividad, vecino=vecino)
+                actividad.cupo_actual += 1
+                actividad.save()
+
+                # Eliminar datos de inscripción de la sesión
+                del request.session['inscripcion_pendiente']
+                return render(request, 'junta_vecinos/inscripcion_exitosa.html', {'actividad': actividad})
+            else:
+                return render(request, 'junta_vecinos/error_inscripcion.html', {'error': 'Datos de inscripción no coinciden'})
+        else:
+            return render(request, 'junta_vecinos/pago_fallido.html')
+    
+    return HttpResponseBadRequest('Método no permitido')
+
+def inscripcion_exitosa(request):
+    actividad_id = request.session.get('inscripcion_pendiente', {}).get('actividad_id')
+    actividad = get_object_or_404(ActividadVecinal, id=actividad_id)
+    return render(request, 'junta_vecinos/inscripcion_exitosa.html', {'actividad': actividad})
+
+def error_inscripcion(request):
+    error_message = request.GET.get('error', 'Ha ocurrido un error desconocido.')
+    return render(request, 'junta_vecinos/error_inscripcion.html', {'error': error_message})
 
 @user_passes_test(is_admin)
 def cancelar_actividad(request, actividad_id):

@@ -21,6 +21,7 @@
                     <p><strong>Fecha:</strong> {{ actividad.fecha }}</p>
                     <p><strong>Hora:</strong> {{ actividad.hora_inicio }} - {{ actividad.hora_fin }}</p>
                     <p><strong>Lugar:</strong> {{ actividad.lugar }}</p>
+                    <p><strong>Precio:</strong> ${{ actividad.precio }}</p>
                     <p><strong>Cupos disponibles:</strong> {{ actividad.espacios_disponibles }}</p>
                     
                     {% if not user.is_superuser and actividad.estado == 'activa' %}
@@ -31,10 +32,7 @@
                                 {% if inscrito %}
                                     <button class="btn btn-secondary" disabled>Ya estás inscrito</button>
                                 {% else %}
-                                    <form method="post" action="{% url 'inscribir_actividad' actividad.id %}">
-                                        {% csrf_token %}
-                                        <button type="submit" class="btn btn-success">Inscribirse</button>
-                                    </form>
+                                    <button class="btn btn-success inscribir-btn" data-actividad-id="{{ actividad.id }}" data-precio="{{ actividad.precio }}">Inscribirse y Pagar</button>
                                 {% endif %}
                             {% endwith %}
                         {% endif %}
@@ -61,4 +59,49 @@
         {% endfor %}
     </div>
 </div>
+
+<script>
+    document.querySelectorAll('.inscribir-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const actividadId = this.getAttribute('data-actividad-id');
+            const precio = this.getAttribute('data-precio');
+            
+            // Alerta de confirmación de SweetAlert2
+            Swal.fire({
+                title: '¿Estás seguro?',
+                text: `El precio de la inscripción es $${precio}. ¿Quieres continuar?`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Sí, inscribirme',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Si el usuario confirma, ejecutar el fetch para el pago
+                    fetch(`/actividades/${actividadId}/inscribir/`, {
+                        method: 'POST',
+                        body: JSON.stringify({ actividad_id: actividadId }),
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': '{{ csrf_token }}'
+                        }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.success) {
+                            window.location.href = `${data.payment_url}?token_ws=${data.token}`;
+                        } else {
+                            Swal.fire('Error', data.error, 'error');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        Swal.fire('Error', 'Hubo un problema al procesar la inscripción.', 'error');
+                    });
+                }
+            });
+        });
+    });
+</script>
 {% endblock %}
