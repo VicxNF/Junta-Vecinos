@@ -117,38 +117,21 @@ class ProyectoVecinalForm(forms.ModelForm):
         fields = ['propuesta', 'descripcion', 'evidencia']
         widgets = {
             'propuesta': forms.TextInput(attrs={'class': 'form-control'}),
-            'descripcion': forms.Textarea(attrs={'class': 'form-control'}),
-            'evidencia': forms.ClearableFileInput(attrs={'class': 'form-control'}),
+            'descripcion': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
+            'evidencia': forms.FileInput(attrs={'class': 'form-control'})
         }
 
-    def clean_propuesta(self):
-        propuesta = self.cleaned_data.get('propuesta')
-        if not propuesta:
-            raise ValidationError('Este campo es obligatorio.')
-        return propuesta
-
-    def clean_descripcion(self):
-        descripcion = self.cleaned_data.get('descripcion')
-        if not descripcion:
-            raise ValidationError('Este campo es obligatorio.')
-        return descripcion
-
-    def clean_evidencia(self):
-        evidencia = self.cleaned_data.get('evidencia')
-        
-        # Verificar que se haya cargado un archivo
-        if evidencia:
-            # Verificar el tipo de archivo
-            if not (evidencia.name.endswith('.jpg') or evidencia.name.endswith('.png')):
-                raise ValidationError('Solo se permiten archivos JPG y PNG.')
-
-            # Verificar el tamaño del archivo (50 MB)
-            if evidencia.size > 50 * 1024 * 1024:  # 50 MB en bytes
-                raise ValidationError('El tamaño del archivo no debe exceder los 50 MB.')
-        else:
-            raise ValidationError('Este campo es obligatorio.')
-
-        return evidencia
+class PostulacionProyectoForm(forms.ModelForm):
+    class Meta:
+        model = PostulacionProyecto
+        fields = ['motivo']
+        widgets = {
+            'motivo': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 4,
+                'placeholder': 'Explica por qué te gustaría participar en este proyecto'
+            })
+        }
 
 
 class CorreoAprobacionForm(forms.Form):

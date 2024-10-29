@@ -1,0 +1,42 @@
+{% extends 'junta_vecinos/base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Proyectos en tu Comuna</h2>
+    
+    <div class="row">
+        {% for proyecto in proyectos %}
+        <div class="col-md-6 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <h5 class="card-title">{{ proyecto.propuesta }}</h5>
+                    <p class="card-text">{{ proyecto.descripcion|truncatewords:30 }}</p>
+                    <p class="card-text">
+                        <small class="text-muted">Creado por: {{ proyecto.vecino.nombres }} {{ proyecto.vecino.apellidos }}</small>
+                    </p>
+                    
+                    {% if proyecto.estado_postulacion %}
+                        <div class="alert alert-info">
+                            Estado de tu postulación: 
+                            <strong>{{ proyecto.estado_postulacion|title }}</strong>
+                        </div>
+                    {% else %}
+                        <a href="{% url 'postular_proyecto' proyecto.id %}" class="btn btn-primary">
+                            Postular
+                        </a>
+                    {% endif %}
+                    
+                    <a href="{% url 'detalle_proyecto' proyecto.id %}" class="btn btn-info">
+                        Ver Detalles
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <p>No hay proyectos disponibles en tu comuna.</p>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

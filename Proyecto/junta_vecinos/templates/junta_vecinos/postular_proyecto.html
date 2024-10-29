@@ -4,26 +4,31 @@
 
 {% block content %}
 <div class="container mt-4">
-    <h2>Postular Proyecto Vecinal</h2>
+    <h2>Postular al Proyecto</h2>
     
-    <!-- Aquí mostramos los errores del formulario -->
-    {% if form.errors %}
-        <div class="alert alert-danger">
-            <ul>
-                {% for field in form %}
-                    {% for error in field.errors %}
-                        <li>{{ error }}</li>
-                    {% endfor %}
-                {% endfor %}
-            </ul>
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">{{ proyecto.propuesta }}</h5>
+            <p class="card-text">{{ proyecto.descripcion }}</p>
+            <p class="card-text">
+                <small class="text-muted">Creado por: {{ proyecto.vecino.nombres }} {{ proyecto.vecino.apellidos }}</small>
+            </p>
         </div>
-    {% endif %}
+    </div>
     
-    <!-- Formulario para postular un proyecto vecinal -->
-    <form method="post" action="{% url 'postular_proyecto' %}" enctype="multipart/form-data">
+    <form method="post">
         {% csrf_token %}
-        {{ form.as_p }}
+        <div class="mb-3">
+            {{ form.motivo.label_tag }}
+            {{ form.motivo }}
+            {% if form.motivo.errors %}
+            <div class="alert alert-danger">
+                {{ form.motivo.errors }}
+            </div>
+            {% endif %}
+        </div>
         <button type="submit" class="btn btn-primary">Enviar Postulación</button>
+        <a href="{% url 'proyectos_comuna' %}" class="btn btn-secondary">Cancelar</a>
     </form>
 </div>
 {% endblock %}

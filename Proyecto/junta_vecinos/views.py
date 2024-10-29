@@ -414,11 +414,11 @@ def enviar_certificado(request, id):
     return render(request, 'junta_vecinos/enviar_certificado.html', {'form': form, 'solicitud': solicitud})
 
 @login_required
-def postular_proyecto(request):
+def crear_proyecto(request):
     try:
         vecino = request.user.vecino
     except Vecino.DoesNotExist:
-        messages.error(request, 'No tienes un perfil de vecino asociado. Por favor, contacta con el administrador.')
+        messages.error(request, "Debes estar registrado como vecino para crear proyectos.")
         return redirect('index')
 
     if request.method == 'POST':
@@ -427,70 +427,199 @@ def postular_proyecto(request):
             proyecto = form.save(commit=False)
             proyecto.vecino = vecino
             proyecto.save()
-            messages.success(request, 'Tu proyecto ha sido postulado exitosamente.')
-            return redirect('index')
+            
+            # Enviar correo al administrador
+            admin_email = vecino.administrador.user.email
+            send_mail(
+                'Nuevo Proyecto Vecinal',
+                f'Se ha recibido un nuevo proyecto vecinal: {proyecto.propuesta}',
+                settings.DEFAULT_FROM_EMAIL,
+                [admin_email],
+                fail_silently=True,
+            )
+            
+            messages.success(request, "Tu proyecto ha sido enviado para revisión.")
+            return redirect('mis_proyectos')
     else:
         form = ProyectoVecinalForm()
+    
+    return render(request, 'junta_vecinos/crear_proyecto.html', {'form': form})
 
-    return render(request, 'junta_vecinos/postular_proyecto.html', {'form': form})
+@login_required
+def mis_proyectos(request):
+    try:
+        vecino = request.user.vecino
+        proyectos = ProyectoVecinal.objects.filter(vecino=vecino)
+        return render(request, 'junta_vecinos/mis_proyectos.html', {'proyectos': proyectos})
+    except Vecino.DoesNotExist:
+        messages.error(request, "Debes estar registrado como vecino para ver proyectos.")
+        return redirect('index')
 
+@login_required
+def detalle_proyecto(request, proyecto_id):
+    proyecto = get_object_or_404(ProyectoVecinal, id=proyecto_id)
+    if request.user != proyecto.vecino.user and not hasattr(request.user, 'administradorcomuna'):
+        messages.error(request, "No tienes permiso para ver este proyecto.")
+        return redirect('index')
+    return render(request, 'junta_vecinos/detalle_proyecto.html', {'proyecto': proyecto})
 
-@user_passes_test(is_admin)
-def gestionar_proyectos(request):
-    proyectos = ProyectoVecinal.objects.filter(estado='pendiente')
-    return render(request, 'junta_vecinos/gestionar_proyectos.html', {'proyectos': proyectos})
+# Vista para el administrador
+@login_required
+def admin_proyectos(request):
+    if not hasattr(request.user, 'administradorcomuna'):
+        messages.error(request, "No tienes permiso para acceder a esta página.")
+        return redirect('index')
+    
+    admin = request.user.administradorcomuna
+    proyectos = ProyectoVecinal.objects.filter(vecino__comuna=admin.comuna)
+    return render(request, 'junta_vecinos/admin_proyectos.html', {'proyectos': proyectos})
 
-@user_passes_test(is_admin)
-def ver_proyecto(request, id):
-    proyecto = get_object_or_404(ProyectoVecinal, id=id)
-    return render(request, 'junta_vecinos/ver_proyecto.html', {'proyecto': proyecto})
-
-@user_passes_test(is_admin)
-def aprobar_proyecto(request, id):
-    proyecto = get_object_or_404(ProyectoVecinal, id=id)
-
+@login_required
+def evaluar_proyecto(request, proyecto_id):
+    if not hasattr(request.user, 'administradorcomuna'):
+        messages.error(request, "No tienes permiso para realizar esta acción.")
+        return redirect('index')
+    
+    proyecto = get_object_or_404(ProyectoVecinal, id=proyecto_id)
+    
     if request.method == 'POST':
-        form = CorreoAprobacionForm(request.POST)
-        if form.is_valid():
-            proyecto.estado = 'aprobado'
-            proyecto.save()
-            # Enviar correo
-            send_mail(
-                'Proyecto Vecinal Aprobado',
-                form.cleaned_data['contenido_correo'], 
-                settings.DEFAULT_FROM_EMAIL,
-                [proyecto.vecino.user.email]
-            )
-            messages.success(request, 'El proyecto ha sido aprobado y se ha enviado un correo al vecino.')
-            return redirect('gestionar_proyectos')
+        estado = request.POST.get('estado')
+        razon_rechazo = request.POST.get('razon_rechazo')
+        
+        proyecto.estado = estado
+        if estado == 'rechazado':
+            proyecto.razon_rechazo = razon_rechazo
+        proyecto.save()
+        
+        # Enviar correo al vecino
+        send_mail(
+            'Actualización de tu Proyecto Vecinal',
+            f'Tu proyecto "{proyecto.propuesta}" ha sido {estado}.' + 
+            (f'\nRazón del rechazo: {razon_rechazo}' if estado == 'rechazado' else ''),
+            settings.DEFAULT_FROM_EMAIL,
+            [proyecto.vecino.user.email],
+            fail_silently=True,
+        )
+        
+        messages.success(request, f"El proyecto ha sido {estado}.")
+        return redirect('admin_proyectos')
+    
+    return render(request, 'junta_vecinos/evaluar_proyecto.html', {'proyecto': proyecto})
+
+@login_required
+def proyectos_comuna(request):
+    try:
+        vecino = request.user.vecino
+        proyectos = ProyectoVecinal.objects.filter(
+            vecino__comuna=vecino.comuna,
+            estado='aprobado'
+        ).exclude(vecino=vecino)
+        
+        # Obtener las postulaciones del vecino actual
+        postulaciones = {
+            p.proyecto_id: p.estado 
+            for p in PostulacionProyecto.objects.filter(vecino=vecino)
+        }
+        
+        for proyecto in proyectos:
+            proyecto.estado_postulacion = postulaciones.get(proyecto.id)
+        
+        return render(request, 'junta_vecinos/proyectos_comuna.html', {
+            'proyectos': proyectos
+        })
+    except Vecino.DoesNotExist:
+        messages.error(request, "Debes estar registrado como vecino para ver los proyectos.")
+        return redirect('index')
+    
+@login_required
+def postular_proyecto(request, proyecto_id):
+    try:
+        vecino = request.user.vecino
+        proyecto = get_object_or_404(ProyectoVecinal, id=proyecto_id, estado='aprobado')
+        
+        # Verificar que el vecino sea de la misma comuna
+        if vecino.comuna != proyecto.vecino.comuna:
+            messages.error(request, "Solo puedes postular a proyectos de tu comuna.")
+            return redirect('proyectos_comuna')
+        
+        # Verificar que no sea el creador del proyecto
+        if proyecto.vecino == vecino:
+            messages.error(request, "No puedes postular a tu propio proyecto.")
+            return redirect('proyectos_comuna')
+        
+        # Verificar si ya existe una postulación
+        if PostulacionProyecto.objects.filter(proyecto=proyecto, vecino=vecino).exists():
+            messages.error(request, "Ya te has postulado a este proyecto.")
+            return redirect('proyectos_comuna')
+        
+        if request.method == 'POST':
+            form = PostulacionProyectoForm(request.POST)
+            if form.is_valid():
+                postulacion = form.save(commit=False)
+                postulacion.proyecto = proyecto
+                postulacion.vecino = vecino
+                postulacion.save()
+                
+                # Enviar correo al creador del proyecto
+                send_mail(
+                    'Nueva postulación a tu proyecto',
+                    f'El vecino {vecino.nombres} {vecino.apellidos} se ha postulado a tu proyecto "{proyecto.propuesta}".',
+                    None,
+                    [proyecto.vecino.user.email],
+                    fail_silently=True,
+                )
+                
+                messages.success(request, "Tu postulación ha sido enviada correctamente.")
+                return redirect('proyectos_comuna')
         else:
-            messages.error(request, 'Por favor corrige los errores en el formulario.')
+            form = PostulacionProyectoForm()
+        
+        return render(request, 'junta_vecinos/postular_proyecto.html', {
+            'form': form,
+            'proyecto': proyecto
+        })
+        
+    except Vecino.DoesNotExist:
+        messages.error(request, "Debes estar registrado como vecino para postular.")
+        return redirect('index')
 
-    else:
-        form = CorreoAprobacionForm()
-
-    return render(request, 'junta_vecinos/aprobar_proyecto.html', {
-        'form': form,
-        'proyecto': proyecto
-    })
-
-@user_passes_test(is_admin)
-def rechazar_proyecto(request, id):
-    proyecto = get_object_or_404(ProyectoVecinal, id=id)
-
+@login_required
+def gestionar_postulaciones(request, proyecto_id):
+    proyecto = get_object_or_404(ProyectoVecinal, id=proyecto_id)
+    
+    # Verificar que el usuario sea el creador del proyecto
+    if request.user != proyecto.vecino.user:
+        messages.error(request, "No tienes permiso para gestionar las postulaciones de este proyecto.")
+        return redirect('mis_proyectos')
+    
     if request.method == 'POST':
-        form = RechazoForm(request.POST)
-        if form.is_valid():
-            razon = form.cleaned_data['razon_rechazo']
-            proyecto.estado = 'rechazado' 
-            proyecto.razon_rechazo = razon  
-            proyecto.save()
-            messages.success(request, 'Proyecto rechazado con éxito.')
-            return redirect('gestionar_proyectos')
-    else:
-        form = RechazoForm()
-
-    return render(request, 'junta_vecinos/rechazar_proyecto.html', {'form': form, 'proyecto': proyecto})
+        postulacion_id = request.POST.get('postulacion_id')
+        accion = request.POST.get('accion')
+        
+        postulacion = get_object_or_404(PostulacionProyecto, id=postulacion_id, proyecto=proyecto)
+        
+        if accion in ['aceptada', 'rechazada']:
+            postulacion.estado = accion
+            postulacion.fecha_respuesta = timezone.now()
+            postulacion.save()
+            
+            # Enviar correo al postulante
+            estado_esp = 'aceptada' if accion == 'aceptada' else 'rechazada'
+            send_mail(
+                f'Tu postulación ha sido {estado_esp}',
+                f'Tu postulación al proyecto "{proyecto.propuesta}" ha sido {estado_esp}.',
+                None,
+                [postulacion.vecino.user.email],
+                fail_silently=True,
+            )
+            
+            messages.success(request, f"La postulación ha sido {estado_esp}.")
+        
+    postulaciones = proyecto.postulaciones.all().order_by('-fecha_postulacion')
+    return render(request, 'junta_vecinos/gestionar_postulaciones.html', {
+        'proyecto': proyecto,
+        'postulaciones': postulaciones
+    })
 
 @user_passes_test(is_admin)
 def publicar_noticia(request):

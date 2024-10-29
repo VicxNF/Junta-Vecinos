@@ -97,6 +97,26 @@ class ProyectoVecinal(models.Model):
 
     def __str__(self):
         return f"{self.propuesta} - {self.get_estado_display()}"
+    
+class PostulacionProyecto(models.Model):
+    ESTADO_CHOICES = [
+        ('pendiente', 'Pendiente'),
+        ('aceptada', 'Aceptada'),
+        ('rechazada', 'Rechazada')
+    ]
+    
+    proyecto = models.ForeignKey('ProyectoVecinal', on_delete=models.CASCADE, related_name='postulaciones')
+    vecino = models.ForeignKey('Vecino', on_delete=models.CASCADE, related_name='postulaciones_proyectos')
+    fecha_postulacion = models.DateTimeField(auto_now_add=True)
+    estado = models.CharField(max_length=10, choices=ESTADO_CHOICES, default='pendiente')
+    motivo = models.TextField(help_text="¿Por qué quieres participar en este proyecto?")
+    fecha_respuesta = models.DateTimeField(null=True, blank=True)
+    
+    class Meta:
+        unique_together = ('proyecto', 'vecino')
+        
+    def __str__(self):
+        return f"Postulación de {self.vecino} a {self.proyecto}"
 
 
 class Noticia(models.Model):

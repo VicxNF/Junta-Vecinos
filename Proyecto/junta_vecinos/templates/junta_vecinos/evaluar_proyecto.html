@@ -1,0 +1,52 @@
+{% extends 'junta_vecinos/base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Evaluar Proyecto Vecinal</h2>
+    
+    <div class="card mb-4">
+        <div class="card-body">
+            <h5 class="card-title">{{ proyecto.propuesta }}</h5>
+            <p><strong>Vecino:</strong> {{ proyecto.vecino.nombres }} {{ proyecto.vecino.apellidos }}</p>
+            <p><strong>Descripción:</strong></p>
+            <p>{{ proyecto.descripcion }}</p>
+            
+            {% if proyecto.evidencia %}
+            <p><strong>Evidencia:</strong></p>
+            <img src="{{ proyecto.evidencia.url }}" alt="Evidencia" class="img-fluid mb-3">
+            {% endif %}
+        </div>
+    </div>
+    
+    <form method="post" class="mt-3">
+        {% csrf_token %}
+        <div class="mb-3">
+            <label class="form-label">Decisión:</label>
+            <select name="estado" class="form-select" id="estado">
+                <option value="aprobado">Aprobar</option>
+                <option value="rechazado">Rechazar</option>
+            </select>
+        </div>
+        
+        <div class="mb-3" id="razon_rechazo_div" style="display: none;">
+            <label class="form-label">Razón del rechazo:</label>
+            <textarea name="razon_rechazo" class="form-control" rows="3"></textarea>
+        </div>
+        
+        <button type="submit" class="btn btn-primary">Guardar Decisión</button>
+    </form>
+</div>
+
+{% block extra_js %}
+<script>
+document.getElementById('estado').addEventListener('change', function() {
+    var razonRechazoDiv = document.getElementById('razon_rechazo_div');
+    if (this.value === 'rechazado') {
+        razonRechazoDiv.style.display = 'block';
+    } else {
+        razonRechazoDiv.style.display = 'none';
+    }
+});
+</script>
+{% endblock %}
+{% endblock %}

@@ -1,0 +1,58 @@
+{% extends 'junta_vecinos/base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Gestionar Postulaciones</h2>
+    <h4>Proyecto: {{ proyecto.propuesta }}</h4>
+    
+    <div class="table-responsive mt-4">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Vecino</th>
+                    <th>Fecha</th>
+                    <th>Motivo</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for postulacion in postulaciones %}
+                <tr>
+                    <td>{{ postulacion.vecino.nombres }} {{ postulacion.vecino.apellidos }}</td>
+                    <td>{{ postulacion.fecha_postulacion|date:"d/m/Y H:i" }}</td>
+                    <td>{{ postulacion.motivo }}</td>
+                    <td>
+                        <span class="badge {% if postulacion.estado == 'aceptada' %}bg-success
+                                         {% elif postulacion.estado == 'rechazada' %}bg-danger
+                                         {% else %}bg-warning{% endif %}">
+                            {{ postulacion.estado|title }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if postulacion.estado == 'pendiente' %}
+                        <form method="post" class="d-inline">
+                            {% csrf_token %}
+                            <input type="hidden" name="postulacion_id" value="{{ postulacion.id }}">
+                            <button type="submit" name="accion" value="aceptada" class="btn btn-success btn-sm">
+                                Aceptar
+                            </button>
+                            <button type="submit" name="accion" value="rechazada" class="btn btn-danger btn-sm">
+                                Rechazar
+                            </button>
+                        </form>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="text-center">No hay postulaciones todavía.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    
+    <a href="{% url 'mis_proyectos' %}" class="btn btn-secondary mt-3">Volver a Mis Proyectos</a>
+</div>
+{% endblock %}

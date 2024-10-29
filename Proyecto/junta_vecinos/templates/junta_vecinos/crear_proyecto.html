@@ -1,0 +1,12 @@
+{% extends 'junta_vecinos/base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Crear Nuevo Proyecto Vecinal</h2>
+    <form method="post" enctype="multipart/form-data" class="mt-3">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit" class="btn btn-primary">Enviar Proyecto</button>
+    </form>
+</div>
+{% endblock %}
