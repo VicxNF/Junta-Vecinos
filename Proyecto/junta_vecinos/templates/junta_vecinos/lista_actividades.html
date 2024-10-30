@@ -2,11 +2,86 @@
 
 {% block content %}
 <div class="container mt-4">
-    <h2>Actividades Vecinales</h2>
     
-    {% if user.is_superuser %}
-    <a href="{% url 'crear_actividad' %}" class="btn btn-primary mb-3">Crear Nueva Actividad</a>
-    {% endif %}
+    
+
+    <div class="container mt-4">
+        {% if user.is_superuser %}
+        <h2>Actividades Vecinales - {{ comuna }}</h2>
+        
+        <!-- Sección de Estadísticas Rápidas -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="card">
+                    <div class="card-body">
+                        <h3 class="card-title mb-4">Estadísticas Generales</h3>
+                        <div class="row">
+                            <div class="col-md-4 text-center">
+                                <h5>Total Actividades</h5>
+                                <h2 class="text-primary">{{ total_actividades }}</h2>
+                            </div>
+                            <div class="col-md-4 text-center">
+                                <h5>Total Inscritos</h5>
+                                <h2 class="text-success">{{ total_inscritos }}</h2>
+                            </div>
+                            <div class="col-md-4 text-center">
+                                <h5>Ingresos Totales</h5>
+                                <h2 class="text-info">${{ total_ingresos|floatformat:2 }}</h2>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    
+        <!-- Gráficos -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h4 class="card-title">Tendencia Mensual</h4>
+                        <canvas id="tendenciaChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-body">
+                        <h4 class="card-title">Generar Reporte</h4>
+                        <form method="get" action="{% url 'generar_reporte_actividades_pdf' %}" class="row g-3">
+                            <div class="col-md-6">
+                                <label for="year" class="form-label">Año</label>
+                                <select name="year" id="year" class="form-select">
+                                    {% for year in years %}
+                                        <option value="{{ year }}" {% if year == current_year %}selected{% endif %}>
+                                            {{ year }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-md-6">
+                                <label for="month" class="form-label">Mes</label>
+                                <select name="month" id="month" class="form-select">
+                                    {% for month_num, month_name in months %}
+                                        <option value="{{ month_num }}" {% if month_num == current_month %}selected{% endif %}>
+                                            {{ month_name }}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                            <div class="col-12">
+                                <button type="submit" class="btn btn-success w-100">
+                                    <i class="fas fa-file-pdf me-2"></i>Generar Reporte PDF
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% else %}
+        <h2>Actividades Vecinales</h2>
+        {% endif %}
     
     <div class="row">
         {% for actividad in actividades %}
@@ -59,6 +134,66 @@
         {% endfor %}
     </div>
 </div>
+
+{% if user.is_superuser %}
+    <a href="{% url 'crear_actividad' %}" class="btn btn-primary mb-3">Crear Nueva Actividad</a>
+    {% endif %}
+
+{% if user.is_superuser %}
+<!-- Scripts para los gráficos -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    var ctxTendencia = document.getElementById('tendenciaChart').getContext('2d');
+    new Chart(ctxTendencia, {
+        type: 'line',
+        data: {
+            labels: {{ meses|safe }},
+            datasets: [{
+                label: 'Actividades',
+                data: {{ actividades_mensuales|safe }},
+                borderColor: 'rgba(75, 192, 192, 1)',
+                tension: 0.1,
+                fill: false
+            }, {
+                label: 'Inscritos',
+                data: {{ inscritos_mensuales|safe }},
+                borderColor: 'rgba(255, 99, 132, 1)',
+                tension: 0.1,
+                fill: false
+            }, {
+                label: 'Ingresos ($)',
+                data: {{ ingresos_mensuales|safe }},
+                borderColor: 'rgba(54, 162, 235, 1)',
+                tension: 0.1,
+                fill: false,
+                yAxisID: 'y1'
+            }]
+        },
+        options: {
+            responsive: true,
+            interaction: {
+                mode: 'index',
+                intersect: false,
+            },
+            scales: {
+                y: {
+                    type: 'linear',
+                    display: true,
+                    position: 'left',
+                },
+                y1: {
+                    type: 'linear',
+                    display: true,
+                    position: 'right',
+                    grid: {
+                        drawOnChartArea: false
+                    }
+                }
+            }
+        }
+    });
+</script>
+{% endif %}
 
 <script>
     document.querySelectorAll('.inscribir-btn').forEach(button => {

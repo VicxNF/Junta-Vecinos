@@ -51,6 +51,7 @@ urlpatterns = [
     path('pago-fallido/', views.pago_fallido, name='pago_fallido'),
     path('actividades/', views.lista_actividades, name='lista_actividades'),
     path('actividades/crear/', views.crear_actividad, name='crear_actividad'),
+    path('actividades/reporte/', views.generar_reporte_actividades_pdf, name='generar_reporte_actividades_pdf'),
     path('actividades/<int:actividad_id>/inscribir/', views.inscribir_actividad, name='inscribir_actividad'),
     path('actividades/<int:actividad_id>/cancelar/', views.cancelar_actividad, name='cancelar_actividad'),
     path('actividades/<int:actividad_id>/asistencia/', views.registrar_asistencia, name='registrar_asistencia'),

@@ -21,7 +21,7 @@ from datetime import datetime, date
 from django.core.files.base import ContentFile
 import json
 from datetime import datetime, timedelta
-from django.db.models import Count, Sum
+from django.db.models import Count, Sum, F
 from reportlab.lib.pagesizes import A4, letter
 from reportlab.pdfgen import canvas
 from django.shortcuts import redirect
@@ -1251,29 +1251,144 @@ def crear_actividad(request):
 
 @login_required
 def lista_actividades(request):
+    current_year = datetime.now().year
+    current_month = datetime.now().month
+
     if hasattr(request.user, 'administradorcomuna'):
-        # Si es admin, mostrar actividades de su comuna
-        actividades = ActividadVecinal.objects.filter(
-            comuna=request.user.administradorcomuna
-        ).order_by('fecha', 'hora_inicio')
+        admin = request.user.administradorcomuna
+        base_query = ActividadVecinal.objects.filter(comuna=admin)
+        
+        # Estadísticas generales
+        total_actividades = base_query.count()
+        total_inscritos = InscripcionActividad.objects.filter(
+            actividad__comuna=admin
+        ).count()
+        total_ingresos = base_query.aggregate(
+            total=Sum('precio'))['total'] or 0
+
+        # Estadísticas por mes
+        actividades_por_mes = base_query.filter(
+            fecha__year=current_year
+        ).annotate(
+            mes=TruncMonth('fecha')
+        ).values('mes').annotate(
+            total=Count('id'),
+            inscritos=Count('inscripcionactividad'),
+            ingresos=Sum(F('precio') * F('cupo_actual'))
+        ).order_by('mes')
+
+        # Preparar datos para gráficos
+        meses = [calendar.month_name[a['mes'].month] for a in actividades_por_mes]
+        actividades_mensuales = [a['total'] for a in actividades_por_mes]
+        inscritos_mensuales = [a['inscritos'] for a in actividades_por_mes]
+        ingresos_mensuales = [float(a['ingresos'] or 0) for a in actividades_por_mes]
+
+        # Datos para selector de reportes
+        years = range(current_year - 2, current_year + 1)
+        months = [(i, calendar.month_name[i]) for i in range(1, 13)]
+
+        context = {
+            'actividades': base_query.order_by('fecha', 'hora_inicio'),
+            'total_actividades': total_actividades,
+            'total_inscritos': total_inscritos,
+            'total_ingresos': total_ingresos,
+            'meses': meses,
+            'actividades_mensuales': actividades_mensuales,
+            'inscritos_mensuales': inscritos_mensuales,
+            'ingresos_mensuales': ingresos_mensuales,
+            'years': years,
+            'months': months,
+            'current_year': current_year,
+            'current_month': current_month,
+            'comuna': admin.get_comuna_display()
+        }
     else:
-        # Si es vecino, mostrar actividades de su comuna
         vecino = get_object_or_404(Vecino, user=request.user)
         actividades = ActividadVecinal.objects.filter(
             comuna__comuna=vecino.comuna,
             estado='activa'
         ).order_by('fecha', 'hora_inicio')
 
-        # Añadir información de inscripción para cada actividad
         for actividad in actividades:
             actividad.usuario_inscrito = InscripcionActividad.objects.filter(
                 actividad=actividad,
                 vecino=vecino
             ).exists()
+        
+        context = {
+            'actividades': actividades
+        }
     
-    return render(request, 'junta_vecinos/lista_actividades.html', {
-        'actividades': actividades
-    })
+    return render(request, 'junta_vecinos/lista_actividades.html', context)
+
+@login_required
+def generar_reporte_actividades_pdf(request):
+    # Obtener parámetros
+    year = int(request.GET.get('year', datetime.now().year))
+    month = int(request.GET.get('month', datetime.now().month))
+    
+    admin = request.user.administradorcomuna
+    
+    # Filtrar actividades
+    actividades = ActividadVecinal.objects.filter(
+        comuna=admin,
+        fecha__year=year,
+        fecha__month=month
+    ).order_by('fecha', 'hora_inicio')
+
+    # Crear el PDF
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="reporte_actividades_{year}_{month}.pdf"'
+    
+    doc = SimpleDocTemplate(response, pagesize=letter)
+    elements = []
+    styles = getSampleStyleSheet()
+    
+    # Título
+    elements.append(Paragraph(f"Reporte de Actividades - {calendar.month_name[month]} {year}", styles['Title']))
+    elements.append(Spacer(1, 20))
+    
+    # Datos de la tabla
+    data = [['Actividad', 'Fecha', 'Inscritos', 'Ingresos']]
+    total_inscritos = 0
+    total_ingresos = 0
+    
+    for actividad in actividades:
+        inscritos = actividad.inscripcionactividad_set.count()
+        ingresos = inscritos * actividad.precio
+        data.append([
+            actividad.titulo,
+            actividad.fecha.strftime('%d/%m/%Y'),
+            str(inscritos),
+            f"${ingresos:,.2f}"
+        ])
+        total_inscritos += inscritos
+        total_ingresos += ingresos
+    
+    # Agregar totales
+    data.append(['TOTAL', '', str(total_inscritos), f"${total_ingresos:,.2f}"])
+    
+    # Crear tabla
+    table = Table(data)
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 14),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('BACKGROUND', (0, -1), (-1, -1), colors.lightgrey),
+        ('TEXTCOLOR', (0, -1), (-1, -1), colors.black),
+        ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, -1), (-1, -1), 12),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black)
+    ]))
+    
+    elements.append(table)
+    
+    # Generar PDF
+    doc.build(elements)
+    return response
 
 @login_required
 def inscribir_actividad(request, actividad_id):
