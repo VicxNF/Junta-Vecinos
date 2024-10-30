@@ -1,0 +1,18 @@
+{% extends 'junta_vecinos/base.html' %}
+
+{% block title %}Reestablecer Contraseña{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2>Reestablecer Contraseña</h2>
+    <p>Ingresa tu correo electrónico y te enviaremos instrucciones para reestablecer tu contraseña.</p>
+    <form method="post">
+        {% csrf_token %}
+        {{ formulario.as_p }}
+        <button type="submit" class="btn btn-primary">Enviar</button>
+    </form>
+    <div class="mt-3">
+        <a href="{% url 'login' %}">Volver al inicio de sesión</a>
+    </div>
+</div>
+{% endblock %}

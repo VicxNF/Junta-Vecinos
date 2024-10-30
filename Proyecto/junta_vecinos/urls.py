@@ -10,6 +10,8 @@ urlpatterns = [
     path('registro/', views.registro_vecino, name='registro_vecino'),
     path('login/', views.user_login, name='login'),
     path('logout/', views.user_logout, name='logout'),
+    path('reestablecer-contrasena/', views.solicitar_reestablecer_contrasena, name='solicitar_reestablecer_contrasena'),
+    path('reestablecer-contrasena/<str:token>/', views.confirmar_reestablecimiento_contrasena, name='confirmar_reestablecimiento_contrasena'),
     path('registros/', views.solicitudes_registro, name='solicitudes_registro'),
     path('aprobar/<int:solicitud_id>/', views.aprobar_registro, name='aprobar_registro'),
     path('rechazar/<int:solicitud_id>/', views.rechazar_registro, name='rechazar_registro'),
@@ -37,9 +39,9 @@ urlpatterns = [
     path('eliminar_espacio/<int:espacio_id>/', views.eliminar_espacio, name='eliminar_espacio'),
     path('espacios/', views.espacios_disponibles, name='espacios_disponibles'),
     path('espacio/<int:espacio_id>/reservar/', views.reservar_espacio, name='reservar_espacio'),
-    path('reservas/', views.lista_reservas, name='lista_reservas'),
+    path('reservas/lista/', views.lista_reservas, name='lista_reservas'),
+    path('reservas/reporte/', views.generar_reporte_pdf, name='generar_reporte_pdf'),
     path('api/get-available-slots/', views.get_available_slots, name='get_available_slots'),
-    path('generar_reporte_pdf/', views.generar_reporte_pdf, name='generar_reporte_pdf'),
     path('generar_reporte_solicitudes_pdf/', views.generar_reporte_solicitudes_pdf, name='generar_reporte_solicitudes_pdf'),
     path('api/get-espacio-info/', views.get_espacio_info, name='get_espacio_info'),
     path('espacio/<int:espacio_id>/reservar/', views.reservar_espacio, name='reservar_espacio'),
@@ -56,6 +58,8 @@ urlpatterns = [
     path('webpay/retorno_actividad/', views.webpay_retorno_actividad, name='webpay_retorno_actividad'),
     path('actividades/inscripcion-exitosa/', views.inscripcion_exitosa, name='inscripcion_exitosa'),
     path('actividades/error-inscripcion/', views.error_inscripcion, name='error_inscripcion'),
+    path('reportes/seleccionar/', views.seleccionar_periodo_reporte, name='seleccionar_periodo_reporte'),
+    path('reportes/generar/', views.generar_reporte_pdf, name='generar_reporte_pdf'),
 ]
     # Agrega más rutas según sea necesario
 if settings.DEBUG:

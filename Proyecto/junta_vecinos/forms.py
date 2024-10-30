@@ -211,3 +211,32 @@ class ActividadVecinalForm(forms.ModelForm):
             'hora_inicio': forms.TimeInput(attrs={'type': 'time'}),
             'hora_fin': forms.TimeInput(attrs={'type': 'time'}),
         }
+
+class FormularioSolicitudReestablecerContrasena(forms.Form):
+    correo = forms.EmailField(label='Correo Electrónico')
+
+    def clean_correo(self):
+        correo = self.cleaned_data['correo']
+        if not User.objects.filter(email=correo).exists():
+            raise forms.ValidationError("No existe una cuenta con este correo electrónico.")
+        return correo
+
+class FormularioNuevaContrasena(forms.Form):
+    contrasena1 = forms.CharField(
+        label='Nueva Contraseña',
+        widget=forms.PasswordInput,
+        min_length=8
+    )
+    contrasena2 = forms.CharField(
+        label='Confirmar Nueva Contraseña',
+        widget=forms.PasswordInput
+    )
+
+    def clean(self):
+        datos_limpios = super().clean()
+        contrasena1 = datos_limpios.get('contrasena1')
+        contrasena2 = datos_limpios.get('contrasena2')
+        if contrasena1 and contrasena2:
+            if contrasena1 != contrasena2:
+                raise forms.ValidationError("Las contraseñas no coinciden.")
+        return datos_limpios

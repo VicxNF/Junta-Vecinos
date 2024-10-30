@@ -21,14 +21,22 @@ from datetime import datetime, date
 from django.core.files.base import ContentFile
 import json
 from datetime import datetime, timedelta
-from django.db.models import Count
-from reportlab.lib.pagesizes import A4
+from django.db.models import Count, Sum
+from reportlab.lib.pagesizes import A4, letter
 from reportlab.pdfgen import canvas
 from django.shortcuts import redirect
 from django.urls import reverse
 from transbank.webpay.webpay_plus.transaction import Transaction
 from django.views.decorators.csrf import csrf_exempt
 from decimal import Decimal
+from django.utils.crypto import get_random_string
+from reportlab.lib import colors
+from reportlab.lib.units import inch
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
+from django.db.models.functions import TruncMonth, ExtractMonth
+from calendar import month_name
+import calendar
 
 
 
@@ -137,6 +145,80 @@ def user_logout(request):
     logout(request)
     messages.success(request, "Has cerrado sesión exitosamente.")
     return redirect('login')
+
+def solicitar_reestablecer_contrasena(request):
+    if request.method == 'POST':
+        formulario = FormularioSolicitudReestablecerContrasena(request.POST)
+        if formulario.is_valid():
+            correo = formulario.cleaned_data['correo']
+            usuario = User.objects.get(email=correo)
+            
+            # Generar token único
+            token = get_random_string(length=32)
+            
+            # Guardar token en la base de datos
+            TokenReestablecerContrasena.objects.create(
+                usuario=usuario,
+                token=token,
+                fecha_expiracion=timezone.now() + timezone.timedelta(hours=24)
+            )
+            
+            # Construir el enlace de restablecimiento
+            enlace_reestablecimiento = request.build_absolute_uri(
+                reverse('confirmar_reestablecimiento_contrasena', kwargs={'token': token})
+            )
+            
+            # Enviar correo
+            send_mail(
+                'Reestablecimiento de Contraseña',
+                f'Para reestablecer tu contraseña, haz clic en el siguiente enlace:\n\n'
+                f'{enlace_reestablecimiento}\n\n'
+                f'Este enlace expirará en 24 horas.',
+                settings.DEFAULT_FROM_EMAIL,
+                [correo],
+                fail_silently=False,
+            )
+            
+            messages.success(
+                request,
+                "Te hemos enviado un correo electrónico con instrucciones para reestablecer tu contraseña."
+            )
+            return redirect('login')
+    else:
+        formulario = FormularioSolicitudReestablecerContrasena()
+    
+    return render(request, 'junta_vecinos/solicitar_reestablecer_contrasena.html', 
+                 {'formulario': formulario})
+
+def confirmar_reestablecimiento_contrasena(request, token):
+    try:
+        token_reestablecimiento = TokenReestablecerContrasena.objects.get(
+            token=token,
+            usado=False,
+            fecha_expiracion__gt=timezone.now()
+        )
+    except TokenReestablecerContrasena.DoesNotExist:
+        messages.error(request, "El enlace de restablecimiento es inválido o ha expirado.")
+        return redirect('login')
+    
+    if request.method == 'POST':
+        formulario = FormularioNuevaContrasena(request.POST)
+        if formulario.is_valid():
+            usuario = token_reestablecimiento.usuario
+            usuario.set_password(formulario.cleaned_data['contrasena1'])
+            usuario.save()
+            
+            # Marcar token como usado
+            token_reestablecimiento.usado = True
+            token_reestablecimiento.save()
+            
+            messages.success(request, "Tu contraseña ha sido actualizada correctamente.")
+            return redirect('login')
+    else:
+        formulario = FormularioNuevaContrasena()
+    
+    return render(request, 'junta_vecinos/confirmar_reestablecimiento_contrasena.html', 
+                 {'formulario': formulario})
 
 @login_required
 def solicitudes_registro(request):
@@ -914,20 +996,66 @@ def get_available_slots(request):
 @user_passes_test(is_admin)
 @login_required
 def lista_reservas(request):
-    # Obtener todas las reservas
-    reservas = Reserva.objects.all()
+    # Obtener el administrador y su comuna
+    admin = AdministradorComuna.objects.get(user=request.user)
+    
+    # Obtener las reservas solo de los espacios de la comuna del administrador
+    reservas = Reserva.objects.select_related('espacio', 'usuario').filter(
+        espacio__comuna=admin
+    ).order_by('-fecha', '-hora_inicio')
 
-    # Agrupar las reservas por espacio y contar cuántas hay por espacio
-    reservas_por_espacio = Reserva.objects.values('espacio__nombre').annotate(total=Count('id')).order_by('espacio__nombre')
+    # Obtener estadísticas por espacio de la comuna
+    reservas_por_espacio = Reserva.objects.filter(
+        espacio__comuna=admin
+    ).values('espacio__nombre').annotate(
+        total=Count('id'),
+        ingresos_totales=Sum('monto_pagado')
+    ).order_by('espacio__nombre')
 
-    # Obtener nombres de los espacios y totales
+    # Obtener estadísticas por mes para el año actual y la comuna específica
+    year = datetime.now().year
+    reservas_por_mes = Reserva.objects.filter(
+        fecha__year=year,
+        espacio__comuna=admin
+    ).annotate(
+        mes=TruncMonth('fecha')
+    ).values('mes').annotate(
+        total=Count('id'),
+        ingresos=Sum('monto_pagado')
+    ).order_by('mes')
+
+    # Preparar datos para los gráficos
     espacios = [reserva['espacio__nombre'] for reserva in reservas_por_espacio]
     totales = [reserva['total'] for reserva in reservas_por_espacio]
+    ingresos = [float(reserva['ingresos_totales'] or 0) for reserva in reservas_por_espacio]
+
+    # Preparar datos para el gráfico de tendencia mensual
+    meses = [calendar.month_name[r['mes'].month] for r in reservas_por_mes]
+    reservas_mensuales = [r['total'] for r in reservas_por_mes]
+    ingresos_mensuales = [float(r['ingresos'] or 0) for r in reservas_por_mes]
+
+    # Obtener años para el selector de reportes
+    current_year = datetime.now().year
+    years = range(current_year - 2, current_year + 1)
+    months = [(i, calendar.month_name[i]) for i in range(1, 13)]
+
+    # Calcular el total de ingresos (para solucionar el problema del filtro sum)
+    total_ingresos = sum(ingresos)
 
     return render(request, 'junta_vecinos/lista_reservas.html', {
         'reservas': reservas,
         'espacios': espacios,
-        'totales': totales
+        'totales': totales,
+        'ingresos': ingresos,
+        'total_ingresos': total_ingresos,
+        'meses': meses,
+        'reservas_mensuales': reservas_mensuales,
+        'ingresos_mensuales': ingresos_mensuales,
+        'years': years,
+        'months': months,
+        'current_year': current_year,
+        'current_month': datetime.now().month,
+        'comuna': admin.get_comuna_display(),  # Añadimos el nombre de la comuna para mostrarlo
     })
 
 
@@ -949,50 +1077,147 @@ def generar_certificado_pdf(vecino, numero_certificado):
 
     return pdf_file
 
+def get_month_name(month_number):
+    return calendar.month_name[month_number]
+
 @user_passes_test(is_admin)
 @login_required
 def generar_reporte_pdf(request):
+    # Obtener parámetros del request
+    year = int(request.GET.get('year', datetime.now().year))
+    month = int(request.GET.get('month', datetime.now().month))
+    
     # Crear el objeto HttpResponse con el tipo de contenido de PDF
     response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = 'attachment; filename="reporte_reservas.pdf"'
-
-    # Crear el PDF
-    p = canvas.Canvas(response, pagesize=A4)
-    ancho, alto = A4
-
-    # Título
-    p.setFont("Helvetica-Bold", 16)
-    p.drawString(100, alto - 50, "Reporte de Reservas de Espacios")
-
-    # Encabezados de la tabla
-    p.setFont("Helvetica-Bold", 12)
-    p.drawString(50, alto - 100, "Espacio")
-    p.drawString(200, alto - 100, "Fecha")
-    p.drawString(300, alto - 100, "Hora Inicio")
-    p.drawString(400, alto - 100, "Hora Fin")
-    p.drawString(500, alto - 100, "Usuario")
-
-    # Listar las reservas
-    p.setFont("Helvetica", 10)
-    y = alto - 120
-    reservas = Reserva.objects.all().order_by('fecha')
-    for reserva in reservas:
-        if y < 50:
-            p.showPage()  # Crear nueva página si se acaba el espacio
-            y = alto - 50
-
-        p.drawString(50, y, reserva.espacio.nombre)
-        p.drawString(200, y, reserva.fecha.strftime("%Y-%m-%d"))
-        p.drawString(300, y, reserva.hora_inicio.strftime("%H:%M"))
-        p.drawString(400, y, reserva.hora_fin.strftime("%H:%M"))
-        p.drawString(500, y, f"{reserva.usuario.first_name} {reserva.usuario.last_name}")
-        y -= 20
-
-    # Finalizar el PDF
-    p.showPage()
-    p.save()
+    response['Content-Disposition'] = f'attachment; filename="reporte_reservas_{year}_{month}.pdf"'
     
+    # Configurar el documento
+    doc = SimpleDocTemplate(response, pagesize=letter)
+    elements = []
+    styles = getSampleStyleSheet()
+    
+    # Estilos personalizados
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=16,
+        spaceAfter=30,
+        alignment=1  # Centrado
+    )
+    
+    # Título del reporte
+    title = Paragraph(f"Reporte de Reservas - {get_month_name(month)} {year}", title_style)
+    elements.append(title)
+    
+    # Obtener las reservas del mes
+    reservas = Reserva.objects.filter(
+        fecha__year=year,
+        fecha__month=month
+    ).select_related('espacio', 'usuario')
+    
+    # Estadísticas generales
+    total_reservas = reservas.count()
+    ingresos_totales = reservas.aggregate(total=Sum('monto_pagado'))['total'] or 0
+    
+    # Agregar resumen general
+    resumen_style = ParagraphStyle(
+        'Resumen',
+        parent=styles['Normal'],
+        fontSize=12,
+        spaceAfter=20
+    )
+    
+    elements.append(Paragraph(f"Total de Reservas: {total_reservas}", resumen_style))
+    elements.append(Paragraph(f"Ingresos Totales: ${ingresos_totales:,.2f}", resumen_style))
+    elements.append(Spacer(1, 20))
+    
+    # Estadísticas por espacio
+    stats_por_espacio = reservas.values('espacio__nombre').annotate(
+        total_reservas=Count('id'),
+        ingresos=Sum('monto_pagado')
+    ).order_by('-total_reservas')
+    
+    # Tabla de estadísticas por espacio
+    elements.append(Paragraph("Estadísticas por Espacio", styles['Heading2']))
+    espacios_data = [['Espacio', 'Total Reservas', 'Ingresos']]
+    for stat in stats_por_espacio:
+        espacios_data.append([
+            stat['espacio__nombre'],
+            str(stat['total_reservas']),
+            f"${stat['ingresos']:,.2f}" if stat['ingresos'] else "$0.00"
+        ])
+    
+    tabla_espacios = Table(espacios_data)
+    tabla_espacios.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 12),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+        ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
+        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 1), (-1, -1), 10),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ('BOX', (0, 0), (-1, -1), 2, colors.black),
+    ]))
+    
+    elements.append(tabla_espacios)
+    elements.append(Spacer(1, 20))
+    
+    # Detalle de todas las reservas
+    elements.append(Paragraph("Detalle de Reservas", styles['Heading2']))
+    
+    detalle_data = [['Fecha', 'Espacio', 'Usuario', 'Hora Inicio', 'Hora Fin', 'Monto']]
+    for reserva in reservas.order_by('fecha', 'hora_inicio'):
+        detalle_data.append([
+            reserva.fecha.strftime("%d/%m/%Y"),
+            reserva.espacio.nombre,
+            f"{reserva.usuario.first_name} {reserva.usuario.last_name}",
+            reserva.hora_inicio.strftime("%H:%M"),
+            reserva.hora_fin.strftime("%H:%M"),
+            f"${reserva.monto_pagado:,.2f}"
+        ])
+    
+    tabla_detalle = Table(detalle_data, repeatRows=1)
+    tabla_detalle.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 12),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
+        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 1), (-1, -1), 9),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ('BOX', (0, 0), (-1, -1), 2, colors.black),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+    ]))
+    
+    elements.append(tabla_detalle)
+    
+    # Generar el PDF
+    doc.build(elements)
     return response
+
+# Vista para mostrar el formulario de selección de mes/año
+@user_passes_test(is_admin)
+@login_required
+def seleccionar_periodo_reporte(request):
+    current_year = datetime.now().year
+    years = range(current_year - 2, current_year + 1)  # Últimos 2 años y año actual
+    months = [(i, calendar.month_name[i]) for i in range(1, 13)]
+    
+    context = {
+        'years': years,
+        'months': months,
+        'current_year': current_year,
+        'current_month': datetime.now().month,
+    }
+    
+    return render(request, 'junta_vecinos/seleccionar_periodo_reporte.html', context)
 
 @user_passes_test(is_admin)
 def crear_actividad(request):

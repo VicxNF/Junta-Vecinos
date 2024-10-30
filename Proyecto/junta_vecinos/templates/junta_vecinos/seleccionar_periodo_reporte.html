@@ -1,0 +1,41 @@
+{% extends 'junta_vecinos/base.html' %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8">
+    <div class="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden md:max-w-2xl p-6">
+        <h1 class="text-2xl font-bold mb-6 text-center">Generar Reporte de Reservas</h1>
+        
+        <form method="get" action="{% url 'generar_reporte_pdf' %}" class="space-y-6">
+            <div class="space-y-4">
+                <div>
+                    <label for="year" class="block text-sm font-medium text-gray-700">Año</label>
+                    <select name="year" id="year" class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                        {% for year in years %}
+                            <option value="{{ year }}" {% if year == current_year %}selected{% endif %}>
+                                {{ year }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div>
+                    <label for="month" class="block text-sm font-medium text-gray-700">Mes</label>
+                    <select name="month" id="month" class="mt-1 block w-full py-2 px-3 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                        {% for month_num, month_name in months %}
+                            <option value="{{ month_num }}" {% if month_num == current_month %}selected{% endif %}>
+                                {{ month_name }}
+                            </option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="flex justify-center">
+                <button type="submit" class="py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+                    Generar Reporte
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

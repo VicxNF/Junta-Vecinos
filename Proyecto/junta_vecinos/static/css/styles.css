@@ -668,3 +668,20 @@ a:not(.btn):hover::after {
       font-size: 1.1rem;
   }
 }
+
+.navbar-brand img {
+  max-height: 40px;
+  width: auto;
+}
+
+/* Para dispositivos móviles */
+@media (max-width: 768px) {
+  .navbar-brand img {
+      max-height: 30px;
+  }
+}
+
+/* Si necesitas ajustar el color de fondo del navbar para que combine mejor con el logo */
+.custom-navbar {
+  background-color: #2E8B57; /* El mismo verde del logo */
+}

@@ -1,0 +1,14 @@
+{% extends 'junta_vecinos/base.html' %}
+
+{% block title %}Nueva Contraseña{% endblock %}
+
+{% block content %}
+<div class="container">
+    <h2>Establecer Nueva Contraseña</h2>
+    <form method="post">
+        {% csrf_token %}
+        {{ formulario.as_p }}
+        <button type="submit" class="btn btn-primary">Guardar Nueva Contraseña</button>
+    </form>
+</div>
+{% endblock %}

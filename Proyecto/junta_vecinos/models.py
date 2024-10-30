@@ -42,6 +42,17 @@ class Vecino(models.Model):
             self.administrador = AdministradorComuna.objects.get(comuna=self.comuna)
         super().save(*args, **kwargs)
 
+class TokenReestablecerContrasena(models.Model):
+    usuario = models.ForeignKey(User, on_delete=models.CASCADE)
+    token = models.CharField(max_length=32)
+    fecha_creacion = models.DateTimeField(auto_now_add=True)
+    fecha_expiracion = models.DateTimeField()
+    usado = models.BooleanField(default=False)
+
+    class Meta:
+        verbose_name = "Token de reestablecimiento de contraseña"
+        verbose_name_plural = "Tokens de reestablecimiento de contraseña"
+
 
 class SolicitudRegistroVecino(models.Model):
     vecino = models.OneToOneField(Vecino, on_delete=models.CASCADE)
