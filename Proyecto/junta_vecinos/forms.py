@@ -78,23 +78,50 @@ class DocumentoCertificadoForm(forms.ModelForm):
         fields = ['documento_certificado']
 
 class LoginForm(forms.Form):
-    email = forms.EmailField(label="Correo Electrónico")
-    password = forms.CharField(label="Contraseña", widget=forms.PasswordInput)
+    TIPO_USUARIO_CHOICES = [
+        ('vecino', 'Vecino'),
+        ('administrador', 'Administrador')
+    ]
+    
+    tipo_usuario = forms.ChoiceField(
+        label="Tipo de Usuario",
+        choices=TIPO_USUARIO_CHOICES,
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+    email = forms.EmailField(
+        label="Correo Electrónico",
+        widget=forms.EmailInput(attrs={'class': 'form-control'})
+    )
+    password = forms.CharField(
+        label="Contraseña",
+        widget=forms.PasswordInput(attrs={'class': 'form-control'})
+    )
 
     def clean(self):
-        email = self.cleaned_data.get('email')
-        password = self.cleaned_data.get('password')
+        cleaned_data = super().clean()
+        email = cleaned_data.get('email')
+        password = cleaned_data.get('password')
+        tipo_usuario = cleaned_data.get('tipo_usuario')
 
-        # Verificar si el usuario existe y las credenciales son correctas
-        try:
-            user = User.objects.get(email=email)
-        except User.DoesNotExist:
-            raise forms.ValidationError("El correo electrónico no está registrado.")
+        if email and password and tipo_usuario:
+            try:
+                user = User.objects.get(email=email)
+                
+                # Verificar si el tipo de usuario coincide
+                if tipo_usuario == 'administrador':
+                    if not hasattr(user, 'administradorcomuna'):
+                        raise forms.ValidationError("Esta cuenta no pertenece a un administrador.")
+                elif tipo_usuario == 'vecino':
+                    if not hasattr(user, 'vecino'):
+                        raise forms.ValidationError("Esta cuenta no pertenece a un vecino.")
 
-        if not user.check_password(password):
-            raise forms.ValidationError("Contraseña incorrecta.")
+                if not user.check_password(password):
+                    raise forms.ValidationError("Contraseña incorrecta.")
+                    
+            except User.DoesNotExist:
+                raise forms.ValidationError("El correo electrónico no está registrado.")
         
-        return self.cleaned_data
+        return cleaned_data
 
 
 class EnviarCertificadoForm(forms.ModelForm):

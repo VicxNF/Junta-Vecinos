@@ -145,16 +145,28 @@ def user_login(request):
         if form.is_valid():
             email = form.cleaned_data['email']
             password = form.cleaned_data['password']
+            tipo_usuario = form.cleaned_data['tipo_usuario']
+            
             try:
                 user = User.objects.get(email=email)
                 user = authenticate(request, username=user.username, password=password)
+                
                 if user is not None:
-                    if user.is_active:
-                        auth_login(request, user)
-                        messages.success(request, f"¡Bienvenido {user.get_full_name()}!")
-                        return redirect('index')
+                    # Verificar el tipo de usuario
+                    if tipo_usuario == 'administrador' and hasattr(user, 'administradorcomuna'):
+                        if user.is_active:
+                            auth_login(request, user)
+                            messages.success(request, f"¡Bienvenido Administrador {user.get_full_name()}!")
+                            return redirect('index')
+                    elif tipo_usuario == 'vecino' and hasattr(user, 'vecino'):
+                        if user.is_active:
+                            auth_login(request, user)
+                            messages.success(request, f"¡Bienvenido Vecino {user.get_full_name()}!")
+                            return redirect('index')
+                        else:
+                            messages.error(request, "Su cuenta aún no ha sido aprobada.")
                     else:
-                        messages.error(request, "Su cuenta aún no ha sido aprobada.")
+                        messages.error(request, "Tipo de usuario incorrecto.")
                 else:
                     messages.error(request, "Correo electrónico o contraseña incorrectos.")
             except User.DoesNotExist:
