@@ -37,14 +37,30 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from django.db.models.functions import TruncMonth, ExtractMonth
 from calendar import month_name
 import calendar
-
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from openpyxl.utils import get_column_letter
 
 
 
 def bienvenida(request):
     if request.user.is_authenticated:
-        return redirect('index')  # Redirige al index si ya está autenticado
-    return render(request, 'junta_vecinos/bienvenida.html')
+        return redirect('index')
+    
+    # Obtener noticias ordenadas por fecha de publicación
+    noticias = Noticia.objects.all().order_by('-fecha_publicacion')[:5]
+    
+    context = {
+        'noticias': noticias,
+        'espacios': Espacio.objects.all()[:3],
+        'actividades': ActividadVecinal.objects.filter(estado='activa').order_by('fecha')[:3],
+        'total_vecinos': Vecino.objects.count(),
+        'total_proyectos': ProyectoVecinal.objects.filter(estado='aprobado').count(),
+        'total_actividades': ActividadVecinal.objects.filter(estado='activa').count(),
+        'total_espacios': Espacio.objects.count(),
+    }
+    
+    return render(request, 'junta_vecinos/bienvenida.html', context)
 
 @login_required
 def index(request):
@@ -85,6 +101,14 @@ def index(request):
         'comuna': comuna
     })
 
+
+def detalle_espacio(request, espacio_id):
+    espacio = get_object_or_404(Espacio, id=espacio_id)
+    return render(request, 'junta_vecinos/detalle_espacio.html', {'espacio': espacio})
+
+def detalle_actividad(request, actividad_id):
+    actividad = get_object_or_404(ActividadVecinal, id=actividad_id)
+    return render(request, 'junta_vecinos/detalle_actividad.html', {'actividad': actividad})
 
 def is_admin(user):
     return hasattr(user, 'administradorcomuna')  # Solo permite el acceso si el usuario es un superusuario (admin)
@@ -738,7 +762,7 @@ def editar_noticia(request, id):
         form = NoticiaForm(instance=noticia)
     return render(request, 'junta_vecinos/editar_noticia.html', {'form': form, 'noticia': noticia})
 
-@login_required
+
 def detalle_noticia(request, noticia_id):
     # Obtener la noticia o devolver 404 si no existe
     noticia = get_object_or_404(Noticia, id=noticia_id)
@@ -753,7 +777,7 @@ def detalle_noticia(request, noticia_id):
     # Contexto para la plantilla
     context = {
         'noticia': noticia,
-        'comuna': comuna
+        'comuna': noticia.comuna.get_comuna_display()  # Modificado para usar la comuna de la noticia
     }
     
     return render(request, 'junta_vecinos/detalle_noticia.html', context)
@@ -1202,6 +1226,128 @@ def generar_reporte_pdf(request):
     doc.build(elements)
     return response
 
+@login_required
+def generar_reporte_actividades_excel(request):
+    try:
+        # Obtener parámetros con valores por defecto del año y mes actual
+        year = request.GET.get('year', '')
+        month = request.GET.get('month', '')
+        
+        # Si los parámetros están vacíos, usar fecha actual
+        if not year or not month:
+            current_date = datetime.now()
+            year = current_date.year
+            month = current_date.month
+        else:
+            year = int(year)
+            month = int(month)
+        
+        admin = request.user.administradorcomuna
+        
+        # Filtrar actividades
+        actividades = ActividadVecinal.objects.filter(
+            comuna=admin,
+            fecha__year=year,
+            fecha__month=month
+        ).order_by('fecha', 'hora_inicio')
+
+        # Crear un nuevo libro de trabajo Excel
+        wb = Workbook()
+        ws = wb.active
+        ws.title = f"Actividades {calendar.month_name[month]} {year}"
+
+        # Estilos
+        header_font = Font(bold=True, color="FFFFFF")
+        header_fill = PatternFill(start_color="4F81BD", end_color="4F81BD", fill_type="solid")
+        total_font = Font(bold=True)
+        total_fill = PatternFill(start_color="E6E6E6", end_color="E6E6E6", fill_type="solid")
+        
+        border = Border(
+            left=Side(style='thin'),
+            right=Side(style='thin'),
+            top=Side(style='thin'),
+            bottom=Side(style='thin')
+        )
+
+        # Título del reporte
+        ws['A1'] = f"Reporte de Actividades - {calendar.month_name[month]} {year}"
+        ws.merge_cells('A1:D1')
+        ws['A1'].font = Font(bold=True, size=14)
+        ws['A1'].alignment = Alignment(horizontal="center")
+
+        # Encabezados
+        headers = ['Actividad', 'Fecha', 'Inscritos', 'Ingresos']
+        for col, header in enumerate(headers, 1):
+            cell = ws.cell(row=3, column=col)
+            cell.value = header
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = Alignment(horizontal="center")
+            cell.border = border
+
+        # Datos
+        row = 4
+        total_inscritos = 0
+        total_ingresos = 0
+
+        for actividad in actividades:
+            inscritos = actividad.inscripcionactividad_set.count()
+            ingresos = inscritos * actividad.precio
+            
+            ws.cell(row=row, column=1, value=actividad.titulo)
+            ws.cell(row=row, column=2, value=actividad.fecha.strftime('%d/%m/%Y'))
+            ws.cell(row=row, column=3, value=inscritos)
+            ws.cell(row=row, column=4, value=float(ingresos))
+
+            # Aplicar bordes y alineación
+            for col in range(1, 5):
+                cell = ws.cell(row=row, column=col)
+                cell.border = border
+                cell.alignment = Alignment(horizontal="center")
+
+            total_inscritos += inscritos
+            total_ingresos += ingresos
+            row += 1
+
+        # Totales
+        row_total = row
+        ws.cell(row=row_total, column=1, value="TOTAL")
+        ws.cell(row=row_total, column=2, value="")
+        ws.cell(row=row_total, column=3, value=total_inscritos)
+        ws.cell(row=row_total, column=4, value=float(total_ingresos))
+
+        # Aplicar estilos a la fila de totales
+        for col in range(1, 5):
+            cell = ws.cell(row=row_total, column=col)
+            cell.font = total_font
+            cell.fill = total_fill
+            cell.border = border
+            cell.alignment = Alignment(horizontal="center")
+
+        # Formato de moneda para la columna de ingresos
+        for row in range(4, row_total + 1):
+            cell = ws.cell(row=row, column=4)
+            cell.number_format = '"$"#,##0.00'
+
+        # Ajustar el ancho de las columnas
+        for col in range(1, 5):
+            ws.column_dimensions[get_column_letter(col)].auto_size = True
+
+        # Crear la respuesta HTTP con el archivo Excel
+        response = HttpResponse(
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = f'attachment; filename="reporte_actividades_{year}_{month}.xlsx"'
+
+        # Guardar el libro de trabajo
+        wb.save(response)
+        return response
+        
+    except Exception as e:
+        # En caso de error, redirigir a la página de lista con un mensaje
+        messages.error(request, f"Error al generar el reporte: {str(e)}")
+        return redirect('lista_actividades')
+
 # Vista para mostrar el formulario de selección de mes/año
 @user_passes_test(is_admin)
 @login_required
@@ -1227,6 +1373,7 @@ def crear_actividad(request):
             actividad = form.save(commit=False)
             admin = request.user.administradorcomuna
             actividad.comuna = admin
+            actividad.estado = 'activa'
             actividad.save()
             
             # Notificar a todos los vecinos de la comuna
@@ -1263,8 +1410,11 @@ def lista_actividades(request):
         total_inscritos = InscripcionActividad.objects.filter(
             actividad__comuna=admin
         ).count()
-        total_ingresos = base_query.aggregate(
-            total=Sum('precio'))['total'] or 0
+        total_ingresos = InscripcionActividad.objects.filter(
+            actividad__comuna=admin
+        ).aggregate(
+            total=Sum(F('actividad__precio'))
+        )['total'] or 0
 
         # Estadísticas por mes
         actividades_por_mes = base_query.filter(
@@ -1303,12 +1453,14 @@ def lista_actividades(request):
             'comuna': admin.get_comuna_display()
         }
     else:
+        # Código para el vecino
         vecino = get_object_or_404(Vecino, user=request.user)
         actividades = ActividadVecinal.objects.filter(
             comuna__comuna=vecino.comuna,
             estado='activa'
         ).order_by('fecha', 'hora_inicio')
 
+        # Verificar inscripción para cada actividad
         for actividad in actividades:
             actividad.usuario_inscrito = InscripcionActividad.objects.filter(
                 actividad=actividad,
@@ -1316,7 +1468,8 @@ def lista_actividades(request):
             ).exists()
         
         context = {
-            'actividades': actividades
+            'actividades': actividades,
+            'vecino': vecino  # Incluye el vecino en el contexto si se necesita para otro propósito
         }
     
     return render(request, 'junta_vecinos/lista_actividades.html', context)
@@ -1428,6 +1581,20 @@ def inscribir_actividad(request, actividad_id):
             return JsonResponse({'success': False, 'error': str(e)})
     
     return JsonResponse({'success': False, 'error': 'Método no permitido'})
+
+@login_required
+@user_passes_test(is_admin)
+def eliminar_actividad(request, actividad_id):
+    actividad = get_object_or_404(ActividadVecinal, id=actividad_id)
+
+    # Verificar si la actividad se puede eliminar (por ejemplo, solo si está activa)
+    if actividad.estado == 'activa':
+        actividad.delete()
+        messages.success(request, 'Actividad eliminada exitosamente.')
+    else:
+        messages.warning(request, 'No se puede eliminar esta actividad.')
+
+    return redirect('lista_actividades')
 
 @csrf_exempt
 def webpay_retorno_actividad(request):

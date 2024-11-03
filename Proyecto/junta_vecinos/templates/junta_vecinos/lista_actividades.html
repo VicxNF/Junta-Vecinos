@@ -70,9 +70,12 @@
                                 </select>
                             </div>
                             <div class="col-12">
-                                <button type="submit" class="btn btn-success w-100">
+                                <button type="submit" class="btn btn-success w-100 mb-2">
                                     <i class="fas fa-file-pdf me-2"></i>Generar Reporte PDF
                                 </button>
+                                <a href="#" onclick="generarReporteExcel(); return false;" class="btn btn-success w-100">
+                                    <i class="fas fa-file-excel me-2"></i>Generar Reporte Excel
+                                </a>
                             </div>
                         </form>
                     </div>
@@ -83,56 +86,59 @@
         <h2>Actividades Vecinales</h2>
         {% endif %}
     
-    <div class="row">
-        {% for actividad in actividades %}
-        <div class="col-md-4 mb-4">
-            <div class="card">
-                {% if actividad.imagen %}
-                <img src="{{ actividad.imagen.url }}" class="card-img-top" alt="{{ actividad.titulo }}">
-                {% endif %}
-                <div class="card-body">
-                    <h5 class="card-title">{{ actividad.titulo }}</h5>
-                    <p class="card-text">{{ actividad.descripcion|truncatewords:30 }}</p>
-                    <p><strong>Fecha:</strong> {{ actividad.fecha }}</p>
-                    <p><strong>Hora:</strong> {{ actividad.hora_inicio }} - {{ actividad.hora_fin }}</p>
-                    <p><strong>Lugar:</strong> {{ actividad.lugar }}</p>
-                    <p><strong>Precio:</strong> ${{ actividad.precio }}</p>
-                    <p><strong>Cupos disponibles:</strong> {{ actividad.espacios_disponibles }}</p>
-                    
-                    {% if not user.is_superuser and actividad.estado == 'activa' %}
-                        {% if actividad.esta_llena %}
-                            <button class="btn btn-secondary" disabled>Cupos Agotados</button>
-                        {% else %}
-                            {% with inscrito=actividad.inscripcionactividad_set.filter.exists %}
-                                {% if inscrito %}
-                                    <button class="btn btn-secondary" disabled>Ya estás inscrito</button>
+        <div class="row">
+            {% for actividad in actividades %}
+                <div class="col-md-4 mb-4">
+                    <div class="card">
+                        {% if actividad.imagen %}
+                        <img src="{{ actividad.imagen.url }}" class="card-img-top" alt="{{ actividad.titulo }}">
+                        {% endif %}
+                        <div class="card-body">
+                            <h5 class="card-title">{{ actividad.titulo }}</h5>
+                            <p class="card-text">{{ actividad.descripcion|truncatewords:30 }}</p>
+                            <p><strong>Fecha:</strong> {{ actividad.fecha }}</p>
+                            <p><strong>Hora:</strong> {{ actividad.hora_inicio }} - {{ actividad.hora_fin }}</p>
+                            <p><strong>Lugar:</strong> {{ actividad.lugar }}</p>
+                            <p><strong>Precio:</strong> ${{ actividad.precio }}</p>
+                            <p><strong>Cupos disponibles:</strong> {{ actividad.espacios_disponibles }}</p>
+        
+                            {% if not user.is_superuser and actividad.estado == 'activa' %}
+                                {% if actividad.esta_llena %}
+                                    <button class="btn btn-secondary" disabled>Cupos Agotados</button>
                                 {% else %}
-                                    <button class="btn btn-success inscribir-btn" data-actividad-id="{{ actividad.id }}" data-precio="{{ actividad.precio }}">Inscribirse y Pagar</button>
+                                    {% if actividad.usuario_inscrito %}
+                                        <button class="btn btn-secondary" disabled>Ya estás inscrito</button>
+                                    {% else %}
+                                        <button class="btn btn-success inscribir-btn" data-actividad-id="{{ actividad.id }}" data-precio="{{ actividad.precio }}">Inscribirse y Pagar</button>
+                                    {% endif %}
                                 {% endif %}
-                            {% endwith %}
-                        {% endif %}
-                    {% endif %}
-                    
-                    {% if user.is_superuser %}
-                    <div class="mt-2">
-                        <a href="{% url 'registrar_asistencia' actividad.id %}" class="btn btn-info">Registrar Asistencia</a>
-                        {% if actividad.estado == 'activa' %}
-                        <form method="post" action="{% url 'cancelar_actividad' actividad.id %}" class="d-inline">
-                            {% csrf_token %}
-                            <button type="submit" class="btn btn-danger">Cancelar Actividad</button>
-                        </form>
-                        {% endif %}
+                            {% endif %}
+        
+                            {% if user.is_superuser %}
+                                <div class="mt-2">
+                                    <a href="{% url 'registrar_asistencia' actividad.id %}" class="btn btn-info">Registrar Asistencia</a>
+                                    {% if actividad.estado == 'activa' %}
+                                        <form method="post" action="{% url 'cancelar_actividad' actividad.id %}" class="d-inline">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-danger">Cancelar Actividad</button>
+                                        </form>
+                                    {% endif %}
+                                    <form method="post" action="{% url 'eliminar_actividad' actividad.id %}" class="d-inline">
+                                        {% csrf_token %}
+                                        <button type="submit" class="btn btn-danger" onclick="return confirm('¿Estás seguro de que deseas eliminar esta actividad?');">Eliminar Actividad</button>
+                                    </form>
+                                </div>
+                            {% endif %}
+                        </div>
                     </div>
-                    {% endif %}
                 </div>
-            </div>
+            {% empty %}
+                <div class="col-12">
+                    <p>No hay actividades programadas en este momento.</p>
+                </div>
+            {% endfor %}
         </div>
-        {% empty %}
-        <div class="col-12">
-            <p>No hay actividades programadas en este momento.</p>
-        </div>
-        {% endfor %}
-    </div>
+        
 </div>
 
 {% if user.is_superuser %}
@@ -239,4 +245,12 @@
         });
     });
 </script>
+
+<script>
+    function generarReporteExcel() {
+        const year = document.getElementById('year').value;
+        const month = document.getElementById('month').value;
+        window.location.href = `{% url 'generar_reporte_actividades_excel' %}?year=${year}&month=${month}`;
+    }
+    </script>
 {% endblock %}
