@@ -1,6 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import User
 from decimal import Decimal
+from django.utils import timezone
+from datetime import timedelta
 
 class AdministradorComuna(models.Model):
     COMUNA_CHOICES = [
@@ -14,6 +16,34 @@ class AdministradorComuna(models.Model):
 
     def __str__(self):
         return f"Administrador de {self.get_comuna_display()}"
+    
+class LoginAttempt(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE)
+    timestamp = models.DateTimeField(auto_now_add=True)
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    was_successful = models.BooleanField(default=False)
+    
+    @classmethod
+    def get_recent_attempts(cls, user, minutes=30):
+        time_threshold = timezone.now() - timedelta(minutes=minutes)
+        return cls.objects.filter(
+            user=user,
+            timestamp__gte=time_threshold,
+            was_successful=False
+        ).count()
+    
+    @classmethod
+    def is_user_locked(cls, user):
+        MAX_ATTEMPTS = 3
+        LOCKOUT_DURATION = 30  # minutos
+        recent_attempts = cls.get_recent_attempts(user, LOCKOUT_DURATION)
+        return recent_attempts >= MAX_ATTEMPTS
+
+    @classmethod
+    def get_attempts_left(cls, user):
+        MAX_ATTEMPTS = 3
+        return MAX_ATTEMPTS - cls.get_recent_attempts(user)
+
 
 
 # Modelo para representar a un vecino

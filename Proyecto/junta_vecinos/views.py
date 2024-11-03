@@ -142,35 +142,66 @@ def registro_vecino(request):
 def user_login(request):
     if request.method == "POST":
         form = LoginForm(request.POST)
-        if form.is_valid():
-            email = form.cleaned_data['email']
-            password = form.cleaned_data['password']
-            tipo_usuario = form.cleaned_data['tipo_usuario']
+        email = request.POST.get('email')
+        password = request.POST.get('password')
+        tipo_usuario = request.POST.get('tipo_usuario')
+
+        try:
+            user = User.objects.get(email=email)
             
-            try:
-                user = User.objects.get(email=email)
-                user = authenticate(request, username=user.username, password=password)
-                
-                if user is not None:
-                    # Verificar el tipo de usuario
-                    if tipo_usuario == 'administrador' and hasattr(user, 'administradorcomuna'):
-                        if user.is_active:
-                            auth_login(request, user)
-                            messages.success(request, f"¡Bienvenido Administrador {user.get_full_name()}!")
-                            return redirect('index')
-                    elif tipo_usuario == 'vecino' and hasattr(user, 'vecino'):
-                        if user.is_active:
-                            auth_login(request, user)
-                            messages.success(request, f"¡Bienvenido Vecino {user.get_full_name()}!")
-                            return redirect('index')
-                        else:
-                            messages.error(request, "Su cuenta aún no ha sido aprobada.")
+            # Primero verificamos si el usuario está bloqueado
+            if LoginAttempt.is_user_locked(user):
+                messages.error(
+                    request,
+                    "Tu cuenta está temporalmente bloqueada por múltiples intentos fallidos. "
+                    "Por favor, intenta nuevamente en 30 minutos."
+                )
+                return render(request, 'junta_vecinos/login.html', {'form': form})
+
+            # Intentamos autenticar al usuario
+            user_auth = authenticate(request, username=user.username, password=password)
+            
+            # Registramos el intento independientemente del resultado
+            login_attempt = LoginAttempt.objects.create(
+                user=user,
+                ip_address=request.META.get('REMOTE_ADDR'),
+                was_successful=user_auth is not None
+            )
+
+            if user_auth is not None:
+                # Verificar el tipo de usuario
+                if tipo_usuario == 'administrador' and hasattr(user, 'administradorcomuna'):
+                    if user.is_active:
+                        auth_login(request, user)
+                        messages.success(request, f"¡Bienvenido Administrador {user.get_full_name()}!")
+                        return redirect('index')
+                elif tipo_usuario == 'vecino' and hasattr(user, 'vecino'):
+                    if user.is_active:
+                        auth_login(request, user)
+                        messages.success(request, f"¡Bienvenido Vecino {user.get_full_name()}!")
+                        return redirect('index')
                     else:
-                        messages.error(request, "Tipo de usuario incorrecto.")
+                        messages.error(request, "Su cuenta aún no ha sido aprobada.")
                 else:
-                    messages.error(request, "Correo electrónico o contraseña incorrectos.")
-            except User.DoesNotExist:
-                messages.error(request, "El correo electrónico no está registrado.")
+                    messages.error(request, "Tipo de usuario incorrecto.")
+            else:
+                # Verificar intentos restantes
+                attempts_left = LoginAttempt.get_attempts_left(user)
+                if attempts_left > 0:
+                    messages.error(
+                        request,
+                        f"Correo electrónico o contraseña incorrectos. "
+                        f"Te quedan {attempts_left} {'intento' if attempts_left == 1 else 'intentos'}."
+                    )
+                else:
+                    messages.error(
+                        request,
+                        "Has excedido el número máximo de intentos. "
+                        "Tu cuenta ha sido bloqueada temporalmente por 30 minutos."
+                    )
+
+        except User.DoesNotExist:
+            messages.error(request, "El correo electrónico no está registrado.")
     else:
         form = LoginForm()
     

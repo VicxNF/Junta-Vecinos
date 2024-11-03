@@ -100,26 +100,17 @@ class LoginForm(forms.Form):
     def clean(self):
         cleaned_data = super().clean()
         email = cleaned_data.get('email')
-        password = cleaned_data.get('password')
-        tipo_usuario = cleaned_data.get('tipo_usuario')
-
-        if email and password and tipo_usuario:
+        
+        if email:
             try:
                 user = User.objects.get(email=email)
-                
-                # Verificar si el tipo de usuario coincide
-                if tipo_usuario == 'administrador':
-                    if not hasattr(user, 'administradorcomuna'):
-                        raise forms.ValidationError("Esta cuenta no pertenece a un administrador.")
-                elif tipo_usuario == 'vecino':
-                    if not hasattr(user, 'vecino'):
-                        raise forms.ValidationError("Esta cuenta no pertenece a un vecino.")
-
-                if not user.check_password(password):
-                    raise forms.ValidationError("Contraseña incorrecta.")
-                    
+                if LoginAttempt.is_user_locked(user):
+                    raise forms.ValidationError(
+                        "Tu cuenta está temporalmente bloqueada por múltiples intentos fallidos. "
+                        "Por favor, intenta nuevamente en 30 minutos."
+                    )
             except User.DoesNotExist:
-                raise forms.ValidationError("El correo electrónico no está registrado.")
+                pass
         
         return cleaned_data
 
