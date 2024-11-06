@@ -1,0 +1,18 @@
+{% extends 'junta_vecinos/base.html' %}
+
+{% block title %}Rechazar Solicitud{% endblock %}
+
+{% block content %}
+<h2>Rechazar Solicitud de {{ solicitud.vecino.nombres }} {{ solicitud.vecino.apellidos }}</h2>
+<p><strong>Motivo de la Solicitud:</strong> {{ solicitud.motivo }}</p>
+<p><strong>Fecha de Solicitud:</strong> {{ solicitud.fecha_solicitud }}</p>
+
+<hr>
+
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="btn btn-danger">Enviar Rechazo</button>
+    <a href="{% url 'gestionar_solicitudes' %}" class="btn btn-secondary">Cancelar</a>
+</form>
+{% endblock %}

@@ -1,0 +1,12 @@
+{% extends 'junta_vecinos/base.html' %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Error en la Inscripción</h2>
+    <div class="alert alert-danger" role="alert">
+        <p>Lo sentimos, ha ocurrido un error al intentar inscribirte en la actividad.</p>
+        <p><strong>Error:</strong> {{ error }}</p>
+    </div>
+    <a href="{% url 'lista_actividades' %}" class="btn btn-primary">Volver a la lista de actividades</a>
+</div>
+{% endblock %}

@@ -1,0 +1,91 @@
+<!-- templates/junta_vecinos/reservar_espacio.html -->
+{% extends 'junta_vecinos/base.html' %}
+
+{% block title %}Reservar Espacio{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Reservar {{ espacio.nombre }}</h2>
+    <div id='calendar'></div>
+
+    <!-- Modal para seleccionar la hora -->
+    <div class="modal fade" id="hoursModal" tabindex="-1" aria-labelledby="hoursModalLabel" aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="hoursModalLabel">Seleccionar horas</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <p>Selecciona la hora de inicio y fin para la reserva:</p>
+                    <label for="hora_inicio">Hora de inicio:</label>
+                    <input type="time" id="hora_inicio" class="form-control">
+                    <label for="hora_fin" class="mt-2">Hora de fin:</label>
+                    <input type="time" id="hora_fin" class="form-control">
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="button" id="reserveButton" class="btn btn-primary">Reservar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/index.global.min.js'></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var calendarEl = document.getElementById('calendar');
+
+    var calendar = new FullCalendar.Calendar(calendarEl, {
+        locale: 'es',
+        initialView: 'dayGridMonth',
+        dateClick: function(info) {
+            // Mostrar modal para seleccionar horas
+            var hoursModal = new bootstrap.Modal(document.getElementById('hoursModal'));
+            hoursModal.show();
+
+            // Agregar evento al botón de reservar
+            document.getElementById('reserveButton').onclick = function() {
+                var horaInicio = document.getElementById('hora_inicio').value;
+                var horaFin = document.getElementById('hora_fin').value;
+
+                // Validar que las horas de inicio y fin sean correctas
+                if (horaInicio && horaFin) {
+                    // Crear un formulario para enviar la reserva
+                    var formData = new FormData();
+                    formData.append('fecha', info.dateStr);
+                    formData.append('hora_inicio', horaInicio);
+                    formData.append('hora_fin', horaFin);
+
+                    fetch('{% url "reservar_espacio" espacio.id %}', {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'X-CSRFToken': '{{ csrf_token }}'  // Aquí está el CSRF
+                        }
+                    }).then(response => response.json())
+                      .then(data => {
+                          if (data.success) {
+                              alert('Reserva realizada con éxito');
+                              hoursModal.hide();
+                              calendar.refetchEvents(); // Actualizar calendario
+                          } else {
+                              alert('Error al realizar la reserva: ' + data.error);
+                          }
+                      })
+                      .catch(error => {
+                          console.error('Error:', error);
+                          alert('Error al realizar la reserva');
+                      });
+                } else {
+                    alert('Por favor, selecciona las horas de inicio y fin.');
+                }
+            };
+        }
+    });
+
+    calendar.render();
+});
+</script>
+{% endblock %}

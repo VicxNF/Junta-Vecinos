@@ -1,0 +1,62 @@
+{% extends 'junta_vecinos/base.html' %}
+
+{% block title %}Lista de Espacios{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2>Lista de Espacios Disponibles</h2>
+    
+    {% if espacios %}
+        <table class="table table-bordered">
+            <thead>
+                <tr>
+                    <th>Nombre</th>
+                    <th>Descripción</th>
+                    <th>Capacidad</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for espacio in espacios %}
+                    <tr>
+                        <td>{{ espacio.nombre }}</td>
+                        <td>{{ espacio.descripcion }}</td>
+                        <td>{{ espacio.capacidad }}</td>
+                        <td>
+                            <!-- Botón para editar -->
+                            <a href="{% url 'editar_espacio' espacio.id %}" class="btn btn-warning btn-sm">Editar</a>
+                            
+                            <!-- Botón para eliminar con SweetAlert2 -->
+                            <form id="delete-form-{{ espacio.id }}" action="{% url 'eliminar_espacio' espacio.id %}" method="post" style="display:inline;">
+                                {% csrf_token %}
+                                <button type="button" onclick="confirmarEliminacion({{ espacio.id }})" class="btn btn-danger btn-sm">Eliminar</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No hay espacios registrados.</p>
+    {% endif %}
+</div>
+
+<script>
+    function confirmarEliminacion(id) {
+        Swal.fire({
+            title: '¿Estás seguro?',
+            text: "Esta acción no se puede deshacer.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#3085d6',
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                document.getElementById(`delete-form-${id}`).submit();
+            }
+        });
+    }
+</script>
+{% endblock %}

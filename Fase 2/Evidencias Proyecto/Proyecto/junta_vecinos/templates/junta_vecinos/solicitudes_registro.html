@@ -1,0 +1,59 @@
+{% extends 'junta_vecinos/base.html' %}
+
+{% block title %}Gestionar Solicitudes de Registro{% endblock %}
+
+{% block content %}
+<h2>Solicitudes de Registro de Vecinos - {{ request.user.administradorcomuna.get_comuna_display }}</h2>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Nombre</th>
+            <th>Apellidos</th>
+            <th>Dirección</th>
+            <th>Fecha de Solicitud</th>
+            <th>Acciones</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for solicitud in solicitudes %}
+        <tr>
+            <td>{{ solicitud.vecino.nombres }}</td>
+            <td>{{ solicitud.vecino.apellidos }}</td>
+            <td>{{ solicitud.vecino.direccion }}</td>
+            <td>{{ solicitud.created_at|date:"d/m/Y H:i" }}</td>
+            <td>
+                {% if not solicitud.is_approved %}
+                    <button onclick="confirmarAprobacion('{% url 'aprobar_registro' solicitud.id %}')" class="btn btn-success">Aprobar</button>
+                    <a href="{% url 'rechazar_registro' solicitud.id %}" class="btn btn-danger">Rechazar</a>
+                {% else %}
+                    <span class="text-success">Solicitud aprobada</span>
+                {% endif %}
+            </td>
+        </tr>
+        {% empty %}
+        <tr>
+            <td colspan="5" class="text-center">No hay solicitudes de registro pendientes para {{ request.user.administradorcomuna.get_comuna_display }}.</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+
+<script>
+    function confirmarAprobacion(url) {
+        Swal.fire({
+            title: '¿Confirmar aprobación?',
+            text: "Esta acción aprobará la solicitud de registro.",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#28a745',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Sí, aprobar',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = url;
+            }
+        });
+    }
+</script>
+{% endblock %}

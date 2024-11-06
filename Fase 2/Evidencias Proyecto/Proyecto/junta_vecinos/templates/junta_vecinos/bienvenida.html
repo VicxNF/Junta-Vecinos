@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        .hero-section {
+            background: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('/api/placeholder/1920/600');
+            background-size: cover;
+            background-position: center;
+            color: white;
+            padding: 100px 0;
+            margin-bottom: 2rem;
+        }
+        
+        .feature-card {
+            transition: transform 0.3s ease;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+        }
+        
+        .space-card {
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+        
+        .space-card img {
+            height: 200px;
+            object-fit: cover;
+        }
+        
+        .carousel-inner img {
+            height: 400px;
+            object-fit: cover;
+        }
+        
+        .stats-section {
+            background-color: #f8f9fa;
+            padding: 3rem 0;
+        }
+        
+        .stat-item {
+            text-align: center;
+            padding: 1rem;
+        }
+        
+        .stat-number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #007bff;
+        }
+        
+        .comuna-badge {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        background-color: rgba(0, 123, 255, 0.9);
+        color: white;
+        padding: 5px 10px;
+        border-radius: 15px;
+        font-size: 0.8rem;
+        font-weight: bold;
+        z-index: 1;
+        }
+        
+        .card {
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .card-img-overlay {
+            background: linear-gradient(rgba(0,0,0,0.2), rgba(0,0,0,0.7));
+        }
+        
+        .space-price {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background-color: rgba(40, 167, 69, 0.9);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-weight: bold;
+        }
+
+        .activity-price {
+            position: absolute;
+            bottom: 10px;
+            right: 10px;
+            background-color: rgba(40, 167, 69, 0.9);
+            color: white;
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-weight: bold;
+        }
+
+        .carousel-item a {
+            color: white;
+            text-decoration: none;
+        }
+
+        .carousel-item a:hover .carousel-caption {
+            background: rgba(0,0,0,0.7);
+            transition: background 0.3s ease;
+        }
+
+        .carousel-caption {
+            background: rgba(0,0,0,0.5);
+            border-radius: 8px;
+            padding: 20px;
+            bottom: 20px;
+            transition: background 0.3s ease;
+        }
+    </style>
+</head>
+<body>
+
+{% extends 'junta_vecinos/base.html' %}
+{% load static %}
+
+{% block title %}Bienvenido a tu Junta de Vecinos{% endblock %}
+
+{% block content %}
+<!-- Hero Section -->
+<div class="hero-section text-center">
+    <div class="container">
+        <h1 class="display-3 mb-4">Bienvenido a tu Junta de Vecinos</h1>
+        <p class="lead mb-4">Construyendo una comunidad más fuerte y unida</p>
+        {% if not user.is_authenticated %}
+            <div class="mt-4">
+                <a href="{% url 'login' %}" class="btn btn-primary btn-lg mr-3">Ingresar al Sistema</a>
+                <a href="{% url 'registro_vecino' %}" class="btn btn-success btn-lg">Crear Nueva Cuenta</a>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Features Section -->
+<div class="container mb-5">
+    <div class="row">
+        <div class="col-md-4 mb-4">
+            <div class="card feature-card h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-certificate fa-3x mb-3 text-primary"></i>
+                    <h3 class="card-title">Certificados</h3>
+                    <p class="card-text">Obtén tus certificados de residencia de manera rápida y sencilla.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card feature-card h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-hands-helping fa-3x mb-3 text-success"></i>
+                    <h3 class="card-title">Proyectos Vecinales</h3>
+                    <p class="card-text">Participa en iniciativas que mejoran nuestra comunidad.</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 mb-4">
+            <div class="card feature-card h-100">
+                <div class="card-body text-center">
+                    <i class="fas fa-calendar-alt fa-3x mb-3 text-info"></i>
+                    <h3 class="card-title">Actividades</h3>
+                    <p class="card-text">Mantente al día con todos los eventos de la comunidad.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Latest News Carousel -->
+<div class="container mb-5">
+    <h2 class="text-center mb-4">Últimas Noticias</h2>
+    <div id="newsCarousel" class="carousel slide" data-bs-ride="carousel">
+        <!-- Agregamos los indicadores -->
+        <div class="carousel-indicators">
+            {% for noticia in noticias|slice:":5" %}
+                <button type="button" 
+                        data-bs-target="#newsCarousel" 
+                        data-bs-slide-to="{{ forloop.counter0 }}" 
+                        {% if forloop.first %}class="active" aria-current="true"{% endif %}
+                        aria-label="Slide {{ forloop.counter }}">
+                </button>
+            {% endfor %}
+        </div>
+
+        <!-- Contenido del carrusel -->
+        <div class="carousel-inner">
+            {% for noticia in noticias|slice:":5" %}
+                <div class="carousel-item {% if forloop.first %}active{% endif %}">
+                    <a href="{% url 'detalle_noticia' noticia.id %}" class="text-decoration-none">
+                        <img src="{{ noticia.imagen.url|default:'/api/placeholder/800/400' }}" 
+                            class="d-block w-100" 
+                            alt="{{ noticia.titulo }}">
+                        <div class="carousel-caption d-none d-md-block">
+                            <h5>{{ noticia.titulo }}</h5>
+                            <p>{{ noticia.contenido|truncatewords:30 }}</p>
+                        </div>
+                    </a>
+                </div>
+            {% empty %}
+                <div class="carousel-item active">
+                    <img src="/api/placeholder/800/400" 
+                        class="d-block w-100" 
+                        alt="No hay noticias">
+                    <div class="carousel-caption d-none d-md-block">
+                        <h5>¡Mantente atento!</h5>
+                        <p>Próximamente publicaremos noticias importantes para la comunidad.</p>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+
+        <!-- Controles -->
+        <button class="carousel-control-prev" type="button" data-bs-target="#newsCarousel" data-bs-slide="prev">
+            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Anterior</span>
+        </button>
+        <button class="carousel-control-next" type="button" data-bs-target="#newsCarousel" data-bs-slide="next">
+            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+            <span class="visually-hidden">Siguiente</span>
+        </button>
+    </div>
+</div>
+
+<!-- Available Spaces Section -->
+<div class="container mb-5">
+    <h2 class="text-center mb-4">Espacios Disponibles</h2>
+    <div class="row">
+        {% for espacio in espacios %}
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="comuna-badge">
+                    <i class="fas fa-map-marker-alt"></i> {{ espacio.comuna.get_comuna_display }}
+                </div>
+                <img src="{{ espacio.foto.url|default:'/api/placeholder/400/200' }}" 
+                     class="card-img-top" 
+                     alt="{{ espacio.nombre }}"
+                     style="height: 200px; object-fit: cover;">
+                <div class="card-body">
+                    <h5 class="card-title">{{ espacio.nombre }}</h5>
+                    <p class="card-text">{{ espacio.descripcion|truncatewords:20 }}</p>
+                    <ul class="list-unstyled">
+                        <li><i class="fas fa-users text-muted"></i> Capacidad: {{ espacio.capacidad }} personas</li>
+                        <li><i class="fas fa-map-pin text-muted"></i> {{ espacio.ubicacion }}</li>
+                    </ul>
+                    <div class="space-price">
+                        <i class="fas fa-dollar-sign"></i> {{ espacio.precio_por_hora }}/hora
+                    </div>
+                    <div class="mt-3 text-center">
+                        <a href="{% url 'detalle_espacio' espacio.id %}" class="btn btn-primary">Ver más</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="alert alert-info text-center">
+                No hay espacios disponibles en este momento.
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<!-- Statistics Section -->
+<div class="stats-section mb-5">
+    <div class="container">
+        <div class="row">
+            <div class="col-md-3">
+                <div class="stat-item">
+                    <div class="stat-number">{{ total_vecinos }}</div>
+                    <div class="stat-label">Vecinos Registrados</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-item">
+                    <div class="stat-number">{{ total_proyectos }}</div>
+                    <div class="stat-label">Proyectos Activos</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-item">
+                    <div class="stat-number">{{ total_actividades }}</div>
+                    <div class="stat-label">Actividades Programadas</div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="stat-item">
+                    <div class="stat-number">{{ total_espacios }}</div>
+                    <div class="stat-label">Espacios Disponibles</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Upcoming Activities Section -->
+<div class="container mb-5">
+    <h2 class="text-center mb-4">Próximas Actividades</h2>
+    <div class="row">
+        {% for actividad in actividades %}
+        <div class="col-md-4 mb-4">
+            <div class="card h-100">
+                <div class="comuna-badge">
+                    <i class="fas fa-map-marker-alt"></i> {{ actividad.comuna.get_comuna_display }}
+                </div>
+                <img src="{{ actividad.imagen.url|default:'/api/placeholder/400/200' }}" 
+                     class="card-img-top" 
+                     alt="{{ actividad.titulo }}"
+                     style="height: 200px; object-fit: cover;">
+                <div class="card-body">
+                    <h5 class="card-title">{{ actividad.titulo }}</h5>
+                    <p class="card-text">{{ actividad.descripcion|truncatewords:20 }}</p>
+                    <ul class="list-unstyled">
+                        <li><i class="fas fa-calendar text-muted"></i> {{ actividad.fecha|date:"d/m/Y" }}</li>
+                        <li><i class="fas fa-clock text-muted"></i> {{ actividad.hora_inicio|time:"H:i" }} - {{ actividad.hora_fin|time:"H:i" }}</li>
+                        <li><i class="fas fa-map-pin text-muted"></i> {{ actividad.lugar }}</li>
+                        <li><i class="fas fa-users text-muted"></i> Cupos: {{ actividad.espacios_disponibles }} disponibles</li>
+                    </ul>
+                    {% if actividad.precio > 0 %}
+                    <div class="activity-price">
+                        <i class="fas fa-dollar-sign"></i> {{ actividad.precio }}
+                    </div>
+                    {% else %}
+                    <div class="activity-price" style="background-color: rgba(23, 162, 184, 0.9);">
+                        ¡Gratis!
+                    </div>
+                    {% endif %}
+                    <div class="mt-3 text-center">
+                        <a href="{% url 'detalle_actividad' actividad.id %}" class="btn btn-primary">Ver más</a>
+                    </div>
+                </div>
+                {% if actividad.esta_llena %}
+                <div class="card-footer text-center bg-warning">
+                    <strong>¡Cupos Agotados!</strong>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12">
+            <div class="alert alert-info text-center">
+                No hay actividades programadas en este momento.
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}
+
+</body>
+</html>

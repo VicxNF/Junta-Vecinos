@@ -1,0 +1,48 @@
+{% extends 'junta_vecinos/base.html' %}
+{% load static %}
+{% load humanize %}
+
+{% block title %}{{ noticia.titulo }}{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <div class="row">
+        <div class="col-lg-8 mx-auto">
+            <div class="card shadow">
+                    <img src="{{ noticia.imagen.url }}" class="card-img-top" alt="{{ noticia.titulo }}">
+                
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-3">
+                        <small class="text-muted">Junta de Vecinos {{ comuna }}</small>
+                    </div>
+                    
+                    <h1 class="card-title">{{ noticia.titulo }}</h1>
+                    
+                    <div class="mb-3">
+                        <small class="text-muted">
+                            Publicado {{ noticia.fecha_publicacion|date:"d/m/Y" }} 
+                            (hace {{ noticia.fecha_publicacion|timesince }})
+                        </small>
+                    </div>
+                    
+                    <div class="card-text">
+                        {{ noticia.contenido|linebreaks }}
+                    </div>
+                    
+                    {% if noticia.autor %}
+                    <div class="mt-4">
+                        <small class="text-muted">
+                            Publicado por: {{ noticia.autor.get_full_name }}
+                        </small>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            
+            <div class="mt-4 text-center">
+                <a href="{% url 'index' %}" class="btn btn-secondary">Volver al inicio</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

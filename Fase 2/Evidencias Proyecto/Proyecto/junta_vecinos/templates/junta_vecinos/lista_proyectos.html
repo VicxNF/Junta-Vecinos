@@ -1,0 +1,78 @@
+{% extends 'junta_vecinos/base.html' %}
+
+{% block title %}Postular Proyecto Vecinal{% endblock %}
+
+{% block content %}
+<div class="container mt-4">
+    <h2 class="text-center">¡Cuéntanos sobre tu proyecto!</h2> <!-- Mensaje grande -->
+
+    <!-- Mostrar errores específicos para cada campo -->
+    {% if form.errors %}
+        <div class="alert alert-danger">
+            <ul>
+                {% for field in form %}
+                    {% if field.errors %}
+                        <li><strong>{{ field.label }}:</strong> 
+                            {% for error in field.errors %}
+                                {{ field.label }} es un campo obligatorio.
+                            {% endfor %}
+                        </li>
+                    {% endif %}
+                {% endfor %}
+            </ul>
+        </div>
+    {% endif %}
+    
+    <!-- Formulario para postular un proyecto vecinal -->
+    <form method="post" action="{% url 'postular_proyecto' %}" enctype="multipart/form-data" class="needs-validation" novalidate>
+        {% csrf_token %}
+
+        <!-- Campo para la propuesta -->
+        <div class="mb-3">
+            <label for="id_propuesta" class="form-label">
+                Propuesta <span class="text-danger">*</span>
+            </label>
+            {{ form.propuesta }}
+            {% if form.propuesta.errors %}
+                <div class="invalid-feedback">
+                    {% for error in form.propuesta.errors %}
+                        Propuesta es un campo obligatorio.
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Campo para la descripción -->
+        <div class="mb-3">
+            <label for="id_descripcion" class="form-label">
+                Descripción <span class="text-danger">*</span>
+            </label>
+            {{ form.descripcion }}
+            {% if form.descripcion.errors %}
+                <div class="invalid-feedback">
+                    {% for error in form.descripcion.errors %}
+                        Descripción es un campo obligatorio.
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+
+        <!-- Campo para la evidencia -->
+        <div class="mb-3">
+            <label for="id_evidencia" class="form-label">
+                Evidencia <span class="text-danger">*</span>
+            </label>
+            {{ form.evidencia }}
+            {% if form.evidencia.errors %}
+                <div class="invalid-feedback">
+                    {% for error in form.evidencia.errors %}
+                        Debes subir una evidencia en formato JPG o PNG.
+                    {% endfor %}
+                </div>
+            {% endif %}
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-lg w-100">Enviar Postulación</button>
+    </form>
+</div>
+{% endblock %}

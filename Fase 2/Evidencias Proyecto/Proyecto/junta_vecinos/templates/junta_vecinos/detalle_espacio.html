@@ -1,0 +1,21 @@
+{% extends 'junta_vecinos/base.html' %}
+
+{% block title %}Detalle del Espacio{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+    <div class="card">
+        <img src="{{ espacio.foto.url }}" class="card-img-top" alt="{{ espacio.nombre }}">
+        <div class="card-body">
+            <h2 class="card-title">{{ espacio.nombre }}</h2>
+            <p class="card-text"><strong>Descripción:</strong> {{ espacio.descripcion }}</p>
+            <p class="card-text"><strong>Capacidad:</strong> {{ espacio.capacidad }} personas</p>
+            <p class="card-text"><strong>Ubicación:</strong> {{ espacio.ubicacion }}</p>
+            <p class="card-text"><strong>Precio por Hora:</strong> ${{ espacio.precio_por_hora }}</p>
+            
+            <!-- Opción para reservar el espacio -->
+            <a href="{% url 'reservar_espacio' espacio.id %}" class="btn btn-primary mt-3">Reservar este Espacio</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

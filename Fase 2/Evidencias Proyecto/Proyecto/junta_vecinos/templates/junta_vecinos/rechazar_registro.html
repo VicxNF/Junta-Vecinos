@@ -1,0 +1,17 @@
+{% extends 'junta_vecinos/base.html' %}
+
+{% block title %}Rechazar Registro{% endblock %}
+
+{% block content %}
+<h2>Rechazar Solicitud de Registro</h2>
+
+<p>¿Estás seguro de que deseas rechazar la solicitud de {{ solicitud.vecino.nombres }} {{ solicitud.vecino.apellidos }}?</p>
+
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="btn btn-danger">Rechazar Solicitud</button>
+</form>
+
+<a href="{% url 'solicitudes_registro' %}" class="btn btn-secondary">Cancelar</a>
+{% endblock %}

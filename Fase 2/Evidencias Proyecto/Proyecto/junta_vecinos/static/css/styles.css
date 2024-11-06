@@ -1,0 +1,687 @@
+/* Estilos personalizados */
+:root {
+  --primary-color: #4a90e2;
+  --secondary-color: #50e3c2;
+  --accent-color: #f39c12;
+  --background-color: #f5f7fa;
+  --text-color: #333333;
+}
+
+body {
+  font-family: 'Roboto', sans-serif;
+  background-color: var(--background-color);
+  color: var(--text-color);
+}
+
+/* Navbar */
+.navbar {
+  background-color: var(--primary-color) !important;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.navbar-brand, .nav-link {
+  color: white !important;
+  transition: all 0.3s ease;
+}
+
+.nav-link:hover {
+  color: var(--accent-color) !important;
+  transform: translateY(-2px);
+}
+
+/* Botones */
+.btn-primary {
+  background-color: var(--secondary-color);
+  border-color: var(--secondary-color);
+  transition: all 0.3s ease;
+}
+
+.btn-primary:hover {
+  background-color: var(--accent-color);
+  border-color: var(--accent-color);
+  transform: translateY(-2px);
+}
+
+/* Tarjetas */
+.card {
+  border: none;
+  border-radius: 15px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+}
+
+/* Títulos */
+h1, h2, h3, h4, h5, h6 {
+  color: black;
+}
+
+/* Animaciones para elementos interactivos */
+@keyframes pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.interactive-element:hover {
+  animation: pulse 0.5s infinite;
+}
+
+/* Estilos para la lista de vecinos */
+.list-group-item {
+    border: none;
+    margin-bottom: 10px;
+    padding: 20px;
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+/* Estilos para formularios */
+form label {
+    font-weight: bold;
+}
+
+form input, form select, form textarea {
+    border-radius: 5px;
+}
+
+/* Estilos para el pie de página */
+footer {
+    margin-top: 30px;
+    padding: 20px;
+    background-color: #343a40;
+    color: white;
+    text-align: center;
+}
+
+/* Estilos del Navbar */
+.custom-navbar {
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  padding: 0.5rem 1rem;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+}
+
+.navbar-brand {
+  font-weight: bold;
+  font-size: 1.5rem;
+  color: white !important;
+}
+
+.nav-link {
+  color: rgba(255,255,255,0.9) !important;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  padding: 0.5rem 1rem !important;
+  border-radius: 5px;
+}
+
+.nav-link:hover, .nav-link:focus {
+  color: white !important;
+  background-color: rgba(255,255,255,0.1);
+}
+
+.navbar-nav .dropdown-menu {
+  border: none;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+  border-radius: 8px;
+}
+
+.dropdown-item {
+  padding: 0.5rem 1rem;
+  transition: all 0.3s ease;
+}
+
+.dropdown-item:hover {
+  background-color: var(--primary-color);
+  color: white;
+}
+
+/* Animación para el dropdown */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.animated {
+  animation-duration: 0.3s;
+  animation-fill-mode: both;
+}
+
+.fadeIn {
+  animation-name: fadeIn;
+}
+
+/* Estilos para dispositivos móviles */
+@media (max-width: 992px) {
+  .navbar-collapse {
+      background-color: rgba(255,255,255,0.95);
+      border-radius: 8px;
+      padding: 1rem;
+      margin-top: 0.5rem;
+  }
+
+  .nav-link {
+      color: var(--primary-color) !important;
+  }
+
+  .nav-link:hover, .nav-link:focus {
+      background-color: rgba(0,0,0,0.05);
+  }
+}
+
+/* Fondo del formulario */
+.form-container {
+  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+  padding: 30px;
+  border-radius: 15px;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+  animation: fadeInForm 0.6s ease-out;
+  max-width: 600px;
+  margin: auto;
+}
+
+/* Animación para el formulario */
+@keyframes fadeInForm {
+  from {
+      opacity: 0;
+      transform: translateY(20px);
+  }
+  to {
+      opacity: 1;
+      transform: translateY(0);
+  }
+}
+
+/* Título del formulario */
+.form-title {
+  text-align: center;
+  font-size: 2rem;
+  margin-bottom: 20px;
+  color: white;
+  animation: pulseFormTitle 1s infinite;
+}
+
+/* Animación sutil para el título */
+@keyframes pulseFormTitle {
+  0% {
+      transform: scale(1);
+  }
+  50% {
+      transform: scale(1.02);
+  }
+  100% {
+      transform: scale(1);
+  }
+}
+
+/* Estilos para los campos del formulario */
+form input, form select, form textarea {
+  background-color: rgba(255, 255, 255, 0.9);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  padding: 12px;
+  width: 100%;
+  margin-bottom: 15px;
+  border-radius: 10px;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+form input:focus, form select:focus, form textarea:focus {
+  border-color: var(--accent-color);
+  box-shadow: 0 0 8px rgba(243, 156, 18, 0.5);
+  transform: scale(1.02);
+}
+
+/* Botón con estilo y transición */
+.btn-primary {
+  width: auto; /* También aplicamos el ancho automático aquí */
+  padding: 12px;
+  font-size: 1.2rem;
+  background-color: var(--accent-color); /* Naranja */
+  border-color: var(--accent-color);
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.btn-primary:hover {
+  background-color: var(--secondary-color); /* Verde en hover */
+  border-color: var(--secondary-color);
+  transform: translateY(-3px);
+}
+
+/* Botón secundario - Cambio de color y ajuste de tamaño */
+.btn-secondary {
+  width: auto; /* Ahora los botones no ocuparán el 100% del ancho */
+  padding: 12px;
+  font-size: 1.2rem;
+  background-color: var(--primary-color); /* Cambia el color a un tono azul */
+  border-color: var(--primary-color);
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+}
+
+.btn-secondary:hover {
+  background-color: var(--accent-color); /* Cambia a naranja en hover */
+  border-color: var(--accent-color);
+  transform: translateY(-3px);
+}
+
+/* Sombra flotante para el formulario en hover */
+.form-container:hover {
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+/* Variables adicionales */
+:root {
+  --gradient-primary: linear-gradient(135deg, #4a90e2, #50e3c2);
+  --gradient-secondary: linear-gradient(135deg, #f39c12, #e74c3c);
+  --shadow-sm: 0 2px 4px rgba(0,0,0,0.1);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.1);
+  --shadow-lg: 0 10px 15px rgba(0,0,0,0.1);
+  --transition-base: all 0.3s ease;
+}
+
+/* Animaciones globales */
+@keyframes slideInFromTop {
+  0% {
+    transform: translateY(-20px);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes fadeInScale {
+  0% {
+    transform: scale(0.95);
+    opacity: 0;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Estilos para el jumbotron */
+.jumbotron {
+  background: var(--gradient-primary);
+  border-radius: 20px;
+  padding: 3rem 2rem;
+  margin-bottom: 2rem;
+  color: white;
+  animation: fadeInScale 0.6s ease-out;
+  box-shadow: var(--shadow-lg);
+}
+
+.jumbotron h1 {
+  color: white;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  animation: slideInFromTop 0.8s ease-out;
+}
+
+/* Estilos mejorados para las cards */
+.card {
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+  animation: fadeInScale 0.6s ease-out;
+}
+
+.card-body {
+  position: relative;
+  z-index: 1;
+}
+
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--gradient-primary);
+  opacity: 0;
+  transition: var(--transition-base);
+  z-index: 0;
+}
+
+.card:hover::before {
+  opacity: 0.1;
+}
+
+/* Mejoras para la lista de grupos */
+.list-group-item {
+  transform-origin: left;
+  animation: fadeInScale 0.6s ease-out;
+  transition: var(--transition-base);
+}
+
+.list-group-item:hover {
+  transform: translateX(10px) scale(1.02);
+  background: linear-gradient(to right, white, #f8f9fa);
+}
+
+/* Botones animados */
+.btn {
+  position: relative;
+  overflow: hidden;
+  z-index: 1;
+  transition: var(--transition-base);
+}
+
+.btn::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  background: rgba(255,255,255,0.2);
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: width 0.6s ease, height 0.6s ease;
+  z-index: -1;
+}
+
+.btn:hover::before {
+  width: 300px;
+  height: 300px;
+}
+
+/* Animación para imágenes en noticias */
+.card img {
+  transition: var(--transition-base);
+}
+
+.card:hover img {
+  transform: scale(1.05);
+}
+
+/* Efecto de loading para elementos */
+.loading-effect {
+  position: relative;
+  overflow: hidden;
+}
+
+.loading-effect::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 50%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255,255,255,0.2),
+    transparent
+  );
+  animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+  0% {
+    left: -100%;
+  }
+  100% {
+    left: 200%;
+  }
+}
+
+/* Mejoras para dispositivos móviles */
+@media (max-width: 768px) {
+  .jumbotron {
+    padding: 2rem 1rem;
+  }
+  
+  .card:hover {
+    transform: translateY(-3px);
+  }
+  
+  .list-group-item:hover {
+    transform: translateX(5px) scale(1.01);
+  }
+}
+
+/* Animaciones para los elementos del administrador */
+.admin-section {
+  opacity: 0;
+  animation: fadeInScale 0.6s ease-out forwards;
+}
+
+.admin-section:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.admin-section:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+/* Efecto de hover para los enlaces */
+a:not(.btn) {
+  position: relative;
+  text-decoration: none;
+}
+
+a:not(.btn)::after {
+  content: '';
+  position: absolute;
+  bottom: -2px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--accent-color);
+  transition: var(--transition-base);
+}
+
+a:not(.btn):hover::after {
+  width: 100%;
+}
+
+/* Estilos mejorados para la sección de noticias */
+.news-section {
+  max-width: 1200px;
+  margin: 2rem auto;
+  padding: 20px;
+}
+
+.news-section h2 {
+  font-size: 2.5rem;
+  color: var(--primary-color);
+  text-align: center;
+  margin-bottom: 2rem;
+  font-weight: 700;
+}
+
+.news-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+  padding: 1rem;
+}
+
+.news-card {
+  display: flex;
+  flex-direction: column;
+  background: white;
+  border-radius: 15px;
+  overflow: hidden;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  transition: all 0.3s ease;
+  text-decoration: none;
+  color: inherit;
+  height: 100%;
+}
+
+.news-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+}
+
+.news-thumbnail {
+  width: 100%;
+  height: 200px;
+  object-fit: cover;
+}
+
+.news-content {
+  padding: 1.5rem;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.news-source {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid rgba(0,0,0,0.1);
+}
+
+.news-source-logo {
+  width: 32px;
+  height: 32px;
+  margin-right: 12px;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.news-source-name {
+  font-size: 0.9rem;
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
+.news-title {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #2c3e50;
+  margin: 0 0 1rem 0;
+  line-height: 1.4;
+}
+
+.news-excerpt {
+  font-size: 0.95rem;
+  color: #666;
+  margin-bottom: 1rem;
+  line-height: 1.6;
+  flex: 1;
+}
+
+.news-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto;
+  padding-top: 1rem;
+  border-top: 1px solid rgba(0,0,0,0.1);
+}
+
+.news-time {
+  font-size: 0.85rem;
+  color: #888;
+}
+
+.news-read-more {
+  font-size: 0.9rem;
+  color: var(--primary-color);
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.news-read-more:hover {
+  color: var(--accent-color);
+}
+
+.empty-news {
+  text-align: center;
+  padding: 3rem;
+  background: rgba(255,255,255,0.9);
+  border-radius: 15px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.empty-news p {
+  font-size: 1.2rem;
+  color: #666;
+  margin: 0;
+}
+
+/* Animación de entrada para las noticias */
+@keyframes newsCardIn {
+  from {
+      opacity: 0;
+      transform: translateY(20px);
+  }
+  to {
+      opacity: 1;
+      transform: translateY(0);
+  }
+}
+
+.news-card {
+  animation: newsCardIn 0.5s ease-out forwards;
+}
+
+.news-grid .news-card:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.news-grid .news-card:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+/* Responsividad */
+@media (max-width: 768px) {
+  .news-section {
+      padding: 15px;
+  }
+  
+  .news-grid {
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1rem;
+  }
+  
+  .news-thumbnail {
+      height: 180px;
+  }
+  
+  .news-content {
+      padding: 1rem;
+  }
+  
+  .news-title {
+      font-size: 1.1rem;
+  }
+}
+
+.navbar-brand img {
+  max-height: 40px;
+  width: auto;
+}
+
+/* Para dispositivos móviles */
+@media (max-width: 768px) {
+  .navbar-brand img {
+      max-height: 30px;
+  }
+}
+
+/* Si necesitas ajustar el color de fondo del navbar para que combine mejor con el logo */
+.custom-navbar {
+  background-color: #2E8B57; /* El mismo verde del logo */
+}
