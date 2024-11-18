@@ -35,10 +35,9 @@ class RegistroVecinoForm(forms.ModelForm):
             email=self.cleaned_data['email'],
             password=self.cleaned_data['password'],
             first_name=self.cleaned_data['nombres'],
-            last_name=self.cleaned_data['apellidos']
+            last_name=self.cleaned_data['apellidos'],
+            is_active=False  # El usuario no estará activo hasta confirmar
         )
-        user.is_active = False
-        user.save()
         
         vecino = super().save(commit=False)
         vecino.user = user
@@ -48,13 +47,16 @@ class RegistroVecinoForm(forms.ModelForm):
             administrador = AdministradorComuna.objects.get(comuna=vecino.comuna)
             vecino.administrador = administrador
         except AdministradorComuna.DoesNotExist:
-            # Manejar el caso en que no exista un administrador para la comuna
-            # Podrías lanzar una excepción, establecer un valor por defecto, o manejarlo de otra manera
             pass
         
         if commit:
             vecino.save()
-            SolicitudRegistroVecino.objects.create(vecino=vecino)
+            
+            # Crear token de registro
+            token_registro = TokenRegistro.objects.create(
+                user=user, 
+                expires_at=timezone.now() + timedelta(hours=24)
+            )
         
         return vecino
 

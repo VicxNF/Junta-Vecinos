@@ -8,6 +8,7 @@ urlpatterns = [
     path('inicio/', views.index, name='index'),
     path('vecinos/', views.lista_vecinos, name='lista_vecinos'),
     path('registro/', views.registro_vecino, name='registro_vecino'),
+    path('confirmar-registro/<uuid:token>/', views.confirmar_registro, name='confirmar_registro'),
     path('login/', views.user_login, name='login'),
     path('logout/', views.user_logout, name='logout'),
     path('reestablecer-contrasena/', views.solicitar_reestablecer_contrasena, name='solicitar_reestablecer_contrasena'),

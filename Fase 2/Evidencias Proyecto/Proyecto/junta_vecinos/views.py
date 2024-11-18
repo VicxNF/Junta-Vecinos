@@ -121,6 +121,17 @@ def generar_username_unico(base_username):
         n += 1
     return username
 
+def enviar_correo_confirmacion(user, token):
+    confirmacion_url = settings.DOMAIN + reverse('confirmar_registro', kwargs={'token': token})
+    
+    send_mail(
+        'Confirme su registro',
+        f'Por favor, confirme su registro haciendo click en el siguiente enlace: {confirmacion_url}',
+        settings.DEFAULT_FROM_EMAIL,
+        [user.email],
+        fail_silently=False,
+    )
+
 @user_passes_test(is_admin)
 @login_required
 def lista_vecinos(request):
@@ -133,11 +144,40 @@ def registro_vecino(request):
         form = RegistroVecinoForm(request.POST)
         if form.is_valid():
             vecino = form.save()
-            messages.success(request, 'Su solicitud de registro ha sido enviada y está pendiente de aprobación.')
+            
+            # Enviar correo de confirmación
+            token = TokenRegistro.objects.get(user=vecino.user).token
+            enviar_correo_confirmacion(vecino.user, token)
+            
+            messages.success(request, 'Por favor, revise su correo para confirmar su registro.')
             return redirect('login')
     else:
         form = RegistroVecinoForm()
     return render(request, 'junta_vecinos/registro.html', {'form': form})
+
+def confirmar_registro(request, token):
+    try:
+        token_registro = TokenRegistro.objects.get(token=token)
+        
+        # Verificar si el token está expirado
+        if not token_registro.is_valid():
+            messages.error(request, 'El enlace de confirmación ha expirado.')
+            return redirect('login')
+        
+        # Activar usuario
+        user = token_registro.user
+        user.is_active = True
+        user.save()
+        
+        # Eliminar el token
+        token_registro.delete()
+        
+        messages.success(request, 'Su cuenta ha sido activada exitosamente. Puede iniciar sesión.')
+        return redirect('login')
+    
+    except TokenRegistro.DoesNotExist:
+        messages.error(request, 'Token de registro inválido.')
+        return redirect('login')
 
 def user_login(request):
     if request.method == "POST":

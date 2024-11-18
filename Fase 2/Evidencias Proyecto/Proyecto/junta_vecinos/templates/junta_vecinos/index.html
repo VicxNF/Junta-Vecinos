@@ -6,6 +6,20 @@
 
 {% block content %}
 <style>
+    :root {
+        /* Variables para vecinos (azul) */
+        --vecino-gradient-start: #4a90e2;
+        --vecino-gradient-end: #50e3c2;
+        --vecino-primary: #4a90e2;
+        --vecino-primary-hover: #357abd;
+
+        /* Variables para administrador (verde) */
+        --admin-gradient-start: #2ecc71;
+        --admin-gradient-end: #27ae60;
+        --admin-primary: #2ecc71;
+        --admin-primary-hover: #27ae60;
+    }
+
     /* Estilos generales */
     .dashboard-container {
         padding: 2rem;
@@ -13,8 +27,9 @@
         min-height: 100vh;
     }
 
-    .welcome-section {
-        background: linear-gradient(135deg, #4a90e2, #50e3c2);
+    /* Estilos específicos para vecinos */
+    .vecino-theme .welcome-section {
+        background: linear-gradient(135deg, var(--vecino-gradient-start), var(--vecino-gradient-end));
         color: white;
         padding: 2rem;
         border-radius: 15px;
@@ -22,6 +37,43 @@
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
     }
 
+    .vecino-theme .custom-btn {
+        background: var(--vecino-primary);
+        color: white;
+    }
+
+    .vecino-theme .custom-btn:hover {
+        background: var(--vecino-primary-hover);
+    }
+
+    .vecino-theme .stat-icon {
+        color: var(--vecino-primary);
+    }
+
+    /* Estilos específicos para administrador */
+    .admin-theme .welcome-section {
+        background: linear-gradient(135deg, var(--admin-gradient-start), var(--admin-gradient-end));
+        color: white;
+        padding: 2rem;
+        border-radius: 15px;
+        margin-bottom: 2rem;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .admin-theme .custom-btn {
+        background: var(--admin-primary);
+        color: white;
+    }
+
+    .admin-theme .custom-btn:hover {
+        background: var(--admin-primary-hover);
+    }
+
+    .admin-theme .stat-icon {
+        color: var(--admin-primary);
+    }
+
+    /* Resto de los estilos originales... */
     .stats-grid {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -196,9 +248,15 @@
     }
 </style>
 
-<div class="dashboard-container">
+<div class="dashboard-container {% if user.is_superuser %}admin-theme{% else %}vecino-theme{% endif %}">
     <div class="welcome-section fade-in">
-        <h1 class="display-4">Bienvenido al Sistema de la Junta de Vecinos de {{ comuna }}</h1>
+        <h1 class="display-4">
+            {% if user.is_superuser %}
+                Panel de Administración - Junta de Vecinos de {{ comuna }}
+            {% else %}
+                Bienvenido a la Junta de Vecinos de {{ comuna }}
+            {% endif %}
+        </h1>
         <p class="lead">Sistema de gestión vecinal</p>
     </div>
 

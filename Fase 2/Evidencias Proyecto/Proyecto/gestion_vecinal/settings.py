@@ -144,6 +144,7 @@ EMAIL_HOST_USER = 'contacto.redvecinal@gmail.com'
 EMAIL_HOST_PASSWORD = 'wdbx ijhj nxwi wkke'
 DEFAULT_FROM_EMAIL = 'contacto.redvecinal@gmail.com'
 SITE_URL = 'http://localhost:8000'  # Cambia esto por la URL de tu sitio
+DOMAIN = 'http://127.0.0.1:8000'
 
 SESSION_ENGINE = 'django.contrib.sessions.backends.db'
 
