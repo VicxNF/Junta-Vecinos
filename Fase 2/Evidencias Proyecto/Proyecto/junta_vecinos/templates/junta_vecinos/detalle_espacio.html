@@ -1,21 +1,125 @@
 {% extends 'junta_vecinos/base.html' %}
+{% load custom_filters %}
 
-{% block title %}Detalle del Espacio{% endblock %}
+{% block title %}{{ espacio.nombre }} - Detalle del Espacio{% endblock %}
 
 {% block content %}
-<div class="container my-5">
-    <div class="card">
-        <img src="{{ espacio.foto.url }}" class="card-img-top" alt="{{ espacio.nombre }}">
-        <div class="card-body">
-            <h2 class="card-title">{{ espacio.nombre }}</h2>
-            <p class="card-text"><strong>Descripción:</strong> {{ espacio.descripcion }}</p>
-            <p class="card-text"><strong>Capacidad:</strong> {{ espacio.capacidad }} personas</p>
-            <p class="card-text"><strong>Ubicación:</strong> {{ espacio.ubicacion }}</p>
-            <p class="card-text"><strong>Precio por Hora:</strong> ${{ espacio.precio_por_hora }}</p>
-            
-            <!-- Opción para reservar el espacio -->
-            <a href="{% url 'reservar_espacio' espacio.id %}" class="btn btn-primary mt-3">Reservar este Espacio</a>
+<div class="container my-5 admin-section">
+    <!-- Header con imagen de fondo -->
+    <div class="position-relative mb-4 rounded-lg overflow-hidden" style="height: 300px;">
+        {% if espacio.foto %}
+            <div class="h-100 w-100" style="
+                background-image: url('{{ espacio.foto.url }}');
+                background-position: center;
+                background-size: cover;
+                background-repeat: no-repeat;
+                filter: brightness(0.7);
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+            "></div>
+        {% else %}
+            <div class="h-100 w-100 bg-gradient-to-r from-blue-500 to-green-500" style="
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                opacity: 0.8;
+            "></div>
+        {% endif %}
+        
+        <!-- Título sobre la imagen -->
+        <div class="position-absolute bottom-0 left-0 p-4 w-100" style="
+            background: linear-gradient(transparent, rgba(0,0,0,0.8));
+            z-index: 1;
+        ">
+            <h1 class="text-white mb-2 display-4 font-weight-bold">{{ espacio.nombre }}</h1>
+        </div>
+    </div>
+
+    <!-- Contenido principal -->
+    <div class="row">
+        <!-- Detalles del espacio -->
+        <div class="col-lg-8 mb-4">
+            <div class="card shadow-lg border-0 rounded-lg overflow-hidden">
+                <div class="card-body p-4">
+                    <!-- Descripción -->
+                    <div class="mb-4">
+                        <h3 class="border-bottom pb-2 mb-3">Acerca de este espacio</h3>
+                        <p class="lead">{{ espacio.descripcion }}</p>
+                    </div>
+
+                    <!-- Detalles en grid -->
+                    <div class="row g-4 mb-4">
+                        <div class="col-md-6">
+                            <div class="p-3 bg-light rounded-lg border">
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="fas fa-users fa-fw text-primary mr-2"></i>
+                                    <h5 class="mb-0">Capacidad</h5>
+                                </div>
+                                <p class="mb-0">{{ espacio.capacidad }} personas</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="p-3 bg-light rounded-lg border">
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="fas fa-map-marked-alt fa-fw text-primary mr-2"></i>
+                                    <h5 class="mb-0">Ubicación</h5>
+                                </div>
+                                <p class="mb-0">{{ espacio.ubicacion }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar con información de precio y reserva -->
+        <div class="col-lg-4">
+            <div class="card shadow-lg border-0 rounded-lg sticky-top" style="top: 2rem;">
+                <div class="card-body p-4">
+                    <div class="text-center mb-4">
+                        <h3 class="mb-1">${{ espacio.precio_por_hora|floatformat:0 }}</h3>
+                        <p class="text-muted mb-0">por hora</p>
+                    </div>
+
+                    <a href="{% url 'reservar_espacio' espacio.id %}" class="btn btn-primary btn-lg w-100 mb-3">
+                        Reservar este espacio
+                    </a>
+
+                    <!-- Información adicional -->
+                    <div class="border-top pt-3">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-shield-alt fa-fw text-muted mr-2"></i>
+                            <span>Espacio administrado por la Junta de Vecinos</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Animación al hacer scroll
+    const animateOnScroll = () => {
+        const elements = document.querySelectorAll('.card');
+        elements.forEach(element => {
+            const elementTop = element.getBoundingClientRect().top;
+            const elementBottom = element.getBoundingClientRect().bottom;
+            
+            if (elementTop < window.innerHeight && elementBottom > 0) {
+                element.classList.add('animate__animated', 'animate__fadeInUp');
+            }
+        });
+    };
+
+    window.addEventListener('scroll', animateOnScroll);
+    animateOnScroll(); // Ejecutar al cargar la página
+});
+</script>
 {% endblock %}

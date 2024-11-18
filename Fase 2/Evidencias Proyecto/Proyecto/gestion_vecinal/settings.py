@@ -44,7 +44,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'django.contrib.humanize',
-    'junta_vecinos'
+    'junta_vecinos',
+    'widget_tweaks'
 ]
 
 MIDDLEWARE = [

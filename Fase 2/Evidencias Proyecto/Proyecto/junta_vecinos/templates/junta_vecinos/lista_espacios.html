@@ -1,62 +1,221 @@
 {% extends 'junta_vecinos/base.html' %}
 
-{% block title %}Lista de Espacios{% endblock %}
+{% block title %}Espacios Comunitarios{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <h2>Lista de Espacios Disponibles</h2>
-    
+<div class="container mt-5">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="display-4 mb-0">Espacios Comunitarios</h2>
+            <p class="text-muted">Administra los espacios disponibles en tu comuna</p>
+        </div>
+        <a href="{% url 'registrar_espacio' %}" class="btn btn-primary">
+            <i class="fas fa-plus-circle me-2"></i>Registrar Nuevo Espacio
+        </a>
+    </div>
+
     {% if espacios %}
-        <table class="table table-bordered">
-            <thead>
-                <tr>
-                    <th>Nombre</th>
-                    <th>Descripción</th>
-                    <th>Capacidad</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for espacio in espacios %}
-                    <tr>
-                        <td>{{ espacio.nombre }}</td>
-                        <td>{{ espacio.descripcion }}</td>
-                        <td>{{ espacio.capacidad }}</td>
-                        <td>
-                            <!-- Botón para editar -->
-                            <a href="{% url 'editar_espacio' espacio.id %}" class="btn btn-warning btn-sm">Editar</a>
-                            
-                            <!-- Botón para eliminar con SweetAlert2 -->
-                            <form id="delete-form-{{ espacio.id }}" action="{% url 'eliminar_espacio' espacio.id %}" method="post" style="display:inline;">
-                                {% csrf_token %}
-                                <button type="button" onclick="confirmarEliminacion({{ espacio.id }})" class="btn btn-danger btn-sm">Eliminar</button>
-                            </form>
-                        </td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4">
+        {% for espacio in espacios %}
+        <div class="col animate-card">
+            <div class="card h-100 shadow-sm hover-card">
+                {% if espacio.foto %}
+                <img src="{{ espacio.foto.url }}" class="card-img-top" alt="{{ espacio.nombre }}" style="height: 200px; object-fit: cover;">
+                {% else %}
+                <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
+                    <i class="fas fa-image fa-3x text-muted"></i>
+                </div>
+                {% endif %}
+                
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h5 class="card-title mb-0">{{ espacio.nombre }}</h5>
+                        <span class="badge bg-primary">${{ espacio.precio_por_hora|floatformat:0 }}/hora</span>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <p class="card-text text-muted mb-2">
+                            <i class="fas fa-map-marker-alt me-2"></i>{{ espacio.ubicacion }}
+                        </p>
+                        <p class="card-text text-muted mb-2">
+                            <i class="fas fa-users me-2"></i>Capacidad: {{ espacio.capacidad }} personas
+                        </p>
+                    </div>
+                    
+                    <div class="description-container mb-3">
+                        <p class="card-text description-text">{{ espacio.descripcion }}</p>
+                        <a href="{% url 'detalle_espacio' espacio.id %}" class="btn btn-link btn-sm p-0 read-more-btn">Ver más</a>
+                    </div>
+                </div>
+
+                <div class="card-footer bg-transparent border-top-0">
+                    <div class="d-flex justify-content-end gap-2">
+                        <a href="{% url 'editar_espacio' espacio.id %}" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-edit me-1"></i>Editar
+                        </a>
+                        <form id="delete-form-{{ espacio.id }}" action="{% url 'eliminar_espacio' espacio.id %}" method="post" class="d-inline">
+                            {% csrf_token %}
+                            <button type="button" onclick="confirmarEliminacion({{ espacio.id }}, '{{ espacio.nombre|escapejs }}')" 
+                                    class="btn btn-outline-danger btn-sm">
+                                <i class="fas fa-trash-alt me-1"></i>Eliminar
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
     {% else %}
-        <p>No hay espacios registrados.</p>
+    <div class="empty-state text-center py-5">
+        <div class="empty-state-icon mb-4">
+            <i class="fas fa-warehouse fa-4x text-muted"></i>
+        </div>
+        <h3>No hay espacios registrados</h3>
+        <p class="text-muted mb-4">Comienza agregando nuevos espacios para tu comunidad</p>
+        <a href="{% url 'crear_espacio' %}" class="btn btn-primary">
+            <i class="fas fa-plus-circle me-2"></i>Agregar Primer Espacio
+        </a>
+    </div>
     {% endif %}
 </div>
 
+<!-- Modal de detalles -->
+<div class="modal fade" id="detallesModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"></h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body"></div>
+        </div>
+    </div>
+</div>
+
+<style>
+.animate-card {
+    opacity: 0;
+    transform: translateY(20px);
+    animation: fadeInUp 0.6s ease forwards;
+}
+
+@keyframes fadeInUp {
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.hover-card {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.hover-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+}
+
+.description-container {
+    position: relative;
+}
+
+.description-text {
+    max-height: 4.5em;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+}
+
+.description-text.expanded {
+    max-height: none;
+    -webkit-line-clamp: unset;
+}
+
+.empty-state {
+    background-color: #f8f9fa;
+    border-radius: 1rem;
+    padding: 3rem;
+}
+
+.empty-state-icon {
+    color: #dee2e6;
+}
+
+.card {
+    border: none;
+    border-radius: 1rem;
+    overflow: hidden;
+}
+
+.col:nth-child(3n+1) .animate-card {
+    animation-delay: 0.1s;
+}
+
+.col:nth-child(3n+2) .animate-card {
+    animation-delay: 0.2s;
+}
+
+.col:nth-child(3n+3) .animate-card {
+    animation-delay: 0.3s;
+}
+</style>
+
 <script>
-    function confirmarEliminacion(id) {
-        Swal.fire({
-            title: '¿Estás seguro?',
-            text: "Esta acción no se puede deshacer.",
-            icon: 'warning',
-            showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
-            confirmButtonText: 'Sí, eliminar',
-            cancelButtonText: 'Cancelar'
-        }).then((result) => {
-            if (result.isConfirmed) {
-                document.getElementById(`delete-form-${id}`).submit();
+document.addEventListener('DOMContentLoaded', function() {
+    // Manejador para los botones "Leer más"
+    document.querySelectorAll('.read-more-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const descriptionText = this.previousElementSibling;
+            const isExpanded = descriptionText.classList.contains('expanded');
+            
+            if (isExpanded) {
+                descriptionText.classList.remove('expanded');
+                this.textContent = 'Leer más';
+            } else {
+                descriptionText.classList.add('expanded');
+                this.textContent = 'Leer menos';
             }
         });
-    }
+    });
+
+    // Inicializar tooltips
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+});
+
+function confirmarEliminacion(id, nombre) {
+    Swal.fire({
+        title: '¿Eliminar espacio?',
+        html: `¿Estás seguro que deseas eliminar el espacio <strong>${nombre}</strong>?<br>Esta acción no se puede deshacer.`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#dc3545',
+        cancelButtonColor: '#6c757d',
+        confirmButtonText: 'Sí, eliminar',
+        cancelButtonText: 'Cancelar',
+        reverseButtons: true,
+        focusCancel: true
+    }).then((result) => {
+        if (result.isConfirmed) {
+            document.getElementById(`delete-form-${id}`).submit();
+        }
+    });
+}
+
+// Animación de entrada para las tarjetas
+document.addEventListener('DOMContentLoaded', function() {
+    const cards = document.querySelectorAll('.animate-card');
+    cards.forEach((card, index) => {
+        setTimeout(() => {
+            card.style.opacity = '1';
+            card.style.transform = 'translateY(0)';
+        }, index * 100);
+    });
+});
 </script>
 {% endblock %}

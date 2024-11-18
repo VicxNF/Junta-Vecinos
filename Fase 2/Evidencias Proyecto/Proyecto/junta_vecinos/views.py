@@ -397,7 +397,10 @@ def solicitar_certificado(request):
 
 @user_passes_test(is_admin)
 def gestionar_solicitudes(request):
-    solicitudes = SolicitudCertificado.objects.all()
+    admin = request.user.administradorcomuna
+    solicitudes = SolicitudCertificado.objects.filter(
+        vecino__comuna=admin.comuna
+    ).order_by('-fecha_solicitud')
     
     # Contar las solicitudes aprobadas y rechazadas
     aprobadas = solicitudes.filter(estado='Aprobado').count()
@@ -406,7 +409,8 @@ def gestionar_solicitudes(request):
     return render(request, 'junta_vecinos/gestionar_solicitudes.html', {
         'solicitudes': solicitudes,
         'aprobadas': aprobadas,
-        'rechazadas': rechazadas
+        'rechazadas': rechazadas,
+        'admin': admin
     })
 
 @user_passes_test(is_admin)
@@ -453,13 +457,8 @@ def generar_reporte_solicitudes_pdf(request):
 @user_passes_test(is_admin)
 def ver_solicitud(request, id):
     solicitud = get_object_or_404(SolicitudCertificado, id=id)
-    return render(request, 'junta_vecinos/ver_solicitud.html', {'solicitud': solicitud})
 
-@user_passes_test(is_admin)
-def aprobar_solicitud(request, id):
-    solicitud = get_object_or_404(SolicitudCertificado, id=id)
-    
-    if request.method == 'POST':
+    if request.method == 'POST' and 'aprobar' in request.POST:
         # Generar un número único de certificado
         numero_certificado = f"CERT-{solicitud.vecino.id}-{solicitud.id}"
 
@@ -480,7 +479,7 @@ def aprobar_solicitud(request, id):
         # Enviar el correo con el PDF adjunto
         email = EmailMessage(
             subject='Certificado de Residencia Aprobado',
-            body=f'Hola {solicitud.vecino.nombres},\n\nEs de nuestro agrado informarle que su solicitud de certificado de residencia fue aprobado\n\nAdjunto encontrarás tu certificado de residencia.',
+            body=f'Hola {solicitud.vecino.nombres},\n\nEs de nuestro agrado informarle que su solicitud de certificado de residencia fue aprobada.\n\nAdjunto encontrarás tu certificado de residencia.',
             from_email=settings.DEFAULT_FROM_EMAIL,
             to=[solicitud.vecino.user.email],
         )
@@ -491,10 +490,10 @@ def aprobar_solicitud(request, id):
         # Enviar el correo
         email.send()
 
-        messages.success(request, 'La solicitud ha sido aprobada y el certificado generado.')
+        messages.success(request, 'La solicitud ha sido aprobada, el certificado generado y enviado al vecino.')
         return redirect('gestionar_solicitudes')
 
-    return render(request, 'junta_vecinos/aprobar_solicitud.html', {'solicitud': solicitud})
+    return render(request, 'junta_vecinos/ver_solicitud.html', {'solicitud': solicitud})
 
 
 @user_passes_test(is_admin)
@@ -599,7 +598,22 @@ def mis_proyectos(request):
     try:
         vecino = request.user.vecino
         proyectos = ProyectoVecinal.objects.filter(vecino=vecino)
-        return render(request, 'junta_vecinos/mis_proyectos.html', {'proyectos': proyectos})
+        
+        # Calcular estadísticas
+        total_proyectos = proyectos.count()
+        proyectos_aprobados = proyectos.filter(estado='aprobado').count()
+        proyectos_pendientes = proyectos.filter(estado='pendiente').count()
+        proyectos_rechazados = proyectos.filter(estado='rechazado').count()
+        
+        context = {
+            'proyectos': proyectos,
+            'total_proyectos': total_proyectos,
+            'proyectos_aprobados': proyectos_aprobados,
+            'proyectos_pendientes': proyectos_pendientes,
+            'proyectos_rechazados': proyectos_rechazados
+        }
+        
+        return render(request, 'junta_vecinos/mis_proyectos.html', context)
     except Vecino.DoesNotExist:
         messages.error(request, "Debes estar registrado como vecino para ver proyectos.")
         return redirect('index')
@@ -607,10 +621,34 @@ def mis_proyectos(request):
 @login_required
 def detalle_proyecto(request, proyecto_id):
     proyecto = get_object_or_404(ProyectoVecinal, id=proyecto_id)
-    if request.user != proyecto.vecino.user and not hasattr(request.user, 'administradorcomuna'):
-        messages.error(request, "No tienes permiso para ver este proyecto.")
-        return redirect('index')
-    return render(request, 'junta_vecinos/detalle_proyecto.html', {'proyecto': proyecto})
+    
+    # Primero verificamos si es un administrador
+    if hasattr(request.user, 'administradorcomuna'):
+        admin = request.user.administradorcomuna
+        # Verificar si el proyecto pertenece a la comuna del administrador
+        if proyecto.vecino.comuna == admin.comuna:
+            return render(request, 'junta_vecinos/detalle_proyecto.html', {
+                'proyecto': proyecto
+            })
+    
+    # Si no es administrador, verificamos si es vecino
+    try:
+        vecino_solicitante = request.user.vecino
+        
+        # Verificar si es el creador del proyecto o un vecino de la misma comuna (proyecto aprobado)
+        if (request.user == proyecto.vecino.user or 
+            (vecino_solicitante.comuna == proyecto.vecino.comuna and 
+             proyecto.estado == 'aprobado')):
+            return render(request, 'junta_vecinos/detalle_proyecto.html', {
+                'proyecto': proyecto
+            })
+        
+    except Vecino.DoesNotExist:
+        pass
+    
+    # Si no cumple ninguna condición, redirigir con mensaje de error
+    messages.error(request, "No tienes permiso para ver este proyecto.")
+    return redirect('index')
 
 # Vista para el administrador
 @login_required
@@ -785,14 +823,27 @@ def publicar_noticia(request):
     return render(request, 'junta_vecinos/publicar_noticia.html', {'form': form})
 
 
+@login_required
 @user_passes_test(is_admin)
 def gestionar_noticias(request):
-    admin = AdministradorComuna.objects.get(user=request.user)  # Obtener el administrador actual
-    noticias = Noticia.objects.filter(comuna=admin).order_by('-fecha_publicacion')  # Filtrar noticias por administrador
-    return render(request, 'junta_vecinos/gestionar_noticias.html', {'noticias': noticias})
+    admin = AdministradorComuna.objects.get(user=request.user)
+    noticias = Noticia.objects.filter(comuna=admin).order_by('-fecha_publicacion')
+    
+    # Calcular estadísticas
+    primer_dia_mes = timezone.now().replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    noticias_mes = noticias.filter(fecha_publicacion__gte=primer_dia_mes).count()
+    noticias_con_imagen = noticias.exclude(imagen='').count()
+    
+    context = {
+        'noticias': noticias,
+        'noticias_mes': noticias_mes,
+        'noticias_con_imagen': noticias_con_imagen,
+    }
+    
+    return render(request, 'junta_vecinos/gestionar_noticias.html', context)
 
 
-
+@login_required
 @user_passes_test(is_admin)
 def editar_noticia(request, id):
     noticia = get_object_or_404(Noticia, id=id)
@@ -1410,13 +1461,20 @@ def seleccionar_periodo_reporte(request):
 
 @user_passes_test(is_admin)
 def crear_actividad(request):
+    # Obtenemos directamente el AdministradorComuna
+    admin = AdministradorComuna.objects.get(user=request.user)
+    
     if request.method == 'POST':
-        form = ActividadVecinalForm(request.POST, request.FILES)
+        form = ActividadVecinalForm(request.POST, request.FILES, admin=admin)
         if form.is_valid():
             actividad = form.save(commit=False)
-            admin = request.user.administradorcomuna
             actividad.comuna = admin
             actividad.estado = 'activa'
+            
+            # Obtenemos el nombre del espacio seleccionado
+            espacio_seleccionado = form.cleaned_data['lugar']
+            actividad.lugar = espacio_seleccionado.nombre
+            
             actividad.save()
             
             # Notificar a todos los vecinos de la comuna
@@ -1435,7 +1493,7 @@ def crear_actividad(request):
             messages.success(request, 'Actividad creada exitosamente.')
             return redirect('lista_actividades')
     else:
-        form = ActividadVecinalForm()
+        form = ActividadVecinalForm(admin=admin)
     
     return render(request, 'junta_vecinos/crear_actividad.html', {'form': form})
 

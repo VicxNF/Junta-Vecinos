@@ -1,23 +1,139 @@
 {% extends 'junta_vecinos/base.html' %}
+{% load custom_filters %}
 
-{% block title %}Detalle de la Actividad{% endblock %}
+{% block title %}{{ actividad.titulo }} - Detalle de la Actividad{% endblock %}
 
 {% block content %}
-<div class="container my-5">
-    <div class="card">
+<div class="container my-5 admin-section">
+    <!-- Header con imagen de fondo -->
+    <div class="position-relative mb-4 rounded-lg overflow-hidden" style="height: 300px;">
         {% if actividad.imagen %}
-            <img src="{{ actividad.imagen.url }}" class="card-img-top" alt="{{ actividad.titulo }}">
+            <div class="h-100 w-100" style="
+                background-image: url('{{ actividad.imagen.url }}');
+                background-position: center;
+                background-size: cover;
+                background-repeat: no-repeat;
+                filter: brightness(0.7);
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+            "></div>
+        {% else %}
+            <div class="h-100 w-100 bg-gradient-to-r from-blue-500 to-green-500" style="
+                position: absolute;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                opacity: 0.8;
+            "></div>
         {% endif %}
-        <div class="card-body">
-            <h2 class="card-title">{{ actividad.titulo }}</h2>
-            <p class="card-text"><strong>Descripción:</strong> {{ actividad.descripcion }}</p>
-            <p class="card-text"><strong>Fecha:</strong> {{ actividad.fecha }}</p>
-            <p class="card-text"><strong>Hora de Inicio:</strong> {{ actividad.hora_inicio }}</p>
-            <p class="card-text"><strong>Hora de Fin:</strong> {{ actividad.hora_fin }}</p>
-            <p class="card-text"><strong>Lugar:</strong> {{ actividad.lugar }}</p>
-            <p class="card-text"><strong>Precio:</strong> ${{ actividad.precio }}</p>
-            <p class="card-text"><strong>Cupos Disponibles:</strong> {{ actividad.espacios_disponibles }}</p>
+        
+        <!-- Título sobre la imagen -->
+        <div class="position-absolute bottom-0 left-0 p-4 w-100" style="
+            background: linear-gradient(transparent, rgba(0,0,0,0.8));
+            z-index: 1;
+        ">
+            <h1 class="text-white mb-2 display-4 font-weight-bold">{{ actividad.titulo }}</h1>
+            <div class="d-flex align-items-center text-white">
+                <i class="fas fa-map-marker-alt mr-2"></i>
+                <span>{{ actividad.lugar }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Contenido principal -->
+    <div class="row">
+        <!-- Detalles de la actividad -->
+        <div class="col-lg-8 mb-4">
+            <div class="card shadow-lg border-0 rounded-lg overflow-hidden">
+                <div class="card-body p-4">
+                    <!-- Descripción -->
+                    <div class="mb-4">
+                        <h3 class="border-bottom pb-2 mb-3">Acerca de esta actividad</h3>
+                        <p class="lead">{{ actividad.descripcion }}</p>
+                    </div>
+
+                    <!-- Detalles en grid -->
+                    <div class="row g-4 mb-4">
+                        <div class="col-md-6">
+                            <div class="p-3 bg-light rounded-lg border">
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="far fa-calendar fa-fw text-primary mr-2"></i>
+                                    <h5 class="mb-0">Fecha y Hora</h5>
+                                </div>
+                                <p class="mb-1">{{ actividad.fecha|date:"l, j \d\e F \d\e Y" }}</p>
+                                <p class="mb-0">{{ actividad.hora_inicio }} - {{ actividad.hora_fin }}</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="p-3 bg-light rounded-lg border">
+                                <div class="d-flex align-items-center mb-2">
+                                    <i class="fas fa-users fa-fw text-primary mr-2"></i>
+                                    <h5 class="mb-0">Cupos</h5>
+                                </div>
+                                <div class="progress mb-2" style="height: 10px;">
+                                    <div class="progress-bar bg-success" role="progressbar" 
+                                         style="width: {% widthratio actividad.cupo_actual actividad.cupo_maximo 100 %}%">
+                                    </div>
+                                </div>
+                                <p class="mb-0">{{ actividad.espacios_disponibles }} lugares disponibles</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sidebar con información de precio y registro -->
+        <div class="col-lg-4">
+            <div class="card shadow-lg border-0 rounded-lg sticky-top" style="top: 2rem;">
+                <div class="card-body p-4">
+                    <div class="text-center mb-4">
+                        <h3 class="mb-1">${{ actividad.precio|floatformat:0 }}</h3>
+                        <p class="text-muted mb-0">por persona</p>
+                    </div>
+
+                    {% if actividad.espacios_disponibles > 0 %}
+                        <a href="{% url 'login' %}" class="btn btn-secondary btn-lg w-100 mb-3">Inscribirse</a>
+                    {% else %}
+                        <button class="btn btn-secondary btn-lg w-100 mb-3" disabled>
+                            Sin cupos disponibles
+                        </button>
+                    {% endif %}
+
+                    <!-- Información adicional -->
+                    <div class="border-top pt-3">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-shield-alt fa-fw text-muted mr-2"></i>
+                            <span>Actividad organizada por la Junta de Vecinos</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Animación al hacer scroll
+    const animateOnScroll = () => {
+        const elements = document.querySelectorAll('.card, .progress');
+        elements.forEach(element => {
+            const elementTop = element.getBoundingClientRect().top;
+            const elementBottom = element.getBoundingClientRect().bottom;
+            
+            if (elementTop < window.innerHeight && elementBottom > 0) {
+                element.classList.add('animate__animated', 'animate__fadeInUp');
+            }
+        });
+    };
+
+    window.addEventListener('scroll', animateOnScroll);
+    animateOnScroll(); // Ejecutar al cargar la página
+});
+</script>
 {% endblock %}

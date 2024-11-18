@@ -1,35 +1,386 @@
 {% extends 'junta_vecinos/base.html' %}
-
 {% block content %}
-<div class="container mt-4">
-    <h2>Mis Proyectos Vecinales</h2>
-    <a href="{% url 'crear_proyecto' %}" class="btn btn-primary mb-3">Crear Nuevo Proyecto</a>
-    
-    <div class="row">
+<div class="projects-container">
+    <!-- Header Section -->
+    <div class="projects-header">
+        <div class="header-content">
+            <h2 class="main-title">Mis Proyectos Vecinales</h2>
+            <p class="subtitle">Gestiona y da seguimiento a tus propuestas para la comunidad</p>
+        </div>
+        <a href="{% url 'crear_proyecto' %}" class="btn btn-primary create-project-btn">
+            <i class="fas fa-plus-circle me-2"></i>
+            Crear Nuevo Proyecto
+        </a>
+    </div>
+
+    <!-- Stats Section -->
+    <div class="stats-section">
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-clipboard-list"></i>
+            </div>
+            <div class="stat-info">
+                <span class="stat-value">{{ total_proyectos }}</span>
+                <span class="stat-label">Total Proyectos</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="stat-info">
+                <span class="stat-value">{{ proyectos_aprobados }}</span>
+                <span class="stat-label">Aprobados</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-clock"></i>
+            </div>
+            <div class="stat-info">
+                <span class="stat-value">{{ proyectos_pendientes }}</span>
+                <span class="stat-label">Pendientes</span>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon">
+                <i class="fas fa-times-circle"></i>
+            </div>
+            <div class="stat-info">
+                <span class="stat-value">{{ proyectos_rechazados }}</span>
+                <span class="stat-label">Rechazados</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Projects Grid -->
+    <div class="projects-grid">
         {% for proyecto in proyectos %}
-        <div class="col-md-6 mb-4">
-            <div class="card">
-                <div class="card-body">
-                    <h5 class="card-title">{{ proyecto.propuesta }}</h5>
-                    <p class="card-text">{{ proyecto.descripcion|truncatewords:30 }}</p>
-                    <p class="card-text">
-                        <small class="text-muted">Estado: 
-                            <span class="badge {% if proyecto.estado == 'aprobado' %}bg-success
-                                             {% elif proyecto.estado == 'rechazado' %}bg-danger
-                                             {% else %}bg-warning{% endif %}">
-                                {{ proyecto.get_estado_display }}
-                            </span>
-                        </small>
-                    </p>
-                    <a href="{% url 'detalle_proyecto' proyecto.id %}" class="btn btn-info">Ver Detalles</a>
+        <div class="project-card" data-estado="{{ proyecto.estado }}">
+            <div class="project-status {{ proyecto.estado }}">
+                <i class="fas fa-{% if proyecto.estado == 'aprobado' %}check-circle{% elif proyecto.estado == 'rechazado' %}times-circle{% else %}clock{% endif %}"></i>
+                {{ proyecto.get_estado_display }}
+            </div>
+            
+            <div class="project-content">
+                <h3 class="project-title">{{ proyecto.propuesta }}</h3>
+                <p class="project-description">{{ proyecto.descripcion|truncatewords:30 }}</p>
+                
+                <div class="project-meta">
+                    <span class="meta-item">
+                        <i class="far fa-calendar-alt"></i>
+                        {{ proyecto.fecha_postulacion|date:"d/m/Y" }}
+                    </span>
+                    {% if proyecto.evidencia %}
+                    <span class="meta-item">
+                        <i class="fas fa-paperclip"></i>
+                        Evidencia adjunta
+                    </span>
+                    {% endif %}
                 </div>
+
+                {% if proyecto.estado == 'rechazado' and proyecto.razon_rechazo %}
+                <div class="rejection-reason">
+                    <i class="fas fa-exclamation-circle"></i>
+                    {{ proyecto.razon_rechazo }}
+                </div>
+                {% endif %}
+            </div>
+
+            <div class="project-actions">
+                <a href="{% url 'detalle_proyecto' proyecto.id %}" class="btn btn-info">
+                    <i class="fas fa-eye me-2"></i>
+                    Ver Detalles
+                </a>
             </div>
         </div>
         {% empty %}
-        <div class="col-12">
-            <p>No has creado ningún proyecto todavía.</p>
+        <div class="empty-state">
+            <div class="empty-state-icon">
+                <i class="fas fa-clipboard"></i>
+            </div>
+            <h3>No hay proyectos registrados</h3>
+            <p>¡Comienza creando tu primer proyecto vecinal!</p>
+            <a href="{% url 'crear_proyecto' %}" class="btn btn-primary">
+                <i class="fas fa-plus-circle me-2"></i>
+                Crear Proyecto
+            </a>
         </div>
         {% endfor %}
     </div>
 </div>
+
+<style>
+/* Contenedor principal */
+.projects-container {
+    padding: 2rem;
+    max-width: 1400px;
+    margin: 0 auto;
+    animation: fadeIn 0.5s ease-out;
+}
+
+/* Header section */
+.projects-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    background: var(--gradient-primary);
+    padding: 2rem;
+    border-radius: 15px;
+    color: white;
+}
+
+.main-title {
+    font-size: 2.5rem;
+    margin: 0;
+    font-weight: 700;
+}
+
+.subtitle {
+    margin: 0.5rem 0 0;
+    opacity: 0.9;
+}
+
+.create-project-btn {
+    padding: 0.8rem 1.5rem;
+    font-weight: 600;
+    transform: translateY(0);
+    transition: all 0.3s ease;
+}
+
+.create-project-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+}
+
+/* Stats Section */
+.stats-section {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+}
+
+.stat-card {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+}
+
+.stat-icon {
+    font-size: 2rem;
+    color: var(--primary-color);
+    margin-right: 1rem;
+}
+
+.stat-value {
+    display: block;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary-color);
+}
+
+.stat-label {
+    color: #666;
+    font-size: 0.9rem;
+}
+
+/* Projects Grid */
+.projects-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+}
+
+.project-card {
+    background: white;
+    border-radius: 15px;
+    overflow: hidden;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    transition: all 0.3s ease;
+    position: relative;
+    animation: slideUp 0.5s ease-out forwards;
+    opacity: 0;
+}
+
+.project-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 12px rgba(0,0,0,0.15);
+}
+
+.project-status {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.project-status.pendiente {
+    background: #fff3cd;
+    color: #856404;
+}
+
+.project-status.aprobado {
+    background: #d4edda;
+    color: #155724;
+}
+
+.project-status.rechazado {
+    background: #f8d7da;
+    color: #721c24;
+}
+
+.project-content {
+    padding: 2rem;
+}
+
+.project-title {
+    font-size: 1.25rem;
+    margin: 0 0 1rem;
+    color: var(--primary-color);
+}
+
+.project-description {
+    color: #666;
+    line-height: 1.6;
+    margin-bottom: 1rem;
+}
+
+.project-meta {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+.meta-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.rejection-reason {
+    background: #fff5f5;
+    padding: 1rem;
+    border-radius: 8px;
+    margin: 1rem 0;
+    color: #e53e3e;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.project-actions {
+    padding: 1rem 2rem;
+    background: #f8f9fa;
+    border-top: 1px solid #eee;
+}
+
+/* Empty state */
+.empty-state {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 4rem 2rem;
+    background: white;
+    border-radius: 15px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
+
+.empty-state-icon {
+    font-size: 4rem;
+    color: var(--primary-color);
+    margin-bottom: 1rem;
+    opacity: 0.5;
+}
+
+/* Animaciones */
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from { 
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.project-card:nth-child(1) { animation-delay: 0.1s; }
+.project-card:nth-child(2) { animation-delay: 0.2s; }
+.project-card:nth-child(3) { animation-delay: 0.3s; }
+.project-card:nth-child(4) { animation-delay: 0.4s; }
+
+/* Responsividad */
+@media (max-width: 768px) {
+    .projects-container {
+        padding: 1rem;
+    }
+    
+    .projects-header {
+        flex-direction: column;
+        text-align: center;
+        gap: 1rem;
+    }
+    
+    .main-title {
+        font-size: 2rem;
+    }
+    
+    .projects-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .stat-card {
+        padding: 1rem;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Animación de las tarjetas de proyectos
+    const cards = document.querySelectorAll('.project-card');
+    cards.forEach(card => {
+        card.style.opacity = '1';
+    });
+
+    // Filtrado de proyectos (opcional)
+    const filterButtons = document.querySelectorAll('.filter-btn');
+    filterButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const estado = this.dataset.filter;
+            cards.forEach(card => {
+                if (estado === 'todos' || card.dataset.estado === estado) {
+                    card.style.display = 'block';
+                } else {
+                    card.style.display = 'none';
+                }
+            });
+        });
+    });
+});
+</script>
 {% endblock %}

@@ -1,12 +1,180 @@
 {% extends 'junta_vecinos/base.html' %}
 
+{% block title %}Registrar Actividad Vecinal{% endblock %}
+
 {% block content %}
-<div class="container mt-4">
-    <h2>Crear Nueva Actividad Vecinal</h2>
-    <form method="post" enctype="multipart/form-data">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit" class="btn btn-primary">Crear Actividad</button>
-    </form>
+<div class="container mt-5">
+    <div class="form-container">
+        <h2 class="form-title text-center mb-4">Nueva Actividad Vecinal</h2>
+        
+        <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
+            {% csrf_token %}
+            
+            <div class="row">
+                <!-- Columna izquierda -->
+                <div class="col-md-6 mb-4">
+                    <div class="form-group mb-3">
+                        <label for="{{ form.titulo.id_for_label }}" class="text-white fw-bold mb-2">
+                            <i class="fas fa-heading me-2"></i>Título
+                        </label>
+                        {{ form.titulo }}
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label for="{{ form.fecha.id_for_label }}" class="text-white fw-bold mb-2">
+                            <i class="fas fa-calendar me-2"></i>Fecha
+                        </label>
+                        {{ form.fecha }}
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="{{ form.hora_inicio.id_for_label }}" class="text-white fw-bold mb-2">
+                                    <i class="fas fa-clock me-2"></i>Hora Inicio
+                                </label>
+                                {{ form.hora_inicio }}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="{{ form.hora_fin.id_for_label }}" class="text-white fw-bold mb-2">
+                                    <i class="fas fa-clock me-2"></i>Hora Fin
+                                </label>
+                                {{ form.hora_fin }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label for="{{ form.lugar.id_for_label }}" class="text-white fw-bold mb-2">
+                            <i class="fas fa-map-marker-alt me-2"></i>Lugar
+                        </label>
+                        {{ form.lugar }}
+                    </div>
+                </div>
+
+                <!-- Columna derecha -->
+                <div class="col-md-6 mb-4">
+                    <div class="form-group mb-3">
+                        <label for="{{ form.descripcion.id_for_label }}" class="text-white fw-bold mb-2">
+                            <i class="fas fa-align-left me-2"></i>Descripción
+                        </label>
+                        {{ form.descripcion }}
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="{{ form.cupo_maximo.id_for_label }}" class="text-white fw-bold mb-2">
+                                    <i class="fas fa-users me-2"></i>Cupo Máximo
+                                </label>
+                                {{ form.cupo_maximo }}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="{{ form.precio.id_for_label }}" class="text-white fw-bold mb-2">
+                                    <i class="fas fa-dollar-sign me-2"></i>Precio
+                                </label>
+                                {{ form.precio }}
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label for="{{ form.imagen.id_for_label }}" class="text-white fw-bold mb-2">
+                            <i class="fas fa-image me-2"></i>Imagen
+                        </label>
+                        <div class="custom-file">
+                            {{ form.imagen }}
+                            <div id="preview-container" class="mt-2 d-none">
+                                <img id="image-preview" class="img-fluid rounded" style="max-height: 200px;">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="text-center mt-4">
+                <button type="submit" class="btn btn-primary btn-lg">
+                    <i class="fas fa-plus-circle me-2"></i>Crear Actividad
+                </button>
+                <a href="{% url 'lista_actividades' %}" class="btn btn-secondary btn-lg ms-2">
+                    <i class="fas fa-times-circle me-2"></i>Cancelar
+                </a>
+            </div>
+        </form>
+    </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Previsualización de imagen
+    const imageInput = document.querySelector('input[type="file"]');
+    const previewContainer = document.getElementById('preview-container');
+    const imagePreview = document.getElementById('image-preview');
+
+    imageInput.addEventListener('change', function() {
+        const file = this.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                imagePreview.src = e.target.result;
+                previewContainer.classList.remove('d-none');
+            }
+            reader.readAsDataURL(file);
+        }
+    });
+
+    // Animación al enviar el formulario
+    const form = document.querySelector('form');
+    form.addEventListener('submit', function() {
+        const submitBtn = this.querySelector('button[type="submit"]');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Creando...';
+    });
+
+    // Validación del formulario
+    const forms = document.querySelectorAll('.needs-validation');
+    Array.prototype.slice.call(forms).forEach(function(form) {
+        form.addEventListener('submit', function(event) {
+            if (!form.checkValidity()) {
+                event.preventDefault();
+                event.stopPropagation();
+            }
+            form.classList.add('was-validated');
+        }, false);
+    });
+
+    // Datepicker para el campo de fecha
+    flatpickr('input[type="date"]', {
+        dateFormat: "Y-m-d",
+        minDate: "today",
+    });
+
+    // Timepicker para los campos de hora
+    flatpickr('input[type="time"]', {
+        enableTime: true,
+        noCalendar: true,
+        dateFormat: "H:i",
+    });
+});
+</script>
+
+{% if messages %}
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 11">
+    {% for message in messages %}
+    <div class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="toast-header {% if message.tags %}bg-{{ message.tags }}{% endif %}">
+            <strong class="me-auto text-white">Notificación</strong>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+        <div class="toast-body">
+            {{ message }}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
 {% endblock %}

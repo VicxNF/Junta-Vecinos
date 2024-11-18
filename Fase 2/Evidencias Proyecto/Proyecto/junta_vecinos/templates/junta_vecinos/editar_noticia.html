@@ -1,14 +1,281 @@
 {% extends 'junta_vecinos/base.html' %}
+{% load static %}
+
+{% load widget_tweaks %}
 
 {% block title %}Editar Noticia{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <h2>Editar Noticia</h2>
-    <form method="post" enctype="multipart/form-data">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit" class="btn btn-primary">Guardar Cambios</button>
-    </form>
+<div class="container py-5">
+    <!-- Header con navegación -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'gestionar_noticias' %}">Noticias</a></li>
+                    <li class="breadcrumb-item active">Editar Noticia</li>
+                </ol>
+            </nav>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Formulario de edición -->
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h3 class="card-title mb-0">Editar Noticia</h3>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data" id="noticiaForm">
+                        {% csrf_token %}
+                        
+                        <!-- Campo Título -->
+                        <div class="mb-4">
+                            <label for="{{ form.titulo.id_for_label }}" class="form-label">Título</label>
+                            {{ form.titulo|add_class:"form-control" }}
+                            {% if form.titulo.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.titulo.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+
+                        <!-- Campo Contenido -->
+                        <div class="mb-4">
+                            <label for="{{ form.contenido.id_for_label }}" class="form-label">Contenido</label>
+                            {{ form.contenido|add_class:"form-control" }}
+                            {% if form.contenido.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ form.contenido.errors }}
+                                </div>
+                            {% endif %}
+                            <div class="form-text" id="caracteresRestantes"></div>
+                        </div>
+
+                        <!-- Campo Imagen -->
+                        <div class="mb-4">
+                            <label class="form-label d-block">Imagen</label>
+                            <div class="image-upload-container">
+                                <div class="current-image mb-3 {% if not noticia.imagen %}d-none{% endif %}">
+                                    {% if noticia.imagen %}
+                                        <img src="{{ noticia.imagen.url }}" alt="Imagen actual" class="img-thumbnail" style="max-height: 200px;">
+                                    {% endif %}
+                                </div>
+                                <div class="custom-file-upload">
+                                    <div class="upload-preview text-center p-3 border rounded mb-3" id="uploadPreview">
+                                        <i class="fas fa-cloud-upload-alt fa-3x text-muted"></i>
+                                        <p class="mt-2 mb-0">Arrastra una imagen aquí o haz clic para seleccionar</p>
+                                    </div>
+                                    {{ form.imagen|add_class:"form-control" }}
+                                </div>
+                                {% if form.imagen.errors %}
+                                    <div class="invalid-feedback d-block">
+                                        {{ form.imagen.errors }}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Botones de acción -->
+                        <div class="d-flex justify-content-between align-items-center">
+                            <button type="button" class="btn btn-outline-secondary" onclick="window.location='{% url 'gestionar_noticias' %}'">
+                                <i class="fas fa-arrow-left me-2"></i>Cancelar
+                            </button>
+                            <div class="btn-group">
+                                <button type="button" class="btn btn-outline-primary" id="previewBtn">
+                                    <i class="fas fa-eye me-2"></i>Vista Previa
+                                </button>
+                                <button type="submit" class="btn btn-primary">
+                                    <i class="fas fa-save me-2"></i>Guardar Cambios
+                                </button>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel lateral con información -->
+        <div class="col-lg-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-white">
+                    <h5 class="card-title mb-0">Información de la Noticia</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-3">
+                            <i class="fas fa-calendar-alt text-muted me-2"></i>
+                            Creada el: {{ noticia.fecha_publicacion|date:"d/m/Y" }}
+                        </li>
+                        <li class="mb-3">
+                            <i class="fas fa-map-marker-alt text-muted me-2"></i>
+                            Comuna: {{ noticia.comuna.get_comuna_display }}
+                        </li>
+                    </ul>
+                </div>
+            </div>
+
+            <!-- Tips para escribir buenas noticias -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h5 class="card-title mb-0">Tips para una buena noticia</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Usa títulos claros y concisos</li>
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Include información relevante</li>
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Añade imágenes de buena calidad</li>
+                        <li class="mb-2"><i class="fas fa-check text-success me-2"></i>Revisa la ortografía</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
+
+<!-- Modal de Vista Previa -->
+<div class="modal fade" id="previewModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Vista Previa de la Noticia</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="previewContent"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Estilos personalizados -->
+<style>
+.custom-file-upload {
+    position: relative;
+}
+
+.upload-preview {
+    border: 2px dashed #ddd !important;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.upload-preview:hover {
+    border-color: #0d6efd !important;
+    background-color: #f8f9fa;
+}
+
+.current-image img {
+    max-width: 100%;
+    height: auto;
+}
+
+/* Animación para el drag and drop */
+.upload-preview.dragover {
+    background-color: #e9ecef;
+    border-color: #0d6efd !important;
+}
+</style>
+
+<!-- Scripts -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Contador de caracteres para el contenido
+    const contenidoTextarea = document.getElementById('{{ form.contenido.id_for_label }}');
+    const caracteresRestantes = document.getElementById('caracteresRestantes');
+    const MAX_CARACTERES = 1000;
+
+    function actualizarContador() {
+        const restantes = MAX_CARACTERES - contenidoTextarea.value.length;
+        caracteresRestantes.textContent = `${restantes} caracteres restantes`;
+        caracteresRestantes.className = restantes < 50 ? 'form-text text-danger' : 'form-text text-muted';
+    }
+
+    contenidoTextarea.addEventListener('input', actualizarContador);
+    actualizarContador();
+
+    // Preview de imagen
+    const imageInput = document.getElementById('{{ form.imagen.id_for_label }}');
+    const uploadPreview = document.getElementById('uploadPreview');
+    const currentImage = document.querySelector('.current-image');
+
+    function handleFileSelect(file) {
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                img.className = 'img-thumbnail';
+                img.style.maxHeight = '200px';
+                
+                uploadPreview.innerHTML = '';
+                uploadPreview.appendChild(img);
+                
+                if (currentImage) {
+                    currentImage.classList.add('d-none');
+                }
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+
+    imageInput.addEventListener('change', function(e) {
+        handleFileSelect(this.files[0]);
+    });
+
+    // Drag and drop
+    uploadPreview.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        this.classList.add('dragover');
+    });
+
+    uploadPreview.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        this.classList.remove('dragover');
+    });
+
+    uploadPreview.addEventListener('drop', function(e) {
+        e.preventDefault();
+        this.classList.remove('dragover');
+        handleFileSelect(e.dataTransfer.files[0]);
+        imageInput.files = e.dataTransfer.files;
+    });
+
+    // Vista previa de la noticia
+    const previewBtn = document.getElementById('previewBtn');
+    const previewModal = new bootstrap.Modal(document.getElementById('previewModal'));
+    
+    previewBtn.addEventListener('click', function() {
+        const titulo = document.getElementById('{{ form.titulo.id_for_label }}').value;
+        const contenido = document.getElementById('{{ form.contenido.id_for_label }}').value;
+        const previewContent = document.getElementById('previewContent');
+        
+        let imageHtml = '';
+        if (imageInput.files[0]) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                imageHtml = `<img src="${e.target.result}" class="img-fluid mb-3 rounded" alt="Preview">`;
+                updatePreview();
+            };
+            reader.readAsDataURL(imageInput.files[0]);
+        } else if (currentImage && !currentImage.classList.contains('d-none')) {
+            imageHtml = currentImage.innerHTML;
+            updatePreview();
+        } else {
+            updatePreview();
+        }
+
+        function updatePreview() {
+            previewContent.innerHTML = `
+                ${imageHtml}
+                <h3>${titulo}</h3>
+                <p class="text-muted">Fecha: ${new Date().toLocaleDateString()}</p>
+                <div class="preview-content">${contenido}</div>
+            `;
+            previewModal.show();
+        }
+    });
+});
+</script>
 {% endblock %}

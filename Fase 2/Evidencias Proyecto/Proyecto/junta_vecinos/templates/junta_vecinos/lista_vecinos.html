@@ -4,19 +4,158 @@
 
 {% block content %}
 <div class="container mt-5">
-    <h2 class="mb-4">Lista de Vecinos - {{ request.user.administradorcomuna.get_comuna_display }}</h2>
-    <ul class="list-group">
+    <div class="jumbotron">
+        <h1 class="display-4">Lista de Vecinos</h1>
+        <p class="lead">{{ request.user.administradorcomuna.get_comuna_display }}</p>
+        <div class="d-flex justify-content-between align-items-center">
+            <div class="search-box">
+                <input type="text" id="searchInput" class="form-control" placeholder="Buscar vecinos...">
+            </div>
+            <div class="filter-box">
+                <select id="filterSelect" class="form-control">
+                    <option value="">Ordenar por...</option>
+                    <option value="name">Nombre</option>
+                    <option value="address">Dirección</option>
+                </select>
+            </div>
+        </div>
+    </div>
+
+    <div class="news-grid mt-4" id="vecinosList">
         {% for vecino in vecinos %}
-            <li class="list-group-item d-flex justify-content-between align-items-center">
-                <div>
-                    <h5>{{ vecino.nombres }} {{ vecino.apellidos }}</h5>
-                    <p>{{ vecino.direccion }}</p>
-                    <small>{{ vecino.telefono }}</small>
-                    <small class="d-block">Comuna: {{ vecino.get_comuna_display }}</small>
+        <div class="news-card vecino-card" data-name="{{ vecino.nombres }} {{ vecino.apellidos }}" data-address="{{ vecino.direccion }}">
+            <div class="news-content">
+                <div class="news-source">
+                    <span class="news-source-name">Vecino Registrado</span>
                 </div>
-                <a href="#" class="btn btn-primary">Ver Detalles</a>
-            </li>
+                <h3 class="news-title">{{ vecino.nombres }} {{ vecino.apellidos }}</h3>
+                <div class="news-excerpt">
+                    <p><i class="fas fa-map-marker-alt"></i> {{ vecino.direccion }}</p>
+                    <p><i class="fas fa-phone"></i> {{ vecino.telefono }}</p>
+                    <p><i class="fas fa-building"></i> {{ vecino.get_comuna_display }}</p>
+                </div>
+                <div class="news-footer">
+                    <button class="btn btn-primary btn-sm ver-detalles" 
+                            data-nombre="{{ vecino.nombres }} {{ vecino.apellidos }}"
+                            data-direccion="{{ vecino.direccion }}"
+                            data-telefono="{{ vecino.telefono }}"
+                            data-comuna="{{ vecino.get_comuna_display }}"
+                            data-rut="{{ vecino.rut }}"
+                            data-fecha="{{ vecino.fecha_nacimiento|date:'d/m/Y' }}">
+                        Ver Detalles
+                    </button>
+                    <span class="news-time">
+                        <i class="fas fa-calendar"></i> Registrado
+                    </span>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="empty-news">
+            <p>No hay vecinos registrados en esta comuna.</p>
+        </div>
         {% endfor %}
-    </ul>
+    </div>
 </div>
+
+<!-- Modal para detalles -->
+<div class="modal fade" id="detallesModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Detalles del Vecino</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div id="modalContent">
+                    <!-- El contenido se llenará dinámicamente -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Búsqueda en tiempo real
+    const searchInput = document.getElementById('searchInput');
+    const vecinoCards = document.querySelectorAll('.vecino-card');
+    
+    searchInput.addEventListener('input', function(e) {
+        const searchTerm = e.target.value.toLowerCase();
+        
+        vecinoCards.forEach(card => {
+            const name = card.dataset.name.toLowerCase();
+            const address = card.dataset.address.toLowerCase();
+            
+            if (name.includes(searchTerm) || address.includes(searchTerm)) {
+                card.style.display = '';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    });
+
+    // Ordenamiento
+    const filterSelect = document.getElementById('filterSelect');
+    const vecinosList = document.getElementById('vecinosList');
+    
+    filterSelect.addEventListener('change', function() {
+        const cards = Array.from(vecinoCards);
+        
+        cards.sort((a, b) => {
+            if (this.value === 'name') {
+                return a.dataset.name.localeCompare(b.dataset.name);
+            } else if (this.value === 'address') {
+                return a.dataset.address.localeCompare(b.dataset.address);
+            }
+        });
+        
+        cards.forEach(card => vecinosList.appendChild(card));
+    });
+
+    // Modal de detalles
+    const detallesButtons = document.querySelectorAll('.ver-detalles');
+    const modalContent = document.getElementById('modalContent');
+    
+    detallesButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const data = this.dataset;
+            const content = `
+                <div class="mb-3">
+                    <h6 class="text-primary">Nombre completo</h6>
+                    <p>${data.nombre}</p>
+                </div>
+                <div class="mb-3">
+                    <h6 class="text-primary">RUT</h6>
+                    <p>${data.rut}</p>
+                </div>
+                <div class="mb-3">
+                    <h6 class="text-primary">Dirección</h6>
+                    <p>${data.direccion}</p>
+                </div>
+                <div class="mb-3">
+                    <h6 class="text-primary">Teléfono</h6>
+                    <p>${data.telefono}</p>
+                </div>
+                <div class="mb-3">
+                    <h6 class="text-primary">Comuna</h6>
+                    <p>${data.comuna}</p>
+                </div>
+                <div class="mb-3">
+                    <h6 class="text-primary">Fecha de Nacimiento</h6>
+                    <p>${data.fecha}</p>
+                </div>
+            `;
+            
+            modalContent.innerHTML = content;
+            const modal = new bootstrap.Modal(document.getElementById('detallesModal'));
+            modal.show();
+        });
+    });
+});
+</script>
 {% endblock %}

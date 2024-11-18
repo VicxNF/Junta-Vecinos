@@ -1,18 +1,145 @@
 {% extends 'junta_vecinos/base.html' %}
 
-{% block title %}Rechazar Solicitud{% endblock %}
+{% block title %}Rechazar Solicitud de Certificado{% endblock %}
 
 {% block content %}
-<h2>Rechazar Solicitud de {{ solicitud.vecino.nombres }} {{ solicitud.vecino.apellidos }}</h2>
-<p><strong>Motivo de la Solicitud:</strong> {{ solicitud.motivo }}</p>
-<p><strong>Fecha de Solicitud:</strong> {{ solicitud.fecha_solicitud }}</p>
+<div class="container my-5">
+    <div class="form-container">
+        <!-- Cabecera de la solicitud -->
+        <div class="text-center mb-4">
+            <h2 class="form-title">Rechazar Solicitud de Certificado</h2>
+        </div>
 
-<hr>
+        <!-- Información del solicitante -->
+        <div class="info-card mb-4 p-4 bg-white rounded-lg shadow-sm">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <h5 class="text-primary mb-3">Información del Solicitante</h5>
+                        <p class="mb-2">
+                            <i class="fas fa-user me-2"></i>
+                            <strong>Nombre:</strong> 
+                            <span class="ms-2">{{ solicitud.vecino.nombres }} {{ solicitud.vecino.apellidos }}</span>
+                        </p>
+                        <p class="mb-2">
+                            <i class="fas fa-id-card me-2"></i>
+                            <strong>RUT:</strong>
+                            <span class="ms-2">{{ solicitud.vecino.rut }}</span>
+                        </p>
+                        <p class="mb-2">
+                            <i class="fas fa-map-marker-alt me-2"></i>
+                            <strong>Dirección:</strong>
+                            <span class="ms-2">{{ solicitud.vecino.direccion }}</span>
+                        </p>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="mb-3">
+                        <h5 class="text-primary mb-3">Detalles de la Solicitud</h5>
+                        <p class="mb-2">
+                            <i class="fas fa-calendar me-2"></i>
+                            <strong>Fecha de Solicitud:</strong>
+                            <span class="ms-2">{{ solicitud.fecha_solicitud|date:"d/m/Y" }}</span>
+                        </p>
+                        <p class="mb-2">
+                            <i class="fas fa-file-alt me-2"></i>
+                            <strong>Motivo Original:</strong>
+                            <span class="ms-2">{{ solicitud.motivo }}</span>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-<form method="post">
-    {% csrf_token %}
-    {{ form.as_p }}
-    <button type="submit" class="btn btn-danger">Enviar Rechazo</button>
-    <a href="{% url 'gestionar_solicitudes' %}" class="btn btn-secondary">Cancelar</a>
-</form>
+        <!-- Formulario de rechazo -->
+        <form method="post" class="needs-validation" novalidate>
+            {% csrf_token %}
+            <div class="bg-white p-4 rounded-lg shadow-sm">
+                <h5 class="text-danger mb-3">Motivo del Rechazo</h5>
+                
+                <!-- Campo de motivo de rechazo -->
+                <div class="mb-4">
+                    {{ form.as_p }}
+                </div>
+
+                <!-- Botones de acción -->
+                <div class="d-flex justify-content-end gap-3 mt-4">
+                    <a href="{% url 'gestionar_solicitudes' %}" class="btn btn-secondary">
+                        <i class="fas fa-times me-2"></i>Cancelar
+                    </a>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-ban me-2"></i>Confirmar Rechazo
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal de confirmación -->
+<div class="modal fade" id="confirmModal" tabindex="-1" aria-labelledby="confirmModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="confirmModalLabel">Confirmar Rechazo</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <p>¿Está seguro que desea rechazar esta solicitud? Esta acción no se puede deshacer.</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger" id="confirmReject">Confirmar Rechazo</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Animación de entrada para el formulario
+    const formContainer = document.querySelector('.form-container');
+    formContainer.style.opacity = '0';
+    formContainer.style.transform = 'translateY(20px)';
+    
+    setTimeout(() => {
+        formContainer.style.transition = 'all 0.6s ease-out';
+        formContainer.style.opacity = '1';
+        formContainer.style.transform = 'translateY(0)';
+    }, 100);
+
+    // Validación del formulario
+    const form = document.querySelector('form');
+    const submitBtn = form.querySelector('button[type="submit"]');
+    const confirmModal = new bootstrap.Modal(document.getElementById('confirmModal'));
+
+    submitBtn.addEventListener('click', function(e) {
+        e.preventDefault();
+        
+        if (form.checkValidity()) {
+            confirmModal.show();
+        } else {
+            form.classList.add('was-validated');
+        }
+    });
+
+    // Manejador para el botón de confirmación del modal
+    document.getElementById('confirmReject').addEventListener('click', function() {
+        form.submit();
+    });
+
+    // Efectos visuales para los campos del formulario
+    const formInputs = document.querySelectorAll('input, textarea');
+    formInputs.forEach(input => {
+        input.addEventListener('focus', function() {
+            this.closest('.mb-4').style.transform = 'scale(1.02)';
+            this.style.transition = 'all 0.3s ease';
+        });
+
+        input.addEventListener('blur', function() {
+            this.closest('.mb-4').style.transform = 'scale(1)';
+        });
+    });
+});
+</script>
 {% endblock %}

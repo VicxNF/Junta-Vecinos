@@ -5,44 +5,157 @@
 {% block title %}{{ noticia.titulo }}{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
+<div class="container mt-4 animate__animated animate__fadeIn">
+    <!-- Breadcrumb mejorado -->
+    <nav aria-label="breadcrumb" class="mb-4">
+        <ol class="breadcrumb bg-light p-3 rounded shadow-sm">
+            <li class="breadcrumb-item"><a href="{% url 'index' %}">Inicio</a></li>
+            <li class="breadcrumb-item"><a href="#">Noticias</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{{ noticia.titulo|truncatechars:30 }}</li>
+        </ol>
+    </nav>
+
     <div class="row">
-        <div class="col-lg-8 mx-auto">
-            <div class="card shadow">
-                    <img src="{{ noticia.imagen.url }}" class="card-img-top" alt="{{ noticia.titulo }}">
-                
-                <div class="card-body">
-                    <div class="d-flex align-items-center mb-3">
-                        <small class="text-muted">Junta de Vecinos {{ comuna }}</small>
+        <!-- Columna principal -->
+        <div class="col-lg-8">
+            <article class="card shadow-lg rounded-lg overflow-hidden news-card">
+                {% if noticia.imagen %}
+                <div class="position-relative">
+                    <img src="{{ noticia.imagen.url }}" 
+                         class="card-img-top news-thumbnail" 
+                         alt="{{ noticia.titulo }}"
+                         style="height: 400px; object-fit: cover;">
+                    <div class="position-absolute bottom-0 w-100 p-4" 
+                         style="background: linear-gradient(to top, rgba(0,0,0,0.8), transparent);">
+                        <h1 class="text-white mb-0">{{ noticia.titulo }}</h1>
                     </div>
-                    
-                    <h1 class="card-title">{{ noticia.titulo }}</h1>
-                    
-                    <div class="mb-3">
-                        <small class="text-muted">
-                            Publicado {{ noticia.fecha_publicacion|date:"d/m/Y" }} 
-                            (hace {{ noticia.fecha_publicacion|timesince }})
-                        </small>
+                </div>
+                {% else %}
+                <div class="card-header bg-primary text-white">
+                    <h1 class="h2 mb-0">{{ noticia.titulo }}</h1>
+                </div>
+                {% endif %}
+
+                <div class="card-body p-4">
+                    <!-- Metadata de la noticia -->
+                    <div class="d-flex align-items-center mb-4">
+                        <div class="bg-primary rounded-circle p-2 me-3">
+                            <i class="fas fa-newspaper text-white"></i>
+                        </div>
+                        <div>
+                            <div class="text-muted mb-1">
+                                <i class="fas fa-map-marker-alt me-2"></i>
+                                Junta de Vecinos {{ comuna }}
+                            </div>
+                            <div class="text-muted">
+                                <i class="far fa-calendar-alt me-2"></i>
+                                Publicado {{ noticia.fecha_publicacion|date:"d/m/Y" }}
+                                <small class="ms-2">(hace {{ noticia.fecha_publicacion|timesince }})</small>
+                            </div>
+                        </div>
                     </div>
-                    
-                    <div class="card-text">
+
+                    <!-- Contenido de la noticia -->
+                    <div class="news-content">
                         {{ noticia.contenido|linebreaks }}
                     </div>
-                    
+
                     {% if noticia.autor %}
-                    <div class="mt-4">
-                        <small class="text-muted">
-                            Publicado por: {{ noticia.autor.get_full_name }}
-                        </small>
+                    <div class="mt-4 p-3 bg-light rounded">
+                        <div class="d-flex align-items-center">
+                            <div class="rounded-circle bg-primary text-white p-3 me-3">
+                                <i class="fas fa-user"></i>
+                            </div>
+                            <div>
+                                <h6 class="mb-1">Autor</h6>
+                                <p class="mb-0">{{ noticia.autor.get_full_name }}</p>
+                            </div>
+                        </div>
                     </div>
                     {% endif %}
                 </div>
+
+                <!-- Footer de la noticia -->
+                <div class="card-footer bg-light p-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div class="social-share">
+                        </div>
+                        <a href="{% url 'index' %}" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left me-2"></i>Volver al inicio
+                        </a>
+                    </div>
+                </div>
+            </article>
+        </div>
+
+        <!-- Sidebar -->
+        <div class="col-lg-4 mt-4 mt-lg-0">
+            <!-- Tarjeta de información adicional -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">
+                        <i class="fas fa-info-circle me-2"></i>
+                        Información adicional
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-unstyled mb-0">
+                        <li>
+                            <i class="fas fa-tag me-2 text-primary"></i>
+                            Categoría: Noticias comunales
+                        </li>
+                    </ul>
+                </div>
             </div>
+
             
-            <div class="mt-4 text-center">
-                <a href="{% url 'index' %}" class="btn btn-secondary">Volver al inicio</a>
-            </div>
         </div>
     </div>
 </div>
+
+<!-- Botón flotante para compartir -->
+<div class="position-fixed bottom-0 end-0 mb-4 me-4">
+    <button class="btn btn-primary rounded-circle p-3 shadow-lg" 
+            data-bs-toggle="tooltip" 
+            data-bs-placement="left" 
+            title="Compartir noticia">
+        <i class="fas fa-share-alt"></i>
+    </button>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Inicializar tooltips
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    });
+
+    // Animación al hacer scroll
+    function revealOnScroll() {
+        var reveals = document.querySelectorAll('.news-content p');
+        reveals.forEach(function(element) {
+            var windowHeight = window.innerHeight;
+            var elementTop = element.getBoundingClientRect().top;
+            if (elementTop < windowHeight) {
+                element.classList.add('animate__animated', 'animate__fadeInUp');
+            }
+        });
+    }
+
+    window.addEventListener('scroll', revealOnScroll);
+    revealOnScroll(); // Llamar inicialmente
+
+    // Botones de compartir y me gusta
+    document.querySelector('.btn-outline-danger').addEventListener('click', function() {
+        this.classList.toggle('active');
+        var icon = this.querySelector('i');
+        icon.classList.toggle('fas');
+        icon.classList.toggle('far');
+    });
+});
+</script>
 {% endblock %}

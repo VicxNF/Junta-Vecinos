@@ -1,15 +1,219 @@
-<!-- templates/registrar_espacio.html -->
 {% extends 'junta_vecinos/base.html' %}
-
 {% block title %}Registrar Espacio{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <h2>Registrar Nuevo Espacio</h2>
-    <form method="POST" enctype="multipart/form-data">  <!-- Asegúrate de incluir enctype -->
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit" class="btn btn-primary">Guardar</button>
-    </form>
+<div class="container mt-5">
+    <div class="form-container">
+        <div class="text-center mb-4">
+            <h2 class="form-title">
+                <i class="fas fa-plus-circle me-2"></i>
+                Registrar Nuevo Espacio
+            </h2>
+            <p class="text-white">Comuna: {{ comuna }}</p>
+        </div>
+
+        <form method="POST" enctype="multipart/form-data" class="needs-validation" novalidate>
+            {% csrf_token %}
+            
+            <div class="row g-4">
+                <!-- Nombre del espacio -->
+                <div class="col-md-6">
+                    <div class="form-floating mb-3">
+                        {{ form.nombre }}
+                        <label for="{{ form.nombre.id_for_label }}">
+                            <i class="fas fa-signature me-2"></i>Nombre del Espacio
+                        </label>
+                        <div class="invalid-feedback">
+                            Por favor, ingrese un nombre para el espacio.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Capacidad -->
+                <div class="col-md-6">
+                    <div class="form-floating mb-3">
+                        {{ form.capacidad }}
+                        <label for="{{ form.capacidad.id_for_label }}">
+                            <i class="fas fa-users me-2"></i>Capacidad
+                        </label>
+                        <div class="invalid-feedback">
+                            Ingrese la capacidad del espacio.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Ubicación -->
+                <div class="col-12">
+                    <div class="form-floating mb-3">
+                        {{ form.ubicacion }}
+                        <label for="{{ form.ubicacion.id_for_label }}">
+                            <i class="fas fa-map-marker-alt me-2"></i>Ubicación
+                        </label>
+                        <div class="invalid-feedback">
+                            Por favor, especifique la ubicación del espacio.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Precio por hora -->
+                <div class="col-md-6">
+                    <div class="form-floating mb-3">
+                        {{ form.precio_por_hora }}
+                        <label for="{{ form.precio_por_hora.id_for_label }}">
+                            <i class="fas fa-dollar-sign me-2"></i>Precio por Hora
+                        </label>
+                        <div class="invalid-feedback">
+                            Ingrese un precio válido por hora.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Descripción -->
+                <div class="col-12">
+                    <div class="form-floating mb-3">
+                        {{ form.descripcion }}
+                        <label for="{{ form.descripcion.id_for_label }}">
+                            <i class="fas fa-align-left me-2"></i>Descripción
+                        </label>
+                        <div class="invalid-feedback">
+                            Por favor, agregue una descripción del espacio.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Subida de imagen -->
+                <div class="col-12">
+                    <div class="card bg-white">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                <i class="fas fa-image me-2"></i>Imagen del Espacio
+                            </h5>
+                            <div class="image-preview-container mb-3 d-none">
+                                <img id="preview-image" src="#" alt="Vista previa" class="img-thumbnail" style="max-width: 200px;">
+                            </div>
+                            <div class="custom-file">
+                                <input type="file" class="form-control" id="id_foto" name="foto" accept="image/*">
+                                <div class="invalid-feedback">
+                                    Por favor, seleccione una imagen válida.
+                                </div>
+                                <small class="form-text text-muted">
+                                    <i class="fas fa-info-circle me-1"></i>
+                                    Formatos aceptados: JPG, PNG, GIF. Tamaño máximo: 5MB
+                                </small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botones de acción -->
+            <div class="d-flex justify-content-end gap-3 mt-4">
+                <a href="{% url 'lista_espacios' %}" class="btn btn-secondary">
+                    <i class="fas fa-times me-2"></i>Cancelar
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save me-2"></i>Registrar Espacio
+                </button>
+            </div>
+        </form>
+    </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Validación del formulario
+    const form = document.querySelector('form');
+    const inputs = form.querySelectorAll('input, textarea');
+    
+    // Inicializar tooltips de Bootstrap
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    const tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+
+    // Validación en tiempo real
+    inputs.forEach(input => {
+        input.classList.add('form-control');
+        
+        input.addEventListener('input', function() {
+            if (this.value.trim() === '') {
+                this.classList.add('is-invalid');
+                this.classList.remove('is-valid');
+            } else {
+                this.classList.add('is-valid');
+                this.classList.remove('is-invalid');
+            }
+        });
+    });
+
+    // Preview de imagen
+    const imageInput = document.getElementById('id_foto');
+    const previewContainer = document.querySelector('.image-preview-container');
+    const previewImage = document.getElementById('preview-image');
+
+    imageInput.addEventListener('change', function() {
+        const file = this.files[0];
+        
+        if (file) {
+            // Validar tamaño (5MB máximo)
+            if (file.size > 5 * 1024 * 1024) {
+                this.value = '';
+                alert('El archivo es demasiado grande. El tamaño máximo permitido es 5MB.');
+                return;
+            }
+
+            // Validar tipo de archivo
+            if (!file.type.startsWith('image/')) {
+                this.value = '';
+                alert('Por favor, seleccione un archivo de imagen válido.');
+                return;
+            }
+
+            const reader = new FileReader();
+            
+            reader.onload = function(e) {
+                previewImage.src = e.target.result;
+                previewContainer.classList.remove('d-none');
+            }
+            
+            reader.readAsDataURL(file);
+        } else {
+            previewContainer.classList.add('d-none');
+        }
+    });
+
+    // Animación de envío del formulario
+    form.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        if (!this.checkValidity()) {
+            e.stopPropagation();
+            this.classList.add('was-validated');
+            return;
+        }
+
+        const submitButton = this.querySelector('button[type="submit"]');
+        submitButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Registrando...';
+        submitButton.disabled = true;
+
+        // Simular una pequeña demora para mostrar la animación
+        setTimeout(() => {
+            this.submit();
+        }, 800);
+    });
+
+    // Animación hover para los campos
+    const formFloating = document.querySelectorAll('.form-floating');
+    formFloating.forEach(floating => {
+        floating.addEventListener('mouseover', function() {
+            this.style.transform = 'translateY(-2px)';
+            this.style.transition = 'transform 0.3s ease';
+        });
+
+        floating.addEventListener('mouseout', function() {
+            this.style.transform = 'translateY(0)';
+        });
+    });
+});
+</script>
 {% endblock %}

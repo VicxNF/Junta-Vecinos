@@ -1,16 +1,145 @@
 {% extends 'junta_vecinos/base.html' %}
-
 {% block title %}Editar Espacio{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <h2>Editar Espacio: {{ espacio.nombre }}</h2>
-    
-    <form method="post">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit" class="btn btn-primary">Guardar cambios</button>
-        <a href="{% url 'lista_espacios' %}" class="btn btn-secondary">Cancelar</a>
-    </form>
+<div class="container mt-5">
+    <div class="form-container">
+        <h2 class="form-title mb-4">
+            <i class="fas fa-edit me-2"></i>
+            Editar Espacio: {{ espacio.nombre }}
+        </h2>
+
+        <form method="post" enctype="multipart/form-data" class="needs-validation" novalidate>
+            {% csrf_token %}
+            
+            <div class="row g-4">
+                <!-- Nombre del espacio -->
+                <div class="col-md-6">
+                    <div class="form-floating mb-3">
+                        {{ form.nombre }}
+                        <label for="{{ form.nombre.id_for_label }}">Nombre del Espacio</label>
+                    </div>
+                </div>
+
+                <!-- Capacidad -->
+                <div class="col-md-6">
+                    <div class="form-floating mb-3">
+                        {{ form.capacidad }}
+                        <label for="{{ form.capacidad.id_for_label }}">Capacidad</label>
+                    </div>
+                </div>
+
+                <!-- Ubicación -->
+                <div class="col-12">
+                    <div class="form-floating mb-3">
+                        {{ form.ubicacion }}
+                        <label for="{{ form.ubicacion.id_for_label }}">Ubicación</label>
+                    </div>
+                </div>
+
+                <!-- Precio por hora -->
+                <div class="col-md-6">
+                    <div class="form-floating mb-3">
+                        {{ form.precio_por_hora }}
+                        <label for="{{ form.precio_por_hora.id_for_label }}">Precio por Hora</label>
+                    </div>
+                </div>
+
+                <!-- Descripción -->
+                <div class="col-12">
+                    <div class="form-floating mb-3">
+                        {{ form.descripcion }}
+                        <label for="{{ form.descripcion.id_for_label }}">Descripción</label>
+                    </div>
+                </div>
+
+                <!-- Imagen actual y carga de nueva imagen -->
+                <div class="col-12">
+                    <div class="card mb-3">
+                        <div class="card-body">
+                            <h5 class="card-title">Imagen del Espacio</h5>
+                            {% if espacio.foto %}
+                            <div class="current-image mb-3">
+                                <img src="{{ espacio.foto.url }}" alt="{{ espacio.nombre }}" class="img-thumbnail" style="max-width: 200px;">
+                            </div>
+                            {% endif %}
+                            <div class="custom-file">
+                                {{ form.foto }}
+                                <small class="form-text text-muted">Seleccione una nueva imagen si desea actualizarla</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botones de acción -->
+            <div class="d-flex justify-content-end gap-2 mt-4">
+                <a href="{% url 'lista_espacios' %}" class="btn btn-secondary">
+                    <i class="fas fa-times me-2"></i>Cancelar
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-save me-2"></i>Guardar Cambios
+                </button>
+            </div>
+        </form>
+    </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Validación del formulario
+    const form = document.querySelector('form');
+    const inputs = form.querySelectorAll('input, textarea');
+
+    // Agregar clases de Bootstrap a los campos del formulario
+    inputs.forEach(input => {
+        input.classList.add('form-control');
+        
+        // Evento de validación en tiempo real
+        input.addEventListener('input', function() {
+            if (this.value.trim() === '') {
+                this.classList.add('is-invalid');
+                this.classList.remove('is-valid');
+            } else {
+                this.classList.add('is-valid');
+                this.classList.remove('is-invalid');
+            }
+        });
+    });
+
+    // Preview de imagen
+    const imageInput = document.querySelector('input[type="file"]');
+    if (imageInput) {
+        imageInput.addEventListener('change', function() {
+            const file = this.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const currentImage = document.querySelector('.current-image img');
+                    if (currentImage) {
+                        currentImage.src = e.target.result;
+                    } else {
+                        const newImage = document.createElement('img');
+                        newImage.src = e.target.result;
+                        newImage.classList.add('img-thumbnail');
+                        newImage.style.maxWidth = '200px';
+                        const imageContainer = document.createElement('div');
+                        imageContainer.classList.add('current-image', 'mb-3');
+                        imageContainer.appendChild(newImage);
+                        document.querySelector('.custom-file').before(imageContainer);
+                    }
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+
+    // Animación de guardado
+    form.addEventListener('submit', function(e) {
+        const submitButton = this.querySelector('button[type="submit"]');
+        submitButton.innerHTML = '<span class="spinner-border spinner-border-sm me-2"></span>Guardando...';
+        submitButton.disabled = true;
+    });
+});
+</script>
 {% endblock %}

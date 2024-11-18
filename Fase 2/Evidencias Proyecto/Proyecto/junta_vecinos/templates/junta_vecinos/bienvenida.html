@@ -246,7 +246,7 @@
                         <li><i class="fas fa-map-pin text-muted"></i> {{ espacio.ubicacion }}</li>
                     </ul>
                     <div class="space-price">
-                        <i class="fas fa-dollar-sign"></i> {{ espacio.precio_por_hora }}/hora
+                        <i class="fas fa-dollar-sign"></i> {{ espacio.precio_por_hora|floatformat:0 }}/hora
                     </div>
                     <div class="mt-3 text-center">
                         <a href="{% url 'detalle_espacio' espacio.id %}" class="btn btn-primary">Ver más</a>
@@ -321,7 +321,7 @@
                     </ul>
                     {% if actividad.precio > 0 %}
                     <div class="activity-price">
-                        <i class="fas fa-dollar-sign"></i> {{ actividad.precio }}
+                        <i class="fas fa-dollar-sign"></i> {{ actividad.precio|floatformat:0 }}
                     </div>
                     {% else %}
                     <div class="activity-price" style="background-color: rgba(23, 162, 184, 0.9);">

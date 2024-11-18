@@ -1,32 +1,73 @@
 {% extends 'junta_vecinos/base.html' %}
 
+{% block title %}Gestionar Proyectos{% endblock %}
+
 {% block content %}
 <div class="container mt-4">
-    <h2>Administración de Proyectos Vecinales</h2>
+    <!-- Header con animación -->
+    <div class="jumbotron mb-4 text-white admin-section">
+        <h1 class="display-4">Administración de Proyectos Vecinales</h1>
+        <p class="lead">Panel de gestión y evaluación de proyectos comunitarios</p>
+        <hr class="my-4 bg-white">
+        <p>Aquí podrás revisar y evaluar los proyectos propuestos por los vecinos de la comunidad.</p>
+    </div>
     
-    <div class="row mt-4">
+    <!-- Filtros de proyecto -->
+    <div class="card mb-4 admin-section">
+        <div class="card-body">
+            <div class="d-flex flex-wrap justify-content-between align-items-center">
+                <div class="d-flex gap-2 flex-wrap">
+                    <button class="btn btn-outline-primary" onclick="filterProjects('todos')">Todos</button>
+                    <button class="btn btn-outline-warning" onclick="filterProjects('pendiente')">Pendientes</button>
+                    <button class="btn btn-outline-success" onclick="filterProjects('aprobado')">Aprobados</button>
+                    <button class="btn btn-outline-danger" onclick="filterProjects('rechazado')">Rechazados</button>
+                </div>
+                <div class="input-group w-auto">
+                    <input type="text" class="form-control" placeholder="Buscar proyecto..." id="searchInput">
+                    <button class="btn btn-primary" type="button">
+                        <i class="fas fa-search"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Grid de proyectos -->
+    <div class="row" id="proyectosGrid">
         {% for proyecto in proyectos %}
-        <div class="col-md-6 mb-4">
-            <div class="card">
+        <div class="col-md-6 col-lg-4 mb-4 proyecto-card" data-estado="{{ proyecto.estado }}">
+            <div class="card h-100 hover-effect">
+                <!-- Cabecera de la tarjeta -->
+                <div class="card-header bg-transparent border-0">
+                    <span class="badge {% if proyecto.estado == 'aprobado' %}bg-success
+                                   {% elif proyecto.estado == 'rechazado' %}bg-danger
+                                   {% else %}bg-warning{% endif %} float-end">
+                        {{ proyecto.get_estado_display }}
+                    </span>
+                </div>
+                
+                <!-- Cuerpo de la tarjeta -->
                 <div class="card-body">
-                    <h5 class="card-title">{{ proyecto.propuesta }}</h5>
-                    <p class="card-text">
-                        <small class="text-muted">Por: {{ proyecto.vecino.nombres }} {{ proyecto.vecino.apellidos }}</small>
-                    </p>
+                    <h5 class="card-title text-primary">{{ proyecto.propuesta }}</h5>
+                    <div class="d-flex align-items-center mb-3">
+                        <div>
+                            <p class="mb-0 text-muted small">Propuesto por:</p>
+                            <p class="mb-0 fw-bold">{{ proyecto.vecino.nombres }} {{ proyecto.vecino.apellidos }}</p>
+                        </div>
+                    </div>
                     <p class="card-text">{{ proyecto.descripcion|truncatewords:30 }}</p>
-                    <p class="card-text">
-                        <small class="text-muted">Estado: 
-                            <span class="badge {% if proyecto.estado == 'aprobado' %}bg-success
-                                             {% elif proyecto.estado == 'rechazado' %}bg-danger
-                                             {% else %}bg-warning{% endif %}">
-                                {{ proyecto.get_estado_display }}
-                            </span>
-                        </small>
-                    </p>
-                    <div class="btn-group">
-                        <a href="{% url 'detalle_proyecto' proyecto.id %}" class="btn btn-info">Ver Detalles</a>
+                </div>
+
+                <!-- Pie de la tarjeta -->
+                <div class="card-footer bg-transparent border-0">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <a href="{% url 'detalle_proyecto' proyecto.id %}" class="btn btn-outline-primary">
+                            <i class="fas fa-info-circle me-1"></i> Ver Detalles
+                        </a>
                         {% if proyecto.estado == 'pendiente' %}
-                        <a href="{% url 'evaluar_proyecto' proyecto.id %}" class="btn btn-primary">Evaluar</a>
+                        <a href="{% url 'evaluar_proyecto' proyecto.id %}" class="btn btn-primary">
+                            <i class="fas fa-check-circle me-1"></i> Evaluar
+                        </a>
                         {% endif %}
                     </div>
                 </div>
@@ -34,9 +75,44 @@
         </div>
         {% empty %}
         <div class="col-12">
-            <p>No hay proyectos para revisar.</p>
+            <div class="empty-news">
+                <h3>No hay proyectos para revisar</h3>
+                <p class="text-muted">Cuando los vecinos propongan nuevos proyectos, aparecerán aquí.</p>
+            </div>
         </div>
         {% endfor %}
     </div>
 </div>
+
+<!-- Scripts para funcionalidad -->
+<script>
+function filterProjects(estado) {
+    const cards = document.querySelectorAll('.proyecto-card');
+    cards.forEach(card => {
+        if (estado === 'todos' || card.dataset.estado === estado) {
+            card.style.display = 'block';
+            card.style.animation = 'fadeInScale 0.5s ease-out';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+}
+
+document.getElementById('searchInput').addEventListener('input', function(e) {
+    const searchTerm = e.target.value.toLowerCase();
+    const cards = document.querySelectorAll('.proyecto-card');
+    
+    cards.forEach(card => {
+        const title = card.querySelector('.card-title').textContent.toLowerCase();
+        const description = card.querySelector('.card-text').textContent.toLowerCase();
+        
+        if (title.includes(searchTerm) || description.includes(searchTerm)) {
+            card.style.display = 'block';
+            card.style.animation = 'fadeInScale 0.5s ease-out';
+        } else {
+            card.style.display = 'none';
+        }
+    });
+});
+</script>
 {% endblock %}

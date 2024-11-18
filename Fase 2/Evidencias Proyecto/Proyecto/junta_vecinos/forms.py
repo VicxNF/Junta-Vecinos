@@ -2,6 +2,7 @@ from django import forms
 from django.contrib.auth.models import User
 from .models import *
 from django.core.exceptions import ValidationError
+from django.core.validators import FileExtensionValidator
 
 class RegistroVecinoForm(forms.ModelForm):
     nombres = forms.CharField(label="Nombres", max_length=255)
@@ -134,10 +135,33 @@ class ProyectoVecinalForm(forms.ModelForm):
         model = ProyectoVecinal
         fields = ['propuesta', 'descripcion', 'evidencia']
         widgets = {
-            'propuesta': forms.TextInput(attrs={'class': 'form-control'}),
-            'descripcion': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
-            'evidencia': forms.FileInput(attrs={'class': 'form-control'})
+            'propuesta': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ej: Huerto Comunitario',
+                'required': True,
+                'maxlength': 255
+            }),
+            'descripcion': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 5,
+                'placeholder': 'Describe tu proyecto, sus objetivos y beneficios para la comunidad...',
+                'required': True,
+                'maxlength': 1000
+            }),
+            'evidencia': forms.FileInput(attrs={
+                'class': 'form-control',
+                'accept': 'image/*'
+            })
         }
+        
+    def clean_evidencia(self):
+        evidencia = self.cleaned_data.get('evidencia')
+        if evidencia:
+            if evidencia.size > 5 * 1024 * 1024:  # 5MB
+                raise forms.ValidationError('El archivo es demasiado grande. El tamaño máximo es 5MB.')
+            if not evidencia.content_type.startswith('image/'):
+                raise forms.ValidationError('Solo se permiten archivos de imagen.')
+        return evidencia
 
 class PostulacionProyectoForm(forms.ModelForm):
     class Meta:
@@ -170,10 +194,47 @@ class CorreoRechazoForm(forms.Form):
 class NoticiaForm(forms.ModelForm):
     class Meta:
         model = Noticia
-        fields = ['titulo', 'contenido', 'imagen']  # Incluye el campo de imagen
+        fields = ['titulo', 'contenido', 'imagen']
         widgets = {
-            'contenido': forms.Textarea(attrs={'rows': 5, 'placeholder': 'Escribe el contenido de la noticia'}),
+            'titulo': forms.TextInput(attrs={
+                'class': 'form-control',
+                'placeholder': 'Ingresa un título llamativo',
+                'maxlength': 255,
+            }),
+            'contenido': forms.Textarea(attrs={
+                'class': 'form-control',
+                'rows': 8,
+                'placeholder': 'Escribe el contenido de la noticia...',
+                'maxlength': 1000,
+            }),
+            'imagen': forms.FileInput(attrs={
+                'class': 'form-control',
+                'accept': 'image/*',
+            })
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field in self.fields:
+            self.fields[field].error_messages = {
+                'required': f'El campo {field} es obligatorio.',
+                'invalid': f'El valor ingresado para {field} no es válido.'
+            }
+
+    def clean_imagen(self):
+        imagen = self.cleaned_data.get('imagen')
+        if imagen:
+            # Validar el tamaño máximo (5MB)
+            if imagen.size > 5 * 1024 * 1024:
+                raise forms.ValidationError('La imagen no debe superar los 5MB')
+            
+            # Validar extensiones permitidas
+            allowed_extensions = ['jpg', 'jpeg', 'png', 'gif']
+            ext = imagen.name.split('.')[-1].lower()
+            if ext not in allowed_extensions:
+                raise forms.ValidationError('Formato de imagen no válido. Use: jpg, jpeg, png o gif')
+        
+        return imagen
 
 class EspacioForm(forms.ModelForm):
     class Meta:
@@ -220,15 +281,33 @@ class AprobacionForm(forms.Form):
 
 
 class ActividadVecinalForm(forms.ModelForm):
+    # Cambiamos el campo lugar por un ModelChoiceField
+    lugar = forms.ModelChoiceField(
+        queryset=Espacio.objects.none(),  # Inicialmente vacío, se poblará en __init__
+        empty_label="Seleccione un espacio",
+        widget=forms.Select(attrs={'class': 'form-control'})
+    )
+
     class Meta:
         model = ActividadVecinal
         fields = ['titulo', 'descripcion', 'fecha', 'hora_inicio', 'hora_fin', 
                  'lugar', 'cupo_maximo', 'imagen', 'precio']
         widgets = {
-            'fecha': forms.DateInput(attrs={'type': 'date'}),
-            'hora_inicio': forms.TimeInput(attrs={'type': 'time'}),
-            'hora_fin': forms.TimeInput(attrs={'type': 'time'}),
+            'titulo': forms.TextInput(attrs={'class': 'form-control'}),
+            'descripcion': forms.Textarea(attrs={'class': 'form-control', 'rows': 4}),
+            'fecha': forms.DateInput(attrs={'type': 'date', 'class': 'form-control'}),
+            'hora_inicio': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
+            'hora_fin': forms.TimeInput(attrs={'type': 'time', 'class': 'form-control'}),
+            'cupo_maximo': forms.NumberInput(attrs={'class': 'form-control'}),
+            'precio': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01'}),
+            'imagen': forms.FileInput(attrs={'class': 'form-control'})
         }
+
+    def __init__(self, *args, admin=None, **kwargs):
+        super().__init__(*args, **kwargs)
+        if admin:
+            # Ahora admin ya es el AdministradorComuna
+            self.fields['lugar'].queryset = Espacio.objects.filter(comuna=admin)
 
 class FormularioSolicitudReestablecerContrasena(forms.Form):
     correo = forms.EmailField(label='Correo Electrónico')

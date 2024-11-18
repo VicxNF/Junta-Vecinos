@@ -1,40 +1,286 @@
 {% extends 'junta_vecinos/base.html' %}
 
 {% block content %}
-<div class="container mt-4">
-    <div class="card">
-        <div class="card-header">
-            <h2>{{ proyecto.propuesta }}</h2>
-        </div>
-        <div class="card-body">
-            <p><strong>Estado:</strong> 
-                <span class="badge {% if proyecto.estado == 'aprobado' %}bg-success
-                                 {% elif proyecto.estado == 'rechazado' %}bg-danger
-                                 {% else %}bg-warning{% endif %}">
-                    {{ proyecto.get_estado_display }}
-                </span>
-            </p>
-            <p><strong>Fecha de Postulación:</strong> {{ proyecto.fecha_postulacion }}</p>
-            <p><strong>Descripción:</strong></p>
-            <p>{{ proyecto.descripcion }}</p>
-            
-            {% if proyecto.evidencia %}
-            <p><strong>Evidencia:</strong></p>
-            <img src="{{ proyecto.evidencia.url }}" alt="Evidencia" class="img-fluid mb-3">
-            {% endif %}
-            
-            {% if proyecto.estado == 'rechazado' and proyecto.razon_rechazo %}
-            <div class="alert alert-danger">
-                <strong>Razón del rechazo:</strong><br>
-                {{ proyecto.razon_rechazo }}
+<div class="container mt-4 news-section">
+    <div class="project-detail-container">
+        <!-- Encabezado del proyecto -->
+        <div class="card mb-4 project-header">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h1 class="display-4 mb-3">{{ proyecto.propuesta }}</h1>
+                        <div class="project-meta">
+                            <span class="badge rounded-pill 
+                                {% if proyecto.estado == 'aprobado' %}bg-success
+                                {% elif proyecto.estado == 'rechazado' %}bg-danger
+                                {% else %}bg-warning{% endif %} p-2 px-3 me-2">
+                                {{ proyecto.get_estado_display }}
+                            </span>
+                            <span class="text-muted">
+                                <i class="fas fa-calendar-alt me-1"></i>
+                                Postulado el {{ proyecto.fecha_postulacion|date:"d M, Y" }}
+                            </span>
+                        </div>
+                    </div>
+                    {% if user == proyecto.vecino.user and proyecto.estado == 'aprobado' %}
+                    <div class="project-actions">
+                        <a href="{% url 'gestionar_postulaciones' proyecto.id %}" 
+                           class="btn btn-primary btn-lg animated fadeIn">
+                            <i class="fas fa-tasks me-2"></i>Gestionar Postulaciones
+                        </a>
+                    </div>
+                    {% endif %}
+                </div>
             </div>
-            {% endif %}
-            {% if user == proyecto.vecino.user %}
-            <a href="{% url 'gestionar_postulaciones' proyecto.id %}" class="btn btn-primary">
-                Gestionar Postulaciones
-            </a>
-            {% endif %}
+        </div>
+
+        <div class="row">
+            <!-- Detalles principales -->
+            <div class="col-lg-8">
+                <div class="card mb-4 project-details">
+                    <div class="card-body">
+                        <h3 class="card-title mb-4">
+                            <i class="fas fa-info-circle me-2"></i>Descripción del Proyecto
+                        </h3>
+                        <div class="project-description">
+                            {{ proyecto.descripcion|linebreaks }}
+                        </div>
+                        
+                        {% if proyecto.evidencia %}
+                        <div class="evidence-section mt-4">
+                            <h4 class="mb-3">
+                                <i class="fas fa-image me-2"></i>Evidencia
+                            </h4>
+                            <div class="evidence-container">
+                                <img src="{{ proyecto.evidencia.url }}" 
+                                     alt="Evidencia del proyecto" 
+                                     class="img-fluid rounded shadow-sm evidence-image"
+                                     onclick="openImageModal(this.src)">
+                            </div>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                {% if proyecto.estado == 'rechazado' and proyecto.razon_rechazo %}
+                <div class="card mb-4 project-rejection animated fadeIn">
+                    <div class="card-body">
+                        <h4 class="text-danger mb-3">
+                            <i class="fas fa-exclamation-circle me-2"></i>
+                            Razón del Rechazo
+                        </h4>
+                        <div class="rejection-reason">
+                            {{ proyecto.razon_rechazo|linebreaks }}
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+            <!-- Barra lateral con información adicional -->
+            <div class="col-lg-4">
+                <div class="card mb-4 project-sidebar">
+                    <div class="card-body">
+                        <h4 class="card-title mb-4">
+                            <i class="fas fa-user me-2"></i>Información del Creador
+                        </h4>
+                        <div class="creator-info">
+                            <div class="creator-avatar mb-3">
+                                <div class="avatar-placeholder">
+                                    {{ proyecto.vecino.nombres|first }}{{ proyecto.vecino.apellidos|first }}
+                                </div>
+                            </div>
+                            <h5 class="creator-name">{{ proyecto.vecino.nombres }} {{ proyecto.vecino.apellidos }}</h5>
+                            <p class="text-muted">
+                                <i class="fas fa-map-marker-alt me-2"></i>
+                                {{ proyecto.vecino.get_comuna_display }}
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Timeline del proyecto -->
+                <div class="card project-timeline">
+                    <div class="card-body">
+                        <h4 class="card-title mb-4">
+                            <i class="fas fa-history me-2"></i>Timeline
+                        </h4>
+                        <div class="timeline">
+                            <div class="timeline-item active">
+                                <div class="timeline-marker"></div>
+                                <div class="timeline-content">
+                                    <h6>Proyecto Creado</h6>
+                                    <small>{{ proyecto.fecha_postulacion|date:"d M, Y" }}</small>
+                                </div>
+                            </div>
+                            {% if proyecto.estado != 'pendiente' %}
+                            <div class="timeline-item {% if proyecto.estado == 'aprobado' %}success{% elif proyecto.estado == 'rechazado' %}danger{% endif %}">
+                                <div class="timeline-marker"></div>
+                                <div class="timeline-content">
+                                    <h6>{{ proyecto.get_estado_display }}</h6>
+                                    <small>Estado actual</small>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </div>
+
+<!-- Modal para la imagen -->
+<div class="modal fade" id="imageModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-body p-0">
+                <button type="button" class="btn-close position-absolute top-0 end-0 m-2" data-bs-dismiss="modal"></button>
+                <img src="" class="img-fluid" id="modalImage">
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+    .project-detail-container {
+        animation: fadeInScale 0.6s ease-out;
+    }
+
+    .project-header {
+        background: var(--gradient-primary);
+        color: white;
+        border: none;
+    }
+
+    .project-header h1 {
+        font-weight: 700;
+    }
+
+    .project-meta {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .badge {
+        font-size: 1rem;
+    }
+
+    .project-description {
+        font-size: 1.1rem;
+        line-height: 1.8;
+        color: #2c3e50;
+    }
+
+    .evidence-container {
+        position: relative;
+        overflow: hidden;
+        border-radius: 10px;
+        cursor: pointer;
+    }
+
+    .evidence-image {
+        transition: transform 0.3s ease;
+    }
+
+    .evidence-image:hover {
+        transform: scale(1.02);
+    }
+
+    .project-rejection {
+        border-left: 5px solid var(--bs-danger);
+    }
+
+    .creator-info {
+        text-align: center;
+    }
+
+    .avatar-placeholder {
+        width: 80px;
+        height: 80px;
+        background: var(--gradient-primary);
+        color: white;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.5rem;
+        font-weight: bold;
+        margin: 0 auto;
+    }
+
+    .timeline {
+        position: relative;
+        padding-left: 30px;
+    }
+
+    .timeline::before {
+        content: '';
+        position: absolute;
+        left: 15px;
+        top: 0;
+        height: 100%;
+        width: 2px;
+        background: #e9ecef;
+    }
+
+    .timeline-item {
+        position: relative;
+        margin-bottom: 1.5rem;
+    }
+
+    .timeline-marker {
+        position: absolute;
+        left: -30px;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background: var(--primary-color);
+        border: 3px solid white;
+    }
+
+    .timeline-item.success .timeline-marker {
+        background: var(--bs-success);
+    }
+
+    .timeline-item.danger .timeline-marker {
+        background: var(--bs-danger);
+    }
+
+    .timeline-content {
+        padding-left: 1rem;
+    }
+
+    @media (max-width: 768px) {
+        .project-header h1 {
+            font-size: 2rem;
+        }
+        
+        .project-meta {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 0.5rem;
+        }
+    }
+</style>
+
+<script>
+    function openImageModal(src) {
+        const modal = new bootstrap.Modal(document.getElementById('imageModal'));
+        document.getElementById('modalImage').src = src;
+        modal.show();
+    }
+
+    // Animaciones al cargar
+    document.addEventListener('DOMContentLoaded', function() {
+        const elements = document.querySelectorAll('.card');
+        elements.forEach((element, index) => {
+            element.style.animationDelay = `${index * 0.1}s`;
+            element.classList.add('animated', 'fadeIn');
+        });
+    });
+</script>
+
 {% endblock %}

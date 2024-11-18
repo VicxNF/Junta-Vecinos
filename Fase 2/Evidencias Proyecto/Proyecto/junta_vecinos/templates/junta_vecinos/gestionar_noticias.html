@@ -1,24 +1,258 @@
 {% extends 'junta_vecinos/base.html' %}
+{% load static %}
 
 {% block title %}Gestionar Noticias{% endblock %}
 
 {% block content %}
-<div class="container mt-4">
-    <h2>Gestionar Noticias</h2>
-    <ul class="list-group">
+<div class="container py-5">
+    <!-- Encabezado con estadísticas -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center bg-white rounded-lg shadow-sm p-4">
+                <h2 class="mb-0">Gestionar Noticias</h2>
+                <a href="{% url 'publicar_noticia' %}" class="btn btn-primary">
+                    <i class="fas fa-plus-circle me-2"></i>Nueva Noticia
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Estadísticas -->
+    <div class="row mb-4">
+        <div class="col-md-4">
+            <div class="card bg-primary text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Total Noticias</h5>
+                    <h2 class="card-text">{{ noticias.count }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-success text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Este Mes</h5>
+                    <h2 class="card-text">{{ noticias_mes }}</h2>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card bg-info text-white">
+                <div class="card-body">
+                    <h5 class="card-title">Con Imagen</h5>
+                    <h2 class="card-text">{{ noticias_con_imagen }}</h2>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Barra de búsqueda y filtros -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <div class="input-group">
+                <input type="text" id="searchInput" class="form-control" placeholder="Buscar noticias...">
+                <button class="btn btn-outline-secondary" type="button">
+                    <i class="fas fa-search"></i>
+                </button>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <select class="form-select" id="sortSelect">
+                <option value="newest">Más recientes primero</option>
+                <option value="oldest">Más antiguas primero</option>
+                <option value="title">Por título</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Lista de noticias -->
+    <div class="row" id="noticiasList">
         {% for noticia in noticias %}
-            <li class="list-group-item">
-                <h5>{{ noticia.titulo }}</h5>
-                <p>{{ noticia.contenido }}</p>
+        <div class="col-md-6 mb-4 noticia-item">
+            <div class="card h-100 shadow-sm hover-shadow transition">
                 {% if noticia.imagen %}
-                    <img src="{{ noticia.imagen.url }}" alt="{{ noticia.titulo }}" class="img-fluid">
+                <img src="{{ noticia.imagen.url }}" class="card-img-top" alt="{{ noticia.titulo }}" style="height: 200px; object-fit: cover;">
                 {% endif %}
-                <p class="card-text"><small class="text-muted">Publicado el {{ noticia.fecha_publicacion|date:"d M Y" }}</small></p>
-                <a href="{% url 'editar_noticia' noticia.id %}" class="btn btn-warning">Editar</a>
-            </li>
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <h5 class="card-title mb-0">{{ noticia.titulo }}</h5>
+                        <span class="badge bg-primary">{{ noticia.fecha_publicacion|date:"d M Y" }}</span>
+                    </div>
+                    <p class="card-text text-muted">{{ noticia.contenido|truncatewords:30 }}</p>
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        <div class="btn-group">
+                            <a href="{% url 'editar_noticia' noticia.id %}" class="btn btn-outline-primary">
+                                <i class="fas fa-edit me-1"></i>Editar
+                            </a>
+                            <button class="btn btn-outline-danger delete-btn" data-id="{{ noticia.id }}">
+                                <i class="fas fa-trash-alt me-1"></i>Eliminar
+                            </button>
+                        </div>
+                        <button class="btn btn-link text-muted preview-btn" data-id="{{ noticia.id }}">
+                            <i class="fas fa-eye me-1"></i>Vista previa
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
         {% empty %}
-            <li class="list-group-item">No hay noticias disponibles.</li>
+        <div class="col-12">
+            <div class="alert alert-info text-center">
+                <i class="fas fa-newspaper fa-2x mb-3"></i>
+                <h4>No hay noticias disponibles</h4>
+                <p>¡Comienza creando tu primera noticia!</p>
+                <a href="{% url 'crear_noticia' %}" class="btn btn-primary">
+                    <i class="fas fa-plus-circle me-2"></i>Crear Noticia
+                </a>
+            </div>
+        </div>
         {% endfor %}
-    </ul>
+    </div>
+
+    <!-- Modal de Vista Previa -->
+    <div class="modal fade" id="previewModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Vista Previa</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- El contenido se llenará dinámicamente -->
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
+
+<!-- Estilos personalizados -->
+<style>
+    .hover-shadow:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+    }
+    
+    .transition {
+        transition: all 0.3s ease;
+    }
+    
+    .card {
+        border: none;
+        border-radius: 10px;
+    }
+    
+    .badge {
+        font-weight: 500;
+        padding: 0.5em 1em;
+    }
+</style>
+
+<!-- Scripts -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Búsqueda en tiempo real
+    const searchInput = document.getElementById('searchInput');
+    searchInput.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        const noticias = document.querySelectorAll('.noticia-item');
+        
+        noticias.forEach(noticia => {
+            const titulo = noticia.querySelector('.card-title').textContent.toLowerCase();
+            const contenido = noticia.querySelector('.card-text').textContent.toLowerCase();
+            
+            if (titulo.includes(searchTerm) || contenido.includes(searchTerm)) {
+                noticia.style.display = '';
+            } else {
+                noticia.style.display = 'none';
+            }
+        });
+    });
+
+    // Ordenamiento
+    const sortSelect = document.getElementById('sortSelect');
+    sortSelect.addEventListener('change', function() {
+        const noticias = Array.from(document.querySelectorAll('.noticia-item'));
+        const noticiasList = document.getElementById('noticiasList');
+        
+        noticias.sort((a, b) => {
+            const dateA = new Date(a.querySelector('.badge').textContent);
+            const dateB = new Date(b.querySelector('.badge').textContent);
+            const titleA = a.querySelector('.card-title').textContent;
+            const titleB = b.querySelector('.card-title').textContent;
+            
+            switch(this.value) {
+                case 'newest':
+                    return dateB - dateA;
+                case 'oldest':
+                    return dateA - dateB;
+                case 'title':
+                    return titleA.localeCompare(titleB);
+            }
+        });
+        
+        noticias.forEach(noticia => noticiasList.appendChild(noticia));
+    });
+
+    // Eliminar noticia
+    const deleteButtons = document.querySelectorAll('.delete-btn');
+    deleteButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const noticiaId = this.dataset.id;
+            if (confirm('¿Estás seguro de que deseas eliminar esta noticia?')) {
+                // Aquí iría la lógica para eliminar la noticia
+                fetch(`/eliminar_noticia/${noticiaId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken')
+                    }
+                }).then(response => {
+                    if (response.ok) {
+                        this.closest('.noticia-item').remove();
+                    }
+                });
+            }
+        });
+    });
+
+    // Vista previa
+    const previewButtons = document.querySelectorAll('.preview-btn');
+    const previewModal = new bootstrap.Modal(document.getElementById('previewModal'));
+    
+    previewButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const noticiaId = this.dataset.id;
+            const noticiaCard = this.closest('.card');
+            const modalBody = document.querySelector('.modal-body');
+            
+            modalBody.innerHTML = `
+                <div class="text-center mb-4">
+                    ${noticiaCard.querySelector('img') ? 
+                      `<img src="${noticiaCard.querySelector('img').src}" 
+                       class="img-fluid rounded mb-3" style="max-height: 300px;">` : ''}
+                </div>
+                <h3>${noticiaCard.querySelector('.card-title').textContent}</h3>
+                <p class="text-muted">${noticiaCard.querySelector('.badge').textContent}</p>
+                <p>${noticiaCard.querySelector('.card-text').textContent}</p>
+            `;
+            
+            previewModal.show();
+        });
+    });
+
+    // Función para obtener el token CSRF
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+});
+</script>
 {% endblock %}

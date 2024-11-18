@@ -1,25 +1,268 @@
 {% extends 'junta_vecinos/base.html' %}
 
-{% block title %}Ver Solicitud{% endblock %}
+{% block title %}Ver Solicitud de Certificado{% endblock %}
 
 {% block content %}
-<h2>Detalles de la Solicitud</h2>
-<p><strong>Vecino:</strong> {{ solicitud.vecino }}</p>
-<p><strong>Fecha de Solicitud:</strong> {{ solicitud.fecha_solicitud }}</p>
-<p><strong>Estado:</strong> {{ solicitud.get_estado_display }}</p>
+<div class="container py-5 animated fadeIn">
+    <!-- Encabezado -->
+    <div class="card mb-4">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h2 class="mb-0">Solicitud de Certificado de Residencia</h2>
+            <span class="badge badge-light p-2">{{ solicitud.get_estado_display }}</span>
+        </div>
+        
+        <!-- Información del Solicitante -->
+        <div class="card-body">
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="info-section p-3 rounded bg-light mb-3">
+                        <h4 class="border-bottom pb-2 text-primary">Información del Vecino</h4>
+                        <div class="d-flex align-items-center mb-3">
+                            <i class="fas fa-user mr-2 text-primary"></i>
+                            <p class="mb-0"><strong>Nombre:</strong> {{ solicitud.vecino }}</p>
+                        </div>
+                        <div class="d-flex align-items-center mb-3">
+                            <i class="fas fa-calendar-alt mr-2 text-primary"></i>
+                            <p class="mb-0"><strong>Fecha de Solicitud:</strong> {{ solicitud.fecha_solicitud|date:"d/m/Y" }}</p>
+                        </div>
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-map-marker-alt mr-2 text-primary"></i>
+                            <p class="mb-0"><strong>Comuna:</strong> {{ solicitud.vecino.get_comuna_display }}</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="status-section p-3 rounded bg-light">
+                        <h4 class="border-bottom pb-2 text-primary">Estado de la Solicitud</h4>
+                        <div class="progress mb-3" style="height: 25px;">
+                            {% if solicitud.estado == 'Pendiente' %}
+                                <div class="progress-bar bg-warning" role="progressbar" style="width: 33%;">Pendiente</div>
+                            {% elif solicitud.estado == 'Aprobado' %}
+                                <div class="progress-bar bg-success" role="progressbar" style="width: 100%;">Aprobado</div>
+                            {% else %}
+                                <div class="progress-bar bg-danger" role="progressbar" style="width: 100%;">Rechazado</div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 
-<p><strong>Foto del Carnet (Frente):</strong></p>
-<img src="{{ solicitud.foto_carnet_frente.url }}" alt="Foto del Carnet (Frente)" style="max-width: 200px;">
+    <!-- Documentación -->
+    <div class="row">
+        <!-- Carnet Frente -->
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 document-card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Carnet (Frente)</h5>
+                </div>
+                <div class="card-body text-center">
+                    <div class="image-container mb-3">
+                        <img src="{{ solicitud.foto_carnet_frente.url }}" 
+                             alt="Carnet Frente" 
+                             class="img-fluid rounded shadow-sm hover-zoom"
+                             data-toggle="modal" 
+                             data-target="#modalCarnetFrente">
+                    </div>
+                    <button class="btn btn-outline-primary btn-sm" 
+                            data-toggle="modal" 
+                            data-target="#modalCarnetFrente">
+                        <i class="fas fa-search-plus mr-1"></i>Ver Ampliado
+                    </button>
+                </div>
+            </div>
+        </div>
 
-<p><strong>Foto del Carnet (Reverso):</strong></p>
-<img src="{{ solicitud.foto_carnet_atras.url }}" alt="Foto del Carnet (Reverso)" style="max-width: 200px;">
+        <!-- Carnet Reverso -->
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 document-card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Carnet (Reverso)</h5>
+                </div>
+                <div class="card-body text-center">
+                    <div class="image-container mb-3">
+                        <img src="{{ solicitud.foto_carnet_atras.url }}" 
+                             alt="Carnet Reverso" 
+                             class="img-fluid rounded shadow-sm hover-zoom"
+                             data-toggle="modal" 
+                             data-target="#modalCarnetReverso">
+                    </div>
+                    <button class="btn btn-outline-primary btn-sm" 
+                            data-toggle="modal" 
+                            data-target="#modalCarnetReverso">
+                        <i class="fas fa-search-plus mr-1"></i>Ver Ampliado
+                    </button>
+                </div>
+            </div>
+        </div>
 
-<p><strong>Documento de Residencia:</strong></p>
-<a href="{{ solicitud.documento_residencia.url }}" target="_blank">Ver Documento</a>
+        <!-- Documento de Residencia -->
+        <div class="col-md-4 mb-4">
+            <div class="card h-100 document-card">
+                <div class="card-header bg-info text-white">
+                    <h5 class="mb-0">Documento de Residencia</h5>
+                </div>
+                <div class="card-body text-center d-flex flex-column justify-content-between">
+                    <div class="document-icon mb-3">
+                        <i class="fas fa-file-pdf fa-4x text-danger"></i>
+                    </div>
+                    <a href="{{ solicitud.documento_residencia.url }}" 
+                       target="_blank" 
+                       class="btn btn-outline-danger">
+                        <i class="fas fa-file-download mr-1"></i>Ver Documento
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
 
-<div class="d-flex">
-    <a href="{% url 'aprobar_solicitud' solicitud.id %}" class="btn btn-success mr-3">Enviar Certificado</a>
-    <a href="{% url 'rechazar_solicitud' solicitud.id %}" class="btn btn-danger">Rechazar Solicitud</a>
+    <!-- Botones de Acción -->
+    <div class="action-buttons text-center mt-4">
+        <form method="post" style="display: inline;">
+            {% csrf_token %}
+            <button type="submit" name="aprobar" class="btn btn-success btn-lg mr-3 animated pulse">
+                <i class="fas fa-check-circle mr-1"></i>Aprobar y Enviar Certificado
+            </button>
+        </form>
+        <a href="{% url 'rechazar_solicitud' solicitud.id %}" 
+        class="btn btn-danger btn-lg animated pulse">
+            <i class="fas fa-times-circle mr-1"></i>Rechazar Solicitud
+        </a>
+    </div>
+
+    <!-- Modales para las imágenes -->
+    <div class="modal fade" id="modalCarnetFrente" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Carnet (Frente)</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body text-center">
+                    <img src="{{ solicitud.foto_carnet_frente.url }}" 
+                         alt="Carnet Frente" 
+                         class="img-fluid">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="modalCarnetReverso" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Carnet (Reverso)</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body text-center">
+                    <img src="{{ solicitud.foto_carnet_atras.url }}" 
+                         alt="Carnet Reverso" 
+                         class="img-fluid">
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
+<style>
+    .animated {
+        animation-duration: 1s;
+        animation-fill-mode: both;
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .fadeIn {
+        animation-name: fadeIn;
+    }
+
+    @keyframes pulse {
+        from {
+            transform: scale3d(1, 1, 1);
+        }
+        50% {
+            transform: scale3d(1.05, 1.05, 1.05);
+        }
+        to {
+            transform: scale3d(1, 1, 1);
+        }
+    }
+
+    .pulse {
+        animation-name: pulse;
+        animation-duration: 2s;
+        animation-iteration-count: infinite;
+    }
+
+    .hover-zoom {
+        transition: transform 0.3s ease;
+        cursor: pointer;
+    }
+
+    .hover-zoom:hover {
+        transform: scale(1.05);
+    }
+
+    .document-card {
+        transition: all 0.3s ease;
+    }
+
+    .document-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+
+    .image-container {
+        height: 200px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+    }
+
+    .image-container img {
+        max-height: 100%;
+        width: auto;
+        object-fit: contain;
+    }
+
+    .info-section, .status-section {
+        transition: all 0.3s ease;
+    }
+
+    .info-section:hover, .status-section:hover {
+        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+</style>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Animación para los elementos al cargar la página
+        setTimeout(function() {
+            document.querySelectorAll('.card').forEach(function(card, index) {
+                setTimeout(function() {
+                    card.classList.add('fadeIn');
+                }, index * 200);
+            });
+        }, 300);
+
+        // Tooltips
+        $('[data-toggle="tooltip"]').tooltip();
+    });
+</script>
 {% endblock %}

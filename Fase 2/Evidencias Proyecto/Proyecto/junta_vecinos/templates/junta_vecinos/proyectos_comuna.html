@@ -1,42 +1,209 @@
 {% extends 'junta_vecinos/base.html' %}
 
+{% block title %}Proyectos{% endblock %}
+
 {% block content %}
-<div class="container mt-4">
-    <h2>Proyectos en tu Comuna</h2>
-    
-    <div class="row">
+<div class="container py-5">
+    <!-- Header de la página -->
+    <div class="row mb-4">
+        <div class="col-lg-8">
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'index' %}" class="text-decoration-none">Inicio</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Proyectos en Comuna</li>
+                </ol>
+            </nav>
+            <h2 class="display-6 fw-bold mb-3">Proyectos en tu Comuna</h2>
+            <p class="text-muted lead">Explora y participa en los proyectos de tu comunidad</p>
+        </div>
+        <div class="col-lg-4">
+            <div class="d-flex justify-content-lg-end align-items-center h-100">
+                <div class="dropdown">
+                    <button class="btn btn-outline-primary dropdown-toggle" type="button" id="filterDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-filter me-2"></i>Filtrar
+                    </button>
+                    <ul class="dropdown-menu" aria-labelledby="filterDropdown">
+                        <li><a class="dropdown-item" href="#" data-filter="all">Todos los proyectos</a></li>
+                        <li><a class="dropdown-item" href="#" data-filter="postulados">Mis postulaciones</a></li>
+                        <li><a class="dropdown-item" href="#" data-filter="disponibles">Disponibles</a></li>
+                    </ul>
+                </div>
+                <div class="ms-2">
+                    <input type="text" id="searchProjects" class="form-control" placeholder="Buscar proyectos...">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Grid de proyectos -->
+    <div class="row g-4" id="projectsGrid">
         {% for proyecto in proyectos %}
-        <div class="col-md-6 mb-4">
-            <div class="card">
+        <div class="col-md-6 col-lg-4 project-card" 
+             data-status="{% if proyecto.estado_postulacion %}postulados{% else %}disponibles{% endif %}">
+            <div class="card h-100 shadow-sm border-0 hover-card">
+                {% if proyecto.evidencia %}
+                <img src="{{ proyecto.evidencia.url }}" class="card-img-top" alt="Imagen del proyecto">
+                {% else %}
+                <div class="card-img-top bg-light d-flex align-items-center justify-content-center" style="height: 200px;">
+                    <i class="fas fa-project-diagram fa-3x text-muted"></i>
+                </div>
+                {% endif %}
+                
                 <div class="card-body">
-                    <h5 class="card-title">{{ proyecto.propuesta }}</h5>
+                    <h5 class="card-title fw-bold text-primary mb-3">{{ proyecto.propuesta }}</h5>
                     <p class="card-text">{{ proyecto.descripcion|truncatewords:30 }}</p>
-                    <p class="card-text">
-                        <small class="text-muted">Creado por: {{ proyecto.vecino.nombres }} {{ proyecto.vecino.apellidos }}</small>
-                    </p>
                     
-                    {% if proyecto.estado_postulacion %}
-                        <div class="alert alert-info">
-                            Estado de tu postulación: 
-                            <strong>{{ proyecto.estado_postulacion|title }}</strong>
+                    <div class="d-flex align-items-center mb-3">
+                        <div class="avatar-sm me-2">
+                            <i class="fas fa-user-circle fa-2x text-secondary"></i>
                         </div>
-                    {% else %}
-                        <a href="{% url 'postular_proyecto' proyecto.id %}" class="btn btn-primary">
-                            Postular
-                        </a>
+                        <div>
+                            <small class="text-muted d-block">Creado por:</small>
+                            <span class="fw-medium">{{ proyecto.vecino.nombres }} {{ proyecto.vecino.apellidos }}</span>
+                        </div>
+                    </div>
+
+                    {% if proyecto.estado_postulacion %}
+                    <div class="alert alert-info mb-3 py-2">
+                        <div class="d-flex align-items-center">
+                            <i class="fas {% if proyecto.estado_postulacion == 'aceptada' %}fa-check-circle{% elif proyecto.estado_postulacion == 'rechazada' %}fa-times-circle{% else %}fa-clock{% endif %} me-2"></i>
+                            <div>
+                                <small class="d-block">Estado de tu postulación:</small>
+                                <strong>{{ proyecto.estado_postulacion|title }}</strong>
+                            </div>
+                        </div>
+                    </div>
                     {% endif %}
-                    
-                    <a href="{% url 'detalle_proyecto' proyecto.id %}" class="btn btn-info">
-                        Ver Detalles
-                    </a>
+                </div>
+
+                <div class="card-footer bg-transparent border-top-0 pt-0">
+                    <div class="d-flex justify-content-between align-items-center">
+                        {% if not proyecto.estado_postulacion %}
+                        <button onclick="location.href='{% url 'postular_proyecto' proyecto.id %}'" 
+                                class="btn btn-primary">
+                            <i class="fas fa-hand-pointer me-2"></i>Postular
+                        </button>
+                        {% endif %}
+                        <button onclick="location.href='{% url 'detalle_proyecto' proyecto.id %}'" 
+                                class="btn btn-outline-primary {% if not proyecto.estado_postulacion %}ms-2{% endif %}">
+                            <i class="fas fa-info-circle me-2"></i>Ver Detalles
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
         {% empty %}
         <div class="col-12">
-            <p>No hay proyectos disponibles en tu comuna.</p>
+            <div class="alert alert-info d-flex align-items-center" role="alert">
+                <i class="fas fa-info-circle fa-2x me-3"></i>
+                <div>
+                    <h4 class="alert-heading">No hay proyectos disponibles</h4>
+                    <p class="mb-0">Actualmente no hay proyectos registrados en tu comuna. ¡Sé el primero en crear uno!</p>
+                </div>
+            </div>
         </div>
         {% endfor %}
     </div>
 </div>
+
+<style>
+.hover-card {
+    transition: all 0.3s ease;
+}
+
+.hover-card:hover {
+    transform: translateY(-5px);
+}
+
+.avatar-sm {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.card-img-top {
+    height: 200px;
+    object-fit: cover;
+}
+
+.dropdown-item {
+    cursor: pointer;
+}
+
+.project-card {
+    transition: all 0.3s ease;
+}
+
+.project-card.hidden {
+    display: none;
+}
+
+#searchProjects {
+    min-width: 200px;
+}
+
+@media (max-width: 768px) {
+    .col-md-6 {
+        padding: 0 10px;
+    }
+    
+    #searchProjects {
+        margin-top: 10px;
+        width: 100%;
+    }
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Filtrado de proyectos
+    const filterButtons = document.querySelectorAll('[data-filter]');
+    const projectCards = document.querySelectorAll('.project-card');
+    const searchInput = document.getElementById('searchProjects');
+
+    function filterProjects(filter) {
+        projectCards.forEach(card => {
+            if (filter === 'all' || card.dataset.status === filter) {
+                card.style.display = '';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    }
+
+    filterButtons.forEach(button => {
+        button.addEventListener('click', (e) => {
+            e.preventDefault();
+            const filter = button.dataset.filter;
+            filterProjects(filter);
+        });
+    });
+
+    // Búsqueda en tiempo real
+    searchInput.addEventListener('input', (e) => {
+        const searchTerm = e.target.value.toLowerCase();
+        
+        projectCards.forEach(card => {
+            const title = card.querySelector('.card-title').textContent.toLowerCase();
+            const description = card.querySelector('.card-text').textContent.toLowerCase();
+            
+            if (title.includes(searchTerm) || description.includes(searchTerm)) {
+                card.style.display = '';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    });
+
+    // Animación de carga de imágenes
+    const images = document.querySelectorAll('.card-img-top');
+    images.forEach(img => {
+        img.addEventListener('load', function() {
+            this.style.opacity = '1';
+        });
+    });
+});
+</script>
 {% endblock %}

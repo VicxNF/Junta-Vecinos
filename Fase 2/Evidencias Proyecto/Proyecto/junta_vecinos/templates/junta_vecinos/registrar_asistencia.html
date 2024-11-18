@@ -2,29 +2,118 @@
 
 {% block content %}
 <div class="container mt-4">
-    <h2>Registrar Asistencia - {{ actividad.titulo }}</h2>
-    <form method="post">
-        {% csrf_token %}
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Vecino</th>
-                    <th>Asistió</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for inscripcion in inscripciones %}
-                <tr>
-                    <td>{{ inscripcion.vecino.nombres }} {{ inscripcion.vecino.apellidos }}</td>
-                    <td>
-                        <input type="checkbox" name="asistentes" value="{{ inscripcion.id }}"
-                               {% if inscripcion.asistio %}checked{% endif %}>
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
-        <button type="submit" class="btn btn-primary">Guardar Asistencia</button>
-    </form>
+    <div class="card shadow-sm">
+        <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+            <h2 class="mb-0">Registrar Asistencia - {{ actividad.titulo }}</h2>
+            <div class="badge bg-light text-dark">
+                Fecha: {{ actividad.fecha|date:"d/m/Y" }} 
+                {{ actividad.hora_inicio|time:"H:i" }}
+            </div>
+        </div>
+        <div class="card-body">
+            <form id="asistenciaForm" method="post">
+                {% csrf_token %}
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped" id="asistenciaTable">
+                        <thead class="thead-light">
+                            <tr>
+                                <th>
+                                    <input type="checkbox" id="checkAllToggle" class="form-check-input">
+                                </th>
+                                <th>Vecino</th>
+                                <th>RUT</th>
+                                <th>Estado</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for inscripcion in inscripciones %}
+                            <tr>
+                                <td>
+                                    <input type="checkbox" 
+                                           name="asistentes" 
+                                           value="{{ inscripcion.id }}"
+                                           class="form-check-input asistencia-checkbox"
+                                           {% if inscripcion.asistio %}checked{% endif %}>
+                                </td>
+                                <td>{{ inscripcion.vecino.nombres }} {{ inscripcion.vecino.apellidos }}</td>
+                                <td>{{ inscripcion.vecino.rut }}</td>
+                                <td>
+                                    <span class="badge {% if inscripcion.asistio %}bg-success{% else %}bg-warning{% endif %}">
+                                        {% if inscripcion.asistio %}Presente{% else %}Ausente{% endif %}
+                                    </span>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                
+                <div class="d-flex justify-content-between align-items-center mt-3">
+                    <div>
+                        <span id="selectedCount" class="text-muted">0 seleccionados</span>
+                    </div>
+                    <div>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save me-2"></i>Guardar Asistencia
+                        </button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const checkAllToggle = document.getElementById('checkAllToggle');
+    const checkboxes = document.querySelectorAll('.asistencia-checkbox');
+    const selectedCountSpan = document.getElementById('selectedCount');
+    const rows = document.querySelectorAll('#asistenciaTable tbody tr');
+
+    // Función para actualizar el conteo de seleccionados
+    function updateSelectedCount() {
+        const selectedCount = document.querySelectorAll('.asistencia-checkbox:checked').length;
+        selectedCountSpan.textContent = `${selectedCount} seleccionado${selectedCount !== 1 ? 's' : ''}`;
+    }
+
+    // Toggle para seleccionar/deseleccionar todos
+    checkAllToggle.addEventListener('change', function() {
+        checkboxes.forEach(checkbox => {
+            checkbox.checked = this.checked;
+            updateRowState(checkbox);
+        });
+        updateSelectedCount();
+    });
+
+    // Listener para cada checkbox
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            updateRowState(this);
+            updateSelectedCount();
+        });
+    });
+
+    // Función para actualizar estado visual de la fila
+    function updateRowState(checkbox) {
+        const row = checkbox.closest('tr');
+        const estadoBadge = row.querySelector('.badge');
+        
+        if (checkbox.checked) {
+            row.classList.add('table-success');
+            estadoBadge.classList.remove('bg-warning');
+            estadoBadge.classList.add('bg-success');
+            estadoBadge.textContent = 'Presente';
+        } else {
+            row.classList.remove('table-success');
+            estadoBadge.classList.remove('bg-success');
+            estadoBadge.classList.add('bg-warning');
+            estadoBadge.textContent = 'Ausente';
+        }
+    }
+
+    // Inicializar estado inicial
+    updateSelectedCount();
+});
+</script>
+
 {% endblock %}

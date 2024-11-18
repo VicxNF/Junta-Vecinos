@@ -2,51 +2,240 @@
 
 {% block content %}
 <div class="container mt-4">
-    <h2>Evaluar Proyecto Vecinal</h2>
-    
-    <div class="card mb-4">
-        <div class="card-body">
-            <h5 class="card-title">{{ proyecto.propuesta }}</h5>
-            <p><strong>Vecino:</strong> {{ proyecto.vecino.nombres }} {{ proyecto.vecino.apellidos }}</p>
-            <p><strong>Descripción:</strong></p>
-            <p>{{ proyecto.descripcion }}</p>
+    <div class="form-container p-4 mb-5">
+        <h2 class="form-title text-center mb-4">Evaluación de Proyecto Vecinal</h2>
+        
+        <div class="card project-card mb-4 animate__animated animate__fadeIn">
+            <div class="card-header bg-primary text-white">
+                <h3 class="card-title mb-0">{{ proyecto.propuesta }}</h3>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <div class="project-info">
+                            <div class="mb-3">
+                                <h5 class="text-primary">
+                                    <i class="fas fa-user me-2"></i>Vecino Proponente
+                                </h5>
+                                <p class="lead">{{ proyecto.vecino.nombres }} {{ proyecto.vecino.apellidos }}</p>
+                            </div>
+                            
+                            <div class="mb-3">
+                                <h5 class="text-primary">
+                                    <i class="fas fa-file-alt me-2"></i>Descripción del Proyecto
+                                </h5>
+                                <p class="project-description">{{ proyecto.descripcion }}</p>
+                            </div>
+                            
+                            <div class="project-meta">
+                                <span class="badge bg-info me-2">
+                                    <i class="fas fa-calendar me-1"></i>
+                                    {{ proyecto.fecha_postulacion|date:"d/m/Y" }}
+                                </span>
+                                <span class="badge bg-secondary">
+                                    <i class="fas fa-map-marker-alt me-1"></i>
+                                    {{ proyecto.vecino.comuna }}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if proyecto.evidencia %}
+                    <div class="col-md-4">
+                        <div class="evidence-container">
+                            <h5 class="text-primary mb-3">
+                                <i class="fas fa-image me-2"></i>Evidencia
+                            </h5>
+                            <div class="evidence-wrapper">
+                                <img src="{{ proyecto.evidencia.url }}" 
+                                     alt="Evidencia del proyecto" 
+                                     class="img-fluid rounded shadow-sm evidence-image"
+                                     onclick="openImageModal(this.src)">
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+        
+        <form method="post" class="evaluation-form animate__animated animate__fadeInUp">
+            {% csrf_token %}
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label class="form-label fw-bold">
+                        <i class="fas fa-check-circle me-2"></i>Decisión
+                    </label>
+                    <select name="estado" class="form-select form-select-lg" id="estado">
+                        <option value="" selected disabled>Seleccione una decisión...</option>
+                        <option value="aprobado">✅ Aprobar Proyecto</option>
+                        <option value="rechazado">❌ Rechazar Proyecto</option>
+                    </select>
+                </div>
+                
+                <div class="col-12 mb-4" id="razon_rechazo_div" style="display: none;">
+                    <label class="form-label fw-bold">
+                        <i class="fas fa-comment-alt me-2"></i>Razón del rechazo
+                    </label>
+                    <textarea name="razon_rechazo" 
+                              class="form-control" 
+                              rows="4"
+                              placeholder="Por favor, explique detalladamente las razones del rechazo..."></textarea>
+                </div>
+            </div>
             
-            {% if proyecto.evidencia %}
-            <p><strong>Evidencia:</strong></p>
-            <img src="{{ proyecto.evidencia.url }}" alt="Evidencia" class="img-fluid mb-3">
-            {% endif %}
+            <div class="d-flex justify-content-between align-items-center mt-4">
+                <a href="javascript:history.back()" class="btn btn-secondary btn-lg">
+                    <i class="fas fa-arrow-left me-2"></i>Volver
+                </a>
+                <button type="submit" class="btn btn-primary btn-lg" id="submitBtn">
+                    <i class="fas fa-save me-2"></i>Guardar Decisión
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal para la imagen -->
+<div class="modal fade" id="imageModal" tabindex="-1">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Evidencia del Proyecto</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <img src="" id="modalImage" class="img-fluid" alt="Evidencia">
+            </div>
         </div>
     </div>
-    
-    <form method="post" class="mt-3">
-        {% csrf_token %}
-        <div class="mb-3">
-            <label class="form-label">Decisión:</label>
-            <select name="estado" class="form-select" id="estado">
-                <option value="aprobado">Aprobar</option>
-                <option value="rechazado">Rechazar</option>
-            </select>
-        </div>
-        
-        <div class="mb-3" id="razon_rechazo_div" style="display: none;">
-            <label class="form-label">Razón del rechazo:</label>
-            <textarea name="razon_rechazo" class="form-control" rows="3"></textarea>
-        </div>
-        
-        <button type="submit" class="btn btn-primary">Guardar Decisión</button>
-    </form>
 </div>
+
+{% endblock %}
 
 {% block extra_js %}
 <script>
-document.getElementById('estado').addEventListener('change', function() {
-    var razonRechazoDiv = document.getElementById('razon_rechazo_div');
-    if (this.value === 'rechazado') {
-        razonRechazoDiv.style.display = 'block';
-    } else {
-        razonRechazoDiv.style.display = 'none';
-    }
+document.addEventListener('DOMContentLoaded', function() {
+    const estadoSelect = document.getElementById('estado');
+    const razonRechazoDiv = document.getElementById('razon_rechazo_div');
+    const submitBtn = document.getElementById('submitBtn');
+    const form = document.querySelector('form');
+    
+    // Función para el manejo del cambio de estado
+    estadoSelect.addEventListener('change', function() {
+        if (this.value === 'rechazado') {
+            razonRechazoDiv.style.display = 'block';
+            razonRechazoDiv.classList.add('animate__animated', 'animate__fadeIn');
+        } else {
+            razonRechazoDiv.style.display = 'none';
+        }
+        
+        // Actualizar el texto del botón según la selección
+        submitBtn.innerHTML = this.value === 'aprobado' 
+            ? '<i class="fas fa-check-circle me-2"></i>Aprobar Proyecto'
+            : '<i class="fas fa-times-circle me-2"></i>Rechazar Proyecto';
+    });
+    
+    // Validación del formulario
+    form.addEventListener('submit', function(e) {
+        if (estadoSelect.value === '') {
+            e.preventDefault();
+            alert('Por favor, seleccione una decisión.');
+            return;
+        }
+        
+        if (estadoSelect.value === 'rechazado') {
+            const razonRechazo = document.querySelector('textarea[name="razon_rechazo"]');
+            if (!razonRechazo.value.trim()) {
+                e.preventDefault();
+                alert('Por favor, explique las razones del rechazo.');
+                return;
+            }
+        }
+    });
 });
+
+// Función para abrir el modal de imagen
+function openImageModal(src) {
+    const modal = new bootstrap.Modal(document.getElementById('imageModal'));
+    document.getElementById('modalImage').src = src;
+    modal.show();
+}
 </script>
-{% endblock %}
+
+<style>
+.project-card {
+    transition: transform 0.3s ease;
+    border: none;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+.project-card:hover {
+    transform: translateY(-5px);
+}
+
+.evidence-container {
+    background: #f8f9fa;
+    padding: 1rem;
+    border-radius: 10px;
+}
+
+.evidence-wrapper {
+    position: relative;
+    overflow: hidden;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+.evidence-image {
+    transition: transform 0.3s ease;
+}
+
+.evidence-wrapper:hover .evidence-image {
+    transform: scale(1.05);
+}
+
+.project-description {
+    font-size: 1.1rem;
+    line-height: 1.6;
+    color: #4a5568;
+}
+
+.project-meta {
+    margin-top: 1rem;
+}
+
+.project-meta .badge {
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+}
+
+.evaluation-form {
+    background: white;
+    padding: 2rem;
+    border-radius: 15px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+}
+
+/* Animaciones adicionales */
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate__fadeIn {
+    animation: slideIn 0.5s ease-out;
+}
+
+.animate__fadeInUp {
+    animation: slideIn 0.5s ease-out;
+    animation-delay: 0.2s;
+}
+</style>
 {% endblock %}

@@ -1,12 +1,232 @@
 {% extends 'junta_vecinos/base.html' %}
 
+{% block title %}Registrar Proyecto Vecinal{% endblock %}
+
 {% block content %}
-<div class="container mt-4">
-    <h2>Crear Nuevo Proyecto Vecinal</h2>
-    <form method="post" enctype="multipart/form-data" class="mt-3">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit" class="btn btn-primary">Enviar Proyecto</button>
-    </form>
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <!-- Breadcrumb -->
+            <nav aria-label="breadcrumb" class="mb-4">
+                <ol class="breadcrumb">
+                    <li class="breadcrumb-item"><a href="{% url 'index' %}" class="text-decoration-none">Inicio</a></li>
+                    <li class="breadcrumb-item"><a href="{% url 'mis_proyectos' %}" class="text-decoration-none">Mis Proyectos</a></li>
+                    <li class="breadcrumb-item active" aria-current="page">Crear Proyecto</li>
+                </ol>
+            </nav>
+
+            <!-- Card principal -->
+            <div class="card shadow-sm border-0">
+                <div class="card-header bg-primary text-white py-3">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-lightbulb fa-2x me-3"></i>
+                        <div>
+                            <h2 class="card-title h4 mb-1">Crear Nuevo Proyecto Vecinal</h2>
+                            <p class="card-subtitle mb-0">Comparte tu idea para mejorar la comunidad</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-body p-4">
+
+                    <!-- Formulario -->
+                    <form method="post" enctype="multipart/form-data" id="proyectoForm" class="needs-validation" novalidate>
+                        {% csrf_token %}
+                        
+                        <!-- Campo Propuesta -->
+                        <div class="mb-4">
+                            <label for="{{ form.propuesta.id_for_label }}" class="form-label fw-bold">
+                                <i class="fas fa-heading me-2"></i>Título del Proyecto
+                            </label>
+                            {{ form.propuesta }}
+                            <div class="form-text">Un título claro y conciso para tu proyecto</div>
+                            <div class="invalid-feedback">
+                                Por favor ingresa un título para tu proyecto
+                            </div>
+                        </div>
+
+                        <!-- Campo Descripción -->
+                        <div class="mb-4">
+                            <label for="{{ form.descripcion.id_for_label }}" class="form-label fw-bold">
+                                <i class="fas fa-align-left me-2"></i>Descripción
+                            </label>
+                            {{ form.descripcion }}
+                            <div class="form-text">
+                                <span id="charCount">0</span>/1000 caracteres
+                            </div>
+                            <div class="invalid-feedback">
+                                Por favor ingresa una descripción para tu proyecto
+                            </div>
+                        </div>
+
+                        <!-- Campo Evidencia -->
+                        <div class="mb-4">
+                            <label for="{{ form.evidencia.id_for_label }}" class="form-label fw-bold">
+                                <i class="fas fa-image me-2"></i>Evidencia (Opcional)
+                            </label>
+                            <div class="input-group">
+                                {{ form.evidencia }}
+                                <button class="btn btn-outline-secondary" type="button" id="clearFile">
+                                    <i class="fas fa-times"></i>
+                                </button>
+                            </div>
+                            <div class="form-text">Sube una imagen que represente tu proyecto (máx. 5MB)</div>
+                            <div id="imagePreview" class="mt-2 d-none">
+                                <img src="" alt="Vista previa" class="img-thumbnail" style="max-height: 200px;">
+                            </div>
+                        </div>
+
+                        <!-- Botones de acción -->
+                        <div class="d-flex justify-content-end gap-2">
+                            <a href="{% url 'mis_proyectos' %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-times me-2"></i>Cancelar
+                            </a>
+                            <button type="submit" class="btn btn-primary" id="submitButton">
+                                <i class="fas fa-paper-plane me-2"></i>Enviar Proyecto
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
+
+<style>
+/* Estilos para los pasos */
+.steps {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+}
+
+.step {
+    text-align: center;
+    position: relative;
+}
+
+.step-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background-color: #e9ecef;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 0.5rem;
+    font-weight: bold;
+    color: #6c757d;
+}
+
+.step.active .step-icon {
+    background-color: #0d6efd;
+    color: white;
+}
+
+.step-line {
+    flex-grow: 1;
+    height: 2px;
+    background-color: #e9ecef;
+    margin: 0 1rem;
+}
+
+.step-text {
+    font-size: 0.875rem;
+    color: #6c757d;
+    line-height: 1.2;
+}
+
+.step.active .step-text {
+    color: #0d6efd;
+    font-weight: 500;
+}
+
+/* Animaciones y efectos */
+.card {
+    transition: all 0.3s ease;
+}
+
+.btn {
+    transition: all 0.3s ease;
+}
+
+.btn:hover {
+    transform: translateY(-2px);
+}
+
+#imagePreview img {
+    transition: all 0.3s ease;
+}
+</style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('proyectoForm');
+    const descripcion = document.getElementById('{{ form.descripcion.id_for_label }}');
+    const charCount = document.getElementById('charCount');
+    const fileInput = document.getElementById('{{ form.evidencia.id_for_label }}');
+    const clearFileBtn = document.getElementById('clearFile');
+    const imagePreview = document.getElementById('imagePreview');
+    const submitButton = document.getElementById('submitButton');
+    
+    // Contador de caracteres
+    descripcion.addEventListener('input', function() {
+        const count = this.value.length;
+        charCount.textContent = count;
+        
+        if (count > 1000) {
+            charCount.classList.add('text-danger');
+            this.classList.add('is-invalid');
+        } else {
+            charCount.classList.remove('text-danger');
+            this.classList.remove('is-invalid');
+        }
+    });
+
+    // Vista previa de imagen
+    fileInput.addEventListener('change', function() {
+        const file = this.files[0];
+        if (file) {
+            if (file.size > 5 * 1024 * 1024) { // 5MB
+                alert('El archivo es demasiado grande. El tamaño máximo es 5MB.');
+                this.value = '';
+                return;
+            }
+            
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    imagePreview.querySelector('img').src = e.target.result;
+                    imagePreview.classList.remove('d-none');
+                };
+                reader.readAsDataURL(file);
+            }
+        } else {
+            imagePreview.classList.add('d-none');
+        }
+    });
+
+    // Limpiar archivo
+    clearFileBtn.addEventListener('click', function() {
+        fileInput.value = '';
+        imagePreview.classList.add('d-none');
+    });
+
+    // Validación del formulario
+    form.addEventListener('submit', function(event) {
+        if (!form.checkValidity()) {
+            event.preventDefault();
+            event.stopPropagation();
+        } else {
+            submitButton.disabled = true;
+            submitButton.innerHTML = `
+                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                Enviando...
+            `;
+        }
+        form.classList.add('was-validated');
+    });
+});
+</script>
 {% endblock %}

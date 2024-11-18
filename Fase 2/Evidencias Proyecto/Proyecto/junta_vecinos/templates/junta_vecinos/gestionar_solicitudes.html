@@ -3,74 +3,232 @@
 {% block title %}Gestionar Solicitudes{% endblock %}
 
 {% block content %}
-<h2>Solicitudes de Certificados de Residencia</h2>
-
-<div class="row">
-    <!-- Columna de la tabla (lista de solicitudes) -->
-    <div class="col-md-6">
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Vecino</th>
-                    <th>Fecha de Solicitud</th>
-                    <th>Estado</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for solicitud in solicitudes %}
-                <tr>
-                    <td>{{ solicitud.vecino }}</td>
-                    <td>{{ solicitud.fecha_solicitud }}</td>
-                    <td>{{ solicitud.get_estado_display }}</td>
-                    <td>
-                        {% if solicitud.estado == 'Pendiente' %}
-                            <a href="{% url 'ver_solicitud' solicitud.id %}" class="btn btn-primary">Ver Solicitud</a>
-                        {% elif solicitud.estado == 'Aprobado' %}
-                            <span class="text-success">La solicitud ya fue aprobada</span>
-                        {% elif solicitud.estado == 'Rechazado' %}
-                            <span class="text-danger">La solicitud ya fue rechazada</span>
-                        {% else %}
-                            <span class="text-muted">No hay acciones disponibles</span>
-                        {% endif %}
-                    </td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+<div class="admin-section">
+    <div class="jumbotron mb-4">
+        <h1 class="display-4">Solicitudes de Certificados</h1>
+        <p class="lead">Gestión de solicitudes de certificados de residencia para la comuna de {{ admin.get_comuna_display }}</p>
     </div>
 
-    <!-- Columna del gráfico -->
-    <div class="col-md-6">
-        <!-- Contenedor para el gráfico -->
-        <canvas id="solicitudesChart" width="400" height="200"></canvas>
+    <div class="row">
+        <!-- Panel de estadísticas -->
+        <div class="col-md-12 mb-4">
+            <div class="row">
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">Total Solicitudes</h5>
+                            <h2 class="text-primary">{{ solicitudes.count }}</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">Aprobadas</h5>
+                            <h2 class="text-success">{{ aprobadas }}</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-body text-center">
+                            <h5 class="card-title">Rechazadas</h5>
+                            <h2 class="text-danger">{{ rechazadas }}</h2>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-        <!-- Botón para generar reporte PDF -->
-        <button class="btn btn-success mt-4" onclick="window.location.href='{% url 'generar_reporte_solicitudes_pdf' %}'">Generar Reporte PDF</button>
+        <!-- Filtros y búsqueda -->
+        <div class="col-md-12 mb-4">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <select id="filtroEstado" class="form-select" onchange="filtrarSolicitudes()">
+                                <option value="">Todos los estados</option>
+                                <option value="Pendiente">Pendientes</option>
+                                <option value="Aprobado">Aprobadas</option>
+                                <option value="Rechazado">Rechazadas</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <input type="text" id="buscarVecino" class="form-control" placeholder="Buscar por nombre de vecino..." onkeyup="filtrarSolicitudes()">
+                        </div>
+                        <div class="col-md-4 text-end">
+                            <button class="btn btn-success" onclick="window.location.href='{% url 'generar_reporte_solicitudes_pdf' %}'">
+                                <i class="fas fa-file-pdf me-2"></i>Generar Reporte
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lista de solicitudes -->
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="tablaSolicitudes">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>Vecino</th>
+                                    <th>Fecha</th>
+                                    <th>Estado</th>
+                                    <th>Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for solicitud in solicitudes %}
+                                <tr class="solicitud-row" data-estado="{{ solicitud.estado }}">
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="ms-2">
+                                                <h6 class="mb-0">{{ solicitud.vecino }}</h6>
+                                                <small class="text-muted">{{ solicitud.vecino.direccion }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>{{ solicitud.fecha_solicitud|date:"d/m/Y" }}</td>
+                                    <td>
+                                        {% if solicitud.estado == 'Pendiente' %}
+                                            <span class="badge bg-warning">Pendiente</span>
+                                        {% elif solicitud.estado == 'Aprobado' %}
+                                            <span class="badge bg-success">Aprobado</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">Rechazado</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if solicitud.estado == 'Pendiente' %}
+                                            <a href="{% url 'ver_solicitud' solicitud.id %}" class="btn btn-primary btn-sm">
+                                                <i class="fas fa-eye me-1"></i>Ver
+                                            </a>
+                                        {% else %}
+                                            <button class="btn btn-secondary btn-sm" disabled>
+                                                <i class="fas fa-check me-1"></i>Procesado
+                                            </button>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="4" class="text-center py-4">
+                                        <div class="empty-state">
+                                            <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+                                            <h5>No hay solicitudes</h5>
+                                            <p class="text-muted">No se encontraron solicitudes para mostrar</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Gráfico -->
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-body">
+                    <canvas id="solicitudesChart"></canvas>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 
-<!-- Script para Chart.js -->
+<!-- Scripts -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Configuración del gráfico
     var ctx = document.getElementById('solicitudesChart').getContext('2d');
     var solicitudesChart = new Chart(ctx, {
-        type: 'bar',
+        type: 'doughnut',
         data: {
-            labels: ['Aprobadas', 'Rechazadas'],
+            labels: ['Aprobadas', 'Rechazadas', 'Pendientes'],
             datasets: [{
-                label: 'Solicitudes de Certificados',
-                data: [{{ aprobadas }}, {{ rechazadas }}],
-                backgroundColor: ['#28a745', '#dc3545'],
+                data: [
+                    {{ aprobadas }},
+                    {{ rechazadas }},
+                    {{ solicitudes.count|add:"-"|add:aprobadas|add:"-"|add:rechazadas }}
+                ],
+                backgroundColor: ['#28a745', '#dc3545', '#ffc107']
             }]
         },
         options: {
-            scales: {
-                y: {
-                    beginAtZero: true
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom'
                 }
             }
         }
     });
+});
+
+// Función para filtrar solicitudes
+function filtrarSolicitudes() {
+    const filtroEstado = document.getElementById('filtroEstado').value.toLowerCase();
+    const busqueda = document.getElementById('buscarVecino').value.toLowerCase();
+    const filas = document.getElementsByClassName('solicitud-row');
+
+    for (let fila of filas) {
+        const estado = fila.getAttribute('data-estado').toLowerCase();
+        const vecino = fila.querySelector('h6').textContent.toLowerCase();
+        
+        const coincideEstado = !filtroEstado || estado === filtroEstado;
+        const coincideBusqueda = !busqueda || vecino.includes(busqueda);
+        
+        fila.style.display = coincideEstado && coincideBusqueda ? '' : 'none';
+    }
+}
+
+// Animación para las cards
+const cards = document.querySelectorAll('.card');
+cards.forEach((card, index) => {
+    card.style.animation = `fadeInScale 0.5s ease-out ${index * 0.1}s forwards`;
+});
 </script>
+
+<style>
+.empty-state {
+    text-align: center;
+    padding: 2rem;
+}
+
+.card {
+    opacity: 0;
+}
+
+@keyframes fadeInScale {
+    from {
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.table th {
+    font-weight: 600;
+}
+
+.badge {
+    padding: 0.5em 0.75em;
+}
+
+.btn-sm {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.875rem;
+}
+</style>
 {% endblock %}

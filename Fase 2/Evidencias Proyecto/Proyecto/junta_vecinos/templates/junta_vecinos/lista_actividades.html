@@ -1,155 +1,349 @@
 {% extends 'junta_vecinos/base.html' %}
 
-{% block content %}
-<div class="container mt-4">
-    
-    
+{% load custom_filters %}
 
-    <div class="container mt-4">
-        {% if user.is_superuser %}
-        <h2>Actividades Vecinales - {{ comuna }}</h2>
-        
-        <!-- Sección de Estadísticas Rápidas -->
-        <div class="row mb-4">
-            <div class="col-12">
-                <div class="card">
-                    <div class="card-body">
-                        <h3 class="card-title mb-4">Estadísticas Generales</h3>
-                        <div class="row">
-                            <div class="col-md-4 text-center">
-                                <h5>Total Actividades</h5>
-                                <h2 class="text-primary">{{ total_actividades }}</h2>
-                            </div>
-                            <div class="col-md-4 text-center">
-                                <h5>Total Inscritos</h5>
-                                <h2 class="text-success">{{ total_inscritos }}</h2>
-                            </div>
-                            <div class="col-md-4 text-center">
-                                <h5>Ingresos Totales</h5>
-                                <h2 class="text-info">${{ total_ingresos|floatformat:2 }}</h2>
-                            </div>
-                        </div>
+{% block content %}
+<div class="container-fluid px-4">
+    {% if user.is_superuser %}
+    <!-- Header con animación suave -->
+    <div class="row mb-4 animate__animated animate__fadeIn">
+        <div class="col-12">
+            <h2 class="text-primary border-bottom pb-2">
+                Actividades Vecinales - {{ comuna }}
+                <small class="text-muted fs-5">Panel de Administración</small>
+            </h2>
+        </div>
+    </div>
+
+    <!-- Cards de Estadísticas con hover effects -->
+    <div class="row mb-4">
+        <div class="col-md-4 animate__animated animate__fadeInUp">
+            <div class="card shadow-sm hover-card">
+                <div class="card-body text-center">
+                    <div class="display-4 mb-2">
+                        <i class="fas fa-calendar-alt text-primary"></i>
                     </div>
+                    <h5 class="text-muted">Total Actividades</h5>
+                    <div class="counter display-6 text-primary">{{ total_actividades }}</div>
                 </div>
             </div>
         </div>
-    
-        <!-- Gráficos -->
-        <div class="row mb-4">
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-body">
-                        <h4 class="card-title">Tendencia Mensual</h4>
-                        <canvas id="tendenciaChart"></canvas>
+        <div class="col-md-4 animate__animated animate__fadeInUp" style="animation-delay: 0.2s">
+            <div class="card shadow-sm hover-card">
+                <div class="card-body text-center">
+                    <div class="display-4 mb-2">
+                        <i class="fas fa-users text-success"></i>
                     </div>
+                    <h5 class="text-muted">Total Inscritos</h5>
+                    <div class="counter display-6 text-success">{{ total_inscritos }}</div>
                 </div>
             </div>
-            <div class="col-md-6">
-                <div class="card">
-                    <div class="card-body">
-                        <h4 class="card-title">Generar Reporte</h4>
-                        <form method="get" action="{% url 'generar_reporte_actividades_pdf' %}" class="row g-3">
-                            <div class="col-md-6">
-                                <label for="year" class="form-label">Año</label>
+        </div>
+        <div class="col-md-4 animate__animated animate__fadeInUp" style="animation-delay: 0.4s">
+            <div class="card shadow-sm hover-card">
+                <div class="card-body text-center">
+                    <div class="display-4 mb-2">
+                        <i class="fas fa-dollar-sign text-info"></i>
+                    </div>
+                    <h5 class="text-muted">Ingresos Totales</h5>
+                    <div class="counter display-6 text-info">${{ total_ingresos|floatformat:2 }}</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Gráficos y Reportes con diseño mejorado -->
+    <div class="row mb-4">
+        <div class="col-lg-8 animate__animated animate__fadeInLeft">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h4 class="mb-0">Tendencia Mensual
+                        <button class="btn btn-sm btn-outline-primary float-end" 
+                                data-bs-toggle="tooltip" 
+                                title="Ver detalles">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <canvas id="tendenciaChart" style="height: 300px;"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-lg-4 animate__animated animate__fadeInRight">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h4 class="mb-0">Generar Reportes</h4>
+                </div>
+                <div class="card-body">
+                    <form method="get" action="{% url 'generar_reporte_actividades_pdf' %}" class="row g-3">
+                        <div class="col-12">
+                            <label class="form-label">Período de Reporte</label>
+                            <div class="input-group mb-3">
                                 <select name="year" id="year" class="form-select">
                                     {% for year in years %}
-                                        <option value="{{ year }}" {% if year == current_year %}selected{% endif %}>
-                                            {{ year }}
-                                        </option>
+                                    <option value="{{ year }}" {% if year == current_year %}selected{% endif %}>
+                                        {{ year }}
+                                    </option>
                                     {% endfor %}
                                 </select>
-                            </div>
-                            <div class="col-md-6">
-                                <label for="month" class="form-label">Mes</label>
                                 <select name="month" id="month" class="form-select">
                                     {% for month_num, month_name in months %}
-                                        <option value="{{ month_num }}" {% if month_num == current_month %}selected{% endif %}>
-                                            {{ month_name }}
-                                        </option>
+                                    <option value="{{ month_num }}" {% if month_num == current_month %}selected{% endif %}>
+                                        {{ month_name }}
+                                    </option>
                                     {% endfor %}
                                 </select>
                             </div>
-                            <div class="col-12">
-                                <button type="submit" class="btn btn-success w-100 mb-2">
-                                    <i class="fas fa-file-pdf me-2"></i>Generar Reporte PDF
-                                </button>
-                                <a href="#" onclick="generarReporteExcel(); return false;" class="btn btn-success w-100">
-                                    <i class="fas fa-file-excel me-2"></i>Generar Reporte Excel
-                                </a>
-                            </div>
-                        </form>
-                    </div>
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-primary w-100 mb-2 btn-hover">
+                                <i class="fas fa-file-pdf me-2"></i>Generar PDF
+                            </button>
+                            <button type="button" onclick="generarReporteExcel()" class="btn btn-success w-100 btn-hover">
+                                <i class="fas fa-file-excel me-2"></i>Generar Excel
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
-        {% else %}
-        <h2>Actividades Vecinales</h2>
-        {% endif %}
-    
-        <div class="row">
-            {% for actividad in actividades %}
-                <div class="col-md-4 mb-4">
-                    <div class="card">
-                        {% if actividad.imagen %}
-                        <img src="{{ actividad.imagen.url }}" class="card-img-top" alt="{{ actividad.titulo }}">
-                        {% endif %}
-                        <div class="card-body">
-                            <h5 class="card-title">{{ actividad.titulo }}</h5>
-                            <p class="card-text">{{ actividad.descripcion|truncatewords:30 }}</p>
-                            <p><strong>Fecha:</strong> {{ actividad.fecha }}</p>
-                            <p><strong>Hora:</strong> {{ actividad.hora_inicio }} - {{ actividad.hora_fin }}</p>
-                            <p><strong>Lugar:</strong> {{ actividad.lugar }}</p>
-                            <p><strong>Precio:</strong> ${{ actividad.precio }}</p>
-                            <p><strong>Cupos disponibles:</strong> {{ actividad.espacios_disponibles }}</p>
-        
-                            {% if not user.is_superuser and actividad.estado == 'activa' %}
-                                {% if actividad.esta_llena %}
-                                    <button class="btn btn-secondary" disabled>Cupos Agotados</button>
-                                {% else %}
-                                    {% if actividad.usuario_inscrito %}
-                                        <button class="btn btn-secondary" disabled>Ya estás inscrito</button>
-                                    {% else %}
-                                        <button class="btn btn-success inscribir-btn" data-actividad-id="{{ actividad.id }}" data-precio="{{ actividad.precio }}">Inscribirse y Pagar</button>
-                                    {% endif %}
-                                {% endif %}
-                            {% endif %}
-        
-                            {% if user.is_superuser %}
-                                <div class="mt-2">
-                                    <a href="{% url 'registrar_asistencia' actividad.id %}" class="btn btn-info">Registrar Asistencia</a>
-                                    {% if actividad.estado == 'activa' %}
-                                        <form method="post" action="{% url 'cancelar_actividad' actividad.id %}" class="d-inline">
-                                            {% csrf_token %}
-                                            <button type="submit" class="btn btn-danger">Cancelar Actividad</button>
-                                        </form>
-                                    {% endif %}
-                                    <form method="post" action="{% url 'eliminar_actividad' actividad.id %}" class="d-inline">
-                                        {% csrf_token %}
-                                        <button type="submit" class="btn btn-danger" onclick="return confirm('¿Estás seguro de que deseas eliminar esta actividad?');">Eliminar Actividad</button>
-                                    </form>
-                                </div>
-                            {% endif %}
+    </div>
+    {% else %}
+    <h2 class="text-primary border-bottom pb-2 animate__animated animate__fadeIn">Actividades Vecinales</h2>
+    {% endif %}
+
+    <!-- Grid de Actividades con diseño de cards mejorado -->
+    <div class="row" id="actividades-grid">
+        {% for actividad in actividades %}
+        <div class="col-md-4 mb-4 animate__animated animate__fadeIn" style="animation-delay: {{ forloop.counter0|multiply:0.1 }}s">
+            <div class="card h-100 shadow-sm activity-card">
+                {% if actividad.imagen %}
+                <div class="card-img-wrapper">
+                    <img src="{{ actividad.imagen.url }}" class="card-img-top" alt="{{ actividad.titulo }}">
+                    <div class="card-img-overlay">
+                        <span class="badge {% if actividad.estado == 'activa' %}bg-success{% elif actividad.estado == 'cancelada' %}bg-danger{% else %}bg-secondary{% endif %}">
+                            {{ actividad.estado|title }}
+                        </span>
+                    </div>
+                </div>
+                {% endif %}
+                <div class="card-body">
+                    <h5 class="card-title text-primary">{{ actividad.titulo }}</h5>
+                    <p class="card-text text-muted">{{ actividad.descripcion|truncatewords:30 }}</p>
+                    
+                    <div class="activity-details">
+                        <div class="detail-item">
+                            <i class="fas fa-calendar-day text-primary"></i>
+                            <span>{{ actividad.fecha }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <i class="fas fa-clock text-primary"></i>
+                            <span>{{ actividad.hora_inicio }} - {{ actividad.hora_fin }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <i class="fas fa-map-marker-alt text-primary"></i>
+                            <span>{{ actividad.lugar }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <i class="fas fa-dollar-sign text-primary"></i>
+                            <span>${{ actividad.precio|floatformat:0 }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <i class="fas fa-users text-primary"></i>
+                            <span>{{ actividad.espacios_disponibles }} cupos disponibles</span>
                         </div>
                     </div>
                 </div>
-            {% empty %}
-                <div class="col-12">
-                    <p>No hay actividades programadas en este momento.</p>
+
+                <div class="card-footer bg-transparent border-top-0">
+                    {% if not user.is_superuser and actividad.estado == 'activa' %}
+                        {% if actividad.esta_llena %}
+                            <button class="btn btn-secondary w-100" disabled>
+                                <i class="fas fa-ban me-2"></i>Cupos Agotados
+                            </button>
+                        {% else %}
+                            {% if actividad.usuario_inscrito %}
+                                <button class="btn btn-secondary w-100" disabled>
+                                    <i class="fas fa-check me-2"></i>Ya estás inscrito
+                                </button>
+                            {% else %}
+                                <button class="btn btn-primary w-100 inscribir-btn btn-hover" 
+                                        data-actividad-id="{{ actividad.id }}" 
+                                        data-precio="{{ actividad.precio }}">
+                                    <i class="fas fa-user-plus me-2"></i>Inscribirse
+                                </button>
+                            {% endif %}
+                        {% endif %}
+                    {% endif %}
+
+                    {% if user.is_superuser %}
+                        <div class="btn-group w-100">
+                            <a href="{% url 'registrar_asistencia' actividad.id %}" 
+                               class="btn btn-info btn-hover">
+                                <i class="fas fa-clipboard-check me-2"></i>Asistencia
+                            </a>
+                            {% if actividad.estado == 'activa' %}
+                                <button type="button" 
+                                        class="btn btn-warning btn-hover cancelar-btn"
+                                        data-actividad-id="{{ actividad.id }}">
+                                    <i class="fas fa-ban me-2"></i>Cancelar
+                                </button>
+                            {% endif %}
+                            <button type="button" 
+                                    class="btn btn-danger btn-hover eliminar-btn"
+                                    data-actividad-id="{{ actividad.id }}">
+                                <i class="fas fa-trash-alt me-2"></i>Eliminar
+                            </button>
+                        </div>
+                    {% endif %}
                 </div>
-            {% endfor %}
+            </div>
         </div>
-        
+        {% empty %}
+        <div class="col-12 text-center py-5">
+            <div class="empty-state animate__animated animate__fadeIn">
+                <i class="fas fa-calendar-times display-1 text-muted mb-3"></i>
+                <h3 class="text-muted">No hay actividades programadas</h3>
+                <p class="text-muted">Las actividades aparecerán aquí cuando sean creadas.</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+
+    {% if user.is_superuser %}
+    <div class="position-fixed bottom-0 end-0 p-4">
+        <a href="{% url 'crear_actividad' %}" 
+           class="btn btn-primary btn-lg rounded-circle shadow-lg floating-btn animate__animated animate__bounceIn"
+           data-bs-toggle="tooltip" 
+           title="Crear Nueva Actividad">
+            <i class="fas fa-plus"></i>
+        </a>
+    </div>
+    {% endif %}
 </div>
 
-{% if user.is_superuser %}
-    <a href="{% url 'crear_actividad' %}" class="btn btn-primary mb-3">Crear Nueva Actividad</a>
-    {% endif %}
+<!-- Estilos adicionales -->
+<style>
+    .hover-card {
+        transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+    }
 
+    .hover-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+    }
+
+    .activity-card {
+        transition: all 0.3s ease;
+        border: none;
+        overflow: hidden;
+    }
+
+    .activity-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+    }
+
+    .card-img-wrapper {
+        position: relative;
+        padding-top: 56.25%; /* 16:9 Aspect Ratio */
+        overflow: hidden;
+    }
+
+    .card-img-wrapper img {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.3s ease;
+    }
+
+    .activity-card:hover .card-img-wrapper img {
+        transform: scale(1.05);
+    }
+
+    .card-img-overlay {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        z-index: 2;
+    }
+
+    .activity-details {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        margin: 1rem 0;
+    }
+
+    .detail-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: #6c757d;
+    }
+
+    .detail-item i {
+        width: 20px;
+    }
+
+    .btn-hover {
+        transition: all 0.3s ease;
+    }
+
+    .btn-hover:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.15);
+    }
+
+    .floating-btn {
+        width: 60px;
+        height: 60px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.3s ease;
+    }
+
+    .floating-btn:hover {
+        transform: scale(1.1);
+    }
+
+    .empty-state {
+        padding: 3rem;
+    }
+
+    /* Animaciones para contadores */
+    .counter {
+        transition: all 0.5s ease;
+    }
+
+    /* Estilos para tooltips */
+    .tooltip {
+        font-size: 0.875rem;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .card-footer .btn-group {
+            flex-direction: column;
+        }
+        
+        .card-footer .btn {
+            margin-bottom: 0.5rem;
+        }
+    }
+</style>
+
+<!-- Scripts para las funcionalidades -->
 {% if user.is_superuser %}
-<!-- Scripts para los gráficos -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    var ctxTendencia = document.getElementById('tendenciaChart').getContext('2d');
+    // Configuración mejorada del gráfico
+    const ctxTendencia = document.getElementById('tendenciaChart').getContext('2d');
     new Chart(ctxTendencia, {
         type: 'line',
         data: {
@@ -158,20 +352,23 @@
                 label: 'Actividades',
                 data: {{ actividades_mensuales|safe }},
                 borderColor: 'rgba(75, 192, 192, 1)',
-                tension: 0.1,
-                fill: false
+                backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                tension: 0.4,
+                fill: true
             }, {
                 label: 'Inscritos',
                 data: {{ inscritos_mensuales|safe }},
                 borderColor: 'rgba(255, 99, 132, 1)',
-                tension: 0.1,
-                fill: false
+                backgroundColor: 'rgba(255, 99, 132, 0.1)',
+                tension: 0.4,
+                fill: true
             }, {
                 label: 'Ingresos ($)',
                 data: {{ ingresos_mensuales|safe }},
                 borderColor: 'rgba(54, 162, 235, 1)',
-                tension: 0.1,
-                fill: false,
+                backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                tension: 0.4,
+                fill: true,
                 yAxisID: 'y1'
             }]
         },
@@ -181,76 +378,267 @@
                 mode: 'index',
                 intersect: false,
             },
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                    titleColor: '#000',
+                    bodyColor: '#000',
+                    borderColor: '#ddd',
+                    borderWidth: 1,
+                    padding: 10,
+                    boxPadding: 5
+                }
+            },
             scales: {
                 y: {
                     type: 'linear',
                     display: true,
                     position: 'left',
+                    grid: {
+                        drawBorder: false,
+                        color: 'rgba(0, 0, 0, 0.1)'
+                    }
                 },
                 y1: {
                     type: 'linear',
                     display: true,
                     position: 'right',
                     grid: {
-                        drawOnChartArea: false
+                        drawOnChartArea: false,
+                    }
+                },
+                x: {
+                    grid: {
+                        drawBorder: false,
+                        display: false
                     }
                 }
             }
         }
     });
+
+    // Inicializar tooltips de Bootstrap
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    });
+
+    // Animación de contadores
+    function animateValue(obj, start, end, duration) {
+        let startTimestamp = null;
+        const step = (timestamp) => {
+            if (!startTimestamp) startTimestamp = timestamp;
+            const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+            obj.innerHTML = Math.floor(progress * (end - start) + start);
+            if (progress < 1) {
+                window.requestAnimationFrame(step);
+            }
+        };
+        window.requestAnimationFrame(step);
+    }
+
+    // Animar contadores cuando son visibles
+    const observerOptions = {
+        threshold: 0.1
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const counter = entry.target;
+                const finalValue = parseInt(counter.innerText);
+                animateValue(counter, 0, finalValue, 2000);
+                observer.unobserve(counter);
+            }
+        });
+    }, observerOptions);
+
+    document.querySelectorAll('.counter').forEach(counter => {
+        observer.observe(counter);
+    });
 </script>
 {% endif %}
 
 <script>
+    // Mejorar la interactividad de los botones de inscripción
     document.querySelectorAll('.inscribir-btn').forEach(button => {
         button.addEventListener('click', function() {
             const actividadId = this.getAttribute('data-actividad-id');
             const precio = this.getAttribute('data-precio');
             
-            // Alerta de confirmación de SweetAlert2
             Swal.fire({
-                title: '¿Estás seguro?',
-                text: `El precio de la inscripción es $${precio}. ¿Quieres continuar?`,
+                title: '¿Deseas inscribirte en esta actividad?',
+                html: `
+                    <div class="text-center">
+                        <p class="mb-3">El costo de inscripción es:</p>
+                        <h3 class="text-primary">$${precio}</h3>
+                    </div>
+                `,
                 icon: 'question',
                 showCancelButton: true,
                 confirmButtonColor: '#3085d6',
                 cancelButtonColor: '#d33',
-                confirmButtonText: 'Sí, inscribirme',
-                cancelButtonText: 'Cancelar'
+                confirmButtonText: '<i class="fas fa-check me-2"></i>Sí, inscribirme',
+                cancelButtonText: '<i class="fas fa-times me-2"></i>Cancelar',
+                customClass: {
+                    confirmButton: 'btn btn-primary btn-lg',
+                    cancelButton: 'btn btn-danger btn-lg'
+                },
+                buttonsStyling: false,
+                showClass: {
+                    popup: 'animate__animated animate__fadeInDown'
+                },
+                hideClass: {
+                    popup: 'animate__animated animate__fadeOutUp'
+                }
             }).then((result) => {
                 if (result.isConfirmed) {
-                    // Si el usuario confirma, ejecutar el fetch para el pago
+                    // Mostrar indicador de carga
+                    Swal.fire({
+                        title: 'Procesando inscripción',
+                        html: 'Por favor espera...',
+                        allowOutsideClick: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+
+                    // Realizar la petición de inscripción
                     fetch(`/actividades/${actividadId}/inscribir/`, {
                         method: 'POST',
-                        body: JSON.stringify({ actividad_id: actividadId }),
                         headers: {
                             'Content-Type': 'application/json',
                             'X-CSRFToken': '{{ csrf_token }}'
-                        }
+                        },
+                        body: JSON.stringify({ actividad_id: actividadId })
                     })
                     .then(response => response.json())
                     .then(data => {
                         if (data.success) {
                             window.location.href = `${data.payment_url}?token_ws=${data.token}`;
                         } else {
-                            Swal.fire('Error', data.error, 'error');
+                            Swal.fire({
+                                title: 'Error',
+                                text: data.error,
+                                icon: 'error',
+                                confirmButtonColor: '#3085d6',
+                                customClass: {
+                                    confirmButton: 'btn btn-primary btn-lg'
+                                },
+                                buttonsStyling: false
+                            });
                         }
                     })
                     .catch(error => {
                         console.error('Error:', error);
-                        Swal.fire('Error', 'Hubo un problema al procesar la inscripción.', 'error');
+                        Swal.fire({
+                            title: 'Error',
+                            text: 'Hubo un problema al procesar la inscripción.',
+                            icon: 'error',
+                            confirmButtonColor: '#3085d6',
+                            customClass: {
+                                confirmButton: 'btn btn-primary btn-lg'
+                            },
+                            buttonsStyling: false
+                        });
                     });
                 }
             });
         });
     });
-</script>
 
-<script>
+    // Función para generar reportes Excel
     function generarReporteExcel() {
         const year = document.getElementById('year').value;
         const month = document.getElementById('month').value;
-        window.location.href = `{% url 'generar_reporte_actividades_excel' %}?year=${year}&month=${month}`;
+        
+        // Mostrar indicador de carga
+        Swal.fire({
+            title: 'Generando reporte',
+            html: 'Por favor espera...',
+            timer: 2000,
+            timerProgressBar: true,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        }).then(() => {
+            window.location.href = `{% url 'generar_reporte_actividades_excel' %}?year=${year}&month=${month}`;
+        });
     }
-    </script>
+
+    // Manejo de botones de administrador
+    if (document.querySelector('.cancelar-btn')) {
+        document.querySelectorAll('.cancelar-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const actividadId = this.getAttribute('data-actividad-id');
+                
+                Swal.fire({
+                    title: '¿Cancelar actividad?',
+                    text: 'Esta acción no se puede deshacer',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: 'Sí, cancelar',
+                    cancelButtonText: 'No, mantener'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        const form = document.createElement('form');
+                        form.method = 'POST';
+                        form.action = `/actividades/${actividadId}/cancelar/`;
+                        
+                        const csrfInput = document.createElement('input');
+                        csrfInput.type = 'hidden';
+                        csrfInput.name = 'csrfmiddlewaretoken';
+                        csrfInput.value = '{{ csrf_token }}';
+                        
+                        form.appendChild(csrfInput);
+                        document.body.appendChild(form);
+                        form.submit();
+                    }
+                });
+            });
+        });
+    }
+
+    if (document.querySelector('.eliminar-btn')) {
+        document.querySelectorAll('.eliminar-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const actividadId = this.getAttribute('data-actividad-id');
+                
+                Swal.fire({
+                    title: '¿Eliminar actividad?',
+                    text: 'Esta acción no se puede deshacer',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#d33',
+                    cancelButtonColor: '#3085d6',
+                    confirmButtonText: 'Sí, eliminar',
+                    cancelButtonText: 'No, mantener'
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        const form = document.createElement('form');
+                        form.method = 'POST';
+                        form.action = `/actividades/${actividadId}/eliminar/`;
+                        
+                        const csrfInput = document.createElement('input');
+                        csrfInput.type = 'hidden';
+                        csrfInput.name = 'csrfmiddlewaretoken';
+                        csrfInput.value = '{{ csrf_token }}';
+                        
+                        form.appendChild(csrfInput);
+                        document.body.appendChild(form);
+                        form.submit();
+                    }
+                });
+            });
+        });
+    }
+</script>
+
 {% endblock %}

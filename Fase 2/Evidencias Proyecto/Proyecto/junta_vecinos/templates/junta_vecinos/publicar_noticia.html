@@ -1,14 +1,172 @@
 {% extends 'junta_vecinos/base.html' %}
-
 {% block title %}Publicar Noticia{% endblock %}
 
 {% block content %}
 <div class="container mt-4">
-    <h2>Publicar Noticia</h2>
-    <form method="post" enctype="multipart/form-data">
-        {% csrf_token %}
-        {{ form.as_p }}
-        <button type="submit" class="btn btn-primary">Publicar</button>
-    </form>
+    <div class="row">
+        <!-- Formulario -->
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h2 class="h4 mb-0"><i class="fas fa-newspaper me-2"></i>Publicar Nueva Noticia</h2>
+                </div>
+                <div class="card-body">
+                    <form method="post" enctype="multipart/form-data" id="noticiaForm">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label for="{{ form.titulo.id_for_label }}" class="form-label">Título</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-heading"></i></span>
+                                {{ form.titulo }}
+                            </div>
+                            <div class="form-text" id="caracteresRestantesTitulo">255 caracteres restantes</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.contenido.id_for_label }}" class="form-label">Contenido</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-align-left"></i></span>
+                                {{ form.contenido }}
+                            </div>
+                            <div class="form-text" id="caracteresRestantesContenido">1000 caracteres restantes</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label for="{{ form.imagen.id_for_label }}" class="form-label">Imagen</label>
+                            <div class="input-group">
+                                <span class="input-group-text"><i class="fas fa-image"></i></span>
+                                {{ form.imagen }}
+                            </div>
+                            <div id="imagenPreviewContainer" class="mt-2 d-none">
+                                <img id="imagenPreview" class="img-fluid rounded" src="" alt="Vista previa">
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center">
+                            <button type="button" class="btn btn-secondary" onclick="limpiarFormulario()">
+                                <i class="fas fa-eraser me-2"></i>Limpiar
+                            </button>
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fas fa-paper-plane me-2"></i>Publicar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Vista previa -->
+        <div class="col-md-6">
+            <div class="card shadow-sm">
+                <div class="card-header bg-success text-white">
+                    <h2 class="h4 mb-0"><i class="fas fa-eye me-2"></i>Vista Previa</h2>
+                </div>
+                <div class="card-body">
+                    <div id="vistaPrevia" class="border rounded p-3">
+                        <h3 id="tituloPrevio" class="border-bottom pb-2">Título de la noticia</h3>
+                        <div class="text-muted small mb-2">
+                            <i class="fas fa-calendar me-2"></i>
+                            <span id="fechaActual"></span>
+                        </div>
+                        <div id="contenidoPrevio" class="mt-3">
+                            El contenido de la noticia aparecerá aquí...
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
+
+<!-- Estilos adicionales -->
+<style>
+    .card {
+        transition: transform 0.2s;
+    }
+    .card:hover {
+        transform: translateY(-5px);
+    }
+    #imagenPreview {
+        max-height: 200px;
+        object-fit: cover;
+    }
+    .form-control:focus {
+        border-color: #80bdff;
+        box-shadow: 0 0 0 0.2rem rgba(0,123,255,.25);
+    }
+</style>
+
+<!-- Scripts -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Actualizar fecha actual
+    const fecha = new Date().toLocaleDateString('es-ES', {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric'
+    });
+    document.getElementById('fechaActual').textContent = fecha;
+
+    // Vista previa de título
+    const tituloInput = document.getElementById('{{ form.titulo.id_for_label }}');
+    const tituloPrevio = document.getElementById('tituloPrevio');
+    const caracteresRestantesTitulo = document.getElementById('caracteresRestantesTitulo');
+
+    tituloInput.addEventListener('input', function() {
+        tituloPrevio.textContent = this.value || 'Título de la noticia';
+        const restantes = 255 - this.value.length;
+        caracteresRestantesTitulo.textContent = `${restantes} caracteres restantes`;
+        if (restantes < 50) {
+            caracteresRestantesTitulo.classList.add('text-warning');
+        } else {
+            caracteresRestantesTitulo.classList.remove('text-warning');
+        }
+    });
+
+    // Vista previa de contenido
+    const contenidoInput = document.getElementById('{{ form.contenido.id_for_label }}');
+    const contenidoPrevio = document.getElementById('contenidoPrevio');
+    const caracteresRestantesContenido = document.getElementById('caracteresRestantesContenido');
+
+    contenidoInput.addEventListener('input', function() {
+        contenidoPrevio.textContent = this.value || 'El contenido de la noticia aparecerá aquí...';
+        const restantes = 1000 - this.value.length;
+        caracteresRestantesContenido.textContent = `${restantes} caracteres restantes`;
+        if (restantes < 100) {
+            caracteresRestantesContenido.classList.add('text-warning');
+        } else {
+            caracteresRestantesContenido.classList.remove('text-warning');
+        }
+    });
+
+    // Vista previa de imagen
+    const imagenInput = document.getElementById('{{ form.imagen.id_for_label }}');
+    const imagenPreview = document.getElementById('imagenPreview');
+    const imagenPreviewContainer = document.getElementById('imagenPreviewContainer');
+
+    imagenInput.addEventListener('change', function() {
+        const file = this.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                imagenPreview.src = e.target.result;
+                imagenPreviewContainer.classList.remove('d-none');
+            }
+            reader.readAsDataURL(file);
+        } else {
+            imagenPreviewContainer.classList.add('d-none');
+        }
+    });
+});
+
+function limpiarFormulario() {
+    document.getElementById('noticiaForm').reset();
+    document.getElementById('imagenPreviewContainer').classList.add('d-none');
+    document.getElementById('tituloPrevio').textContent = 'Título de la noticia';
+    document.getElementById('contenidoPrevio').textContent = 'El contenido de la noticia aparecerá aquí...';
+    document.getElementById('caracteresRestantesTitulo').textContent = '255 caracteres restantes';
+    document.getElementById('caracteresRestantesContenido').textContent = '1000 caracteres restantes';
+}
+</script>
 {% endblock %}
