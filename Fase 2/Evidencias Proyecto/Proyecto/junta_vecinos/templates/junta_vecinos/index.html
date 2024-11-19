@@ -257,7 +257,7 @@
                 Bienvenido a la Junta de Vecinos de {{ comuna }}
             {% endif %}
         </h1>
-        <p class="lead">Sistema de gestión vecinal</p>
+        <p class="lead">Red Vecinal</p>
     </div>
 
     {% if user.is_authenticated %}
@@ -266,23 +266,33 @@
             <div class="stats-grid fade-in">
                 <div class="stat-card">
                     <div class="stat-icon">👥</div>
-                    <div class="stat-number">{{ total_vecinos  }}</div>
+                    <div class="stat-number">{{ total_vecinos }}</div>
                     <div class="stat-label">Vecinos Registrados</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-icon">📝</div>
-                    <div class="stat-number">{{ solicitudes.count }}</div>
+                    <div class="stat-number">{{ total_solicitudes }}</div>
                     <div class="stat-label">Solicitudes de Certificado</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-icon">🏗️</div>
-                    <div class="stat-number">{{ postulaciones.count }}</div>
+                    <div class="stat-number">{{ total_postulaciones }}</div>
                     <div class="stat-label">Proyectos Activos</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-icon">🏠</div>
-                    <div class="stat-number">{{ espacios.count }}</div>
+                    <div class="stat-number">{{ total_espacios }}</div>
                     <div class="stat-label">Espacios Disponibles</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">📅</div>
+                    <div class="stat-number">{{ total_reservas }}</div>
+                    <div class="stat-label">Reservas Realizadas</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">📰</div>
+                    <div class="stat-number">{{ total_noticias }}</div>
+                    <div class="stat-label">Noticias Publicadas</div>
                 </div>
             </div>
 

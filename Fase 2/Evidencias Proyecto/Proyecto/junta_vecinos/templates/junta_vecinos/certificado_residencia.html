@@ -58,6 +58,8 @@
         
         .content {
             text-align: justify;
+            position: relative;
+            z-index: 2;
         }
         
         .detail {
@@ -69,8 +71,19 @@
         .signature {
             margin-top: 50px;
             text-align: center;
-            border-top: 1px solid #003366;
             padding-top: 20px;
+        }
+        
+        .signature-image {
+            max-width: 200px;
+            max-height: 100px;
+            margin: 10px 0;
+        }
+        
+        .signature-line {
+            width: 250px;
+            border-top: 1px solid #003366;
+            margin: 10px auto;
         }
         
         .footer {
@@ -88,6 +101,14 @@
             color: rgba(0, 51, 102, 0.1);
             font-size: 100px;
             font-weight: bold;
+            z-index: 1;
+        }
+        
+        .sello {
+            position: absolute;
+            bottom: 100px;
+            right: 50px;
+            opacity: 0.7;
             z-index: 1;
         }
     </style>
@@ -114,8 +135,11 @@
         </div>
 
         <div class="signature">
-            <p>____________________________</p>
-            <p><strong>{{ presidente_nombre }}</strong></p>
+            {% if firma_base64 %}
+            <img src="data:image/png;base64,{{ firma_base64 }}" alt="Firma del Presidente" class="signature-image" style="max-width: 200px; max-height: 100px; display: block; margin: 0 auto;">
+            {% else %}
+            <div class="signature-line"></div>
+            {% endif %}
             <p>Presidente Junta de Vecinos</p>
             <p>Cédula Nacional de Identidad N° {{ presidente_ci }}</p>
         </div>

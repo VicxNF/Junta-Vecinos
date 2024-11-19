@@ -17,6 +17,12 @@ class AdministradorComuna(models.Model):
     presidente_nombre = models.CharField(max_length=100, verbose_name="Nombre del Presidente", default="")
     presidente_apellidos = models.CharField(max_length=100, verbose_name="Apellidos del Presidente", default="")
     presidente_rut = models.CharField(max_length=12, verbose_name="RUT del Presidente", default="")
+    firma_presidente = models.ImageField(
+        upload_to='firmas_presidentes/',
+        null=True,
+        blank=True,
+        verbose_name="Firma del Presidente"
+    )
 
     def get_presidente_nombre_completo(self):
         return f"{self.presidente_nombre} {self.presidente_apellidos}"

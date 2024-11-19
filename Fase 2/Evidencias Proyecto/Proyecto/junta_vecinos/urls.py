@@ -65,7 +65,7 @@ urlpatterns = [
     path('actividades/error-inscripcion/', views.error_inscripcion, name='error_inscripcion'),
     path('reportes/seleccionar/', views.seleccionar_periodo_reporte, name='seleccionar_periodo_reporte'),
     path('reportes/generar/', views.generar_reporte_pdf, name='generar_reporte_pdf'),
-]
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
     # Agrega más rutas según sea necesario
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

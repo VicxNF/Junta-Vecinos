@@ -96,6 +96,6 @@ class AdministradorComunaAdmin(admin.ModelAdmin):
             'fields': ('user', 'comuna')
         }),
         ('Información del Presidente', {
-            'fields': ('presidente_nombre', 'presidente_apellidos', 'presidente_rut')
+            'fields': ('presidente_nombre', 'presidente_apellidos', 'presidente_rut', 'firma_presidente')
         }),
     )

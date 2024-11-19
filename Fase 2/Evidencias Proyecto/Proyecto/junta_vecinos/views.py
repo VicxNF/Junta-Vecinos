@@ -40,6 +40,9 @@ import calendar
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
 from openpyxl.utils import get_column_letter
+import os
+from urllib.request import urlopen
+import base64
 
 
 
@@ -65,12 +68,17 @@ def bienvenida(request):
 @login_required
 def index(request):
     vecinos = []
-    total_vecinos = 0  # Nuevo contador
+    total_vecinos = 0
     solicitudes = []
+    total_solicitudes = 0
     postulaciones = []
+    total_postulaciones = 0
     noticias = []
+    total_noticias = 0
     espacios = []
+    total_espacios = 0
     reservas = []
+    total_reservas = 0
     comuna = ""
 
     if request.user.is_authenticated:
@@ -80,11 +88,25 @@ def index(request):
             
             total_vecinos = Vecino.objects.filter(administrador=admin).count()
             vecinos = Vecino.objects.filter(administrador=admin)[:5]
-            solicitudes = SolicitudCertificado.objects.filter(vecino__administrador=admin)[:5]
-            postulaciones = ProyectoVecinal.objects.filter(vecino__administrador=admin)[:5]
-            espacios = Espacio.objects.filter(comuna=admin)[:5]
-            reservas = Reserva.objects.filter(espacio__comuna=admin)[:5]
+
+            solicitudes = SolicitudCertificado.objects.filter(vecino__administrador=admin)
+            total_solicitudes = solicitudes.count()
+            solicitudes = solicitudes[:5]
+            
+            postulaciones = ProyectoVecinal.objects.filter(vecino__administrador=admin)
+            total_postulaciones = postulaciones.count()
+            postulaciones = postulaciones[:5]
+            
+            espacios = Espacio.objects.filter(comuna=admin)
+            total_espacios = espacios.count()
+            espacios = espacios[:5]
+            
+            reservas = Reserva.objects.filter(espacio__comuna=admin)
+            total_reservas = reservas.count()  # Contar el total de reservas
+            reservas = reservas[:5]
+
             noticias = Noticia.objects.filter(comuna=admin).order_by('-fecha_publicacion')[:5]
+            total_noticias = noticias.count()
         else:
             try:
                 vecino = Vecino.objects.get(user=request.user)
@@ -97,10 +119,15 @@ def index(request):
         'vecinos': vecinos,
         'total_vecinos': total_vecinos,  
         'solicitudes': solicitudes,
+        'total_solicitudes': total_solicitudes,
         'postulaciones': postulaciones,
+        'total_postulaciones': total_postulaciones,
         'noticias': noticias,
+        'total_noticias': total_noticias,
         'espacios': espacios,
+        'total_espacios': total_espacios, 
         'reservas': reservas,
+        'total_reservas': total_reservas,
         'comuna': comuna
     })
 
@@ -1332,20 +1359,32 @@ def generar_certificado_pdf(vecino, numero_certificado):
     # Obtener el administrador correspondiente a la comuna del vecino
     administrador = AdministradorComuna.objects.get(comuna=vecino.comuna)
 
-    # Renderizar el contenido HTML con los datos del vecino y del presidente
+    # Convertir la firma a base64 si existe
+    firma_base64 = None
+    if administrador.firma_presidente:
+        firma_path = os.path.join(settings.MEDIA_ROOT, str(administrador.firma_presidente))
+        if os.path.exists(firma_path):
+            with open(firma_path, 'rb') as f:
+                firma_base64 = base64.b64encode(f.read()).decode('utf-8')
+
+    # Renderizar el contenido HTML con los datos
     html_content = render_to_string('junta_vecinos/certificado_residencia.html', {
         'vecino': vecino,
         'numero_certificado': numero_certificado,
         'fecha_emision': date.today().strftime('%d/%m/%Y'),
-        'junta_nombre': f"Junta de Vecinos {vecino.get_comuna_display()}",  # Usa get_comuna_display para obtener el nombre bonito
+        'junta_nombre': f"Junta de Vecinos {vecino.get_comuna_display()}",
         'comuna': vecino.get_comuna_display(),
         'region': "Metropolitana",
         'presidente_nombre': administrador.get_presidente_nombre_completo(),
         'presidente_ci': administrador.presidente_rut,
+        'firma_base64': firma_base64,
     })
 
     # Generar el PDF usando WeasyPrint
-    pdf_file = HTML(string=html_content).write_pdf()
+    pdf_file = HTML(
+        string=html_content,
+        base_url=settings.MEDIA_ROOT
+    ).write_pdf()
 
     return pdf_file
 
