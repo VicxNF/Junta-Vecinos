@@ -65,6 +65,7 @@ def bienvenida(request):
 @login_required
 def index(request):
     vecinos = []
+    total_vecinos = 0  # Nuevo contador
     solicitudes = []
     postulaciones = []
     noticias = []
@@ -77,6 +78,7 @@ def index(request):
             admin = AdministradorComuna.objects.get(user=request.user)
             comuna = admin.get_comuna_display()
             
+            total_vecinos = Vecino.objects.filter(administrador=admin).count()
             vecinos = Vecino.objects.filter(administrador=admin)[:5]
             solicitudes = SolicitudCertificado.objects.filter(vecino__administrador=admin)[:5]
             postulaciones = ProyectoVecinal.objects.filter(vecino__administrador=admin)[:5]
@@ -93,6 +95,7 @@ def index(request):
 
     return render(request, 'junta_vecinos/index.html', {
         'vecinos': vecinos,
+        'total_vecinos': total_vecinos,  
         'solicitudes': solicitudes,
         'postulaciones': postulaciones,
         'noticias': noticias,
@@ -436,62 +439,170 @@ def solicitar_certificado(request):
     return render(request, 'junta_vecinos/solicitar_certificado.html', {'form': form})
 
 @user_passes_test(is_admin)
+@login_required
 def gestionar_solicitudes(request):
     admin = request.user.administradorcomuna
     solicitudes = SolicitudCertificado.objects.filter(
         vecino__comuna=admin.comuna
-    ).order_by('-fecha_solicitud')
+    ).select_related('vecino')
     
-    # Contar las solicitudes aprobadas y rechazadas
+    # Obtener estadísticas
     aprobadas = solicitudes.filter(estado='Aprobado').count()
     rechazadas = solicitudes.filter(estado='Rechazado').count()
     
-    return render(request, 'junta_vecinos/gestionar_solicitudes.html', {
+    # Obtener años disponibles
+    years = SolicitudCertificado.objects.dates('fecha_solicitud', 'year')
+    years = [date.year for date in years]
+    if not years:
+        years = [datetime.now().year]
+    
+    # Lista de meses para el selector
+    months = [
+        (1, 'Enero'), (2, 'Febrero'), (3, 'Marzo'), (4, 'Abril'),
+        (5, 'Mayo'), (6, 'Junio'), (7, 'Julio'), (8, 'Agosto'),
+        (9, 'Septiembre'), (10, 'Octubre'), (11, 'Noviembre'), (12, 'Diciembre')
+    ]
+    
+    context = {
+        'admin': admin,
         'solicitudes': solicitudes,
         'aprobadas': aprobadas,
         'rechazadas': rechazadas,
-        'admin': admin
-    })
+        'years': years,
+        'months': months,
+        'current_year': datetime.now().year,
+        'current_month': datetime.now().month,
+    }
+    
+    return render(request, 'junta_vecinos/gestionar_solicitudes.html', context)
 
 @user_passes_test(is_admin)
 @login_required
 def generar_reporte_solicitudes_pdf(request):
-    # Crear el objeto HttpResponse con el tipo de contenido PDF
-    response = HttpResponse(content_type='application/pdf')
-    response['Content-Disposition'] = 'attachment; filename="reporte_solicitudes.pdf"'
-
-    # Crear el PDF
-    p = canvas.Canvas(response, pagesize=A4)
-    ancho, alto = A4
-
-    # Título
-    p.setFont("Helvetica-Bold", 16)
-    p.drawString(100, alto - 50, "Reporte de Solicitudes de Certificados")
-
-    # Encabezados de la tabla
-    p.setFont("Helvetica-Bold", 12)
-    p.drawString(50, alto - 100, "Vecino")
-    p.drawString(200, alto - 100, "Fecha de Solicitud")
-    p.drawString(350, alto - 100, "Estado")
-
-    # Listar las solicitudes
-    p.setFont("Helvetica", 10)
-    y = alto - 120
-    solicitudes = SolicitudCertificado.objects.all().order_by('fecha_solicitud')
-    for solicitud in solicitudes:
-        if y < 50:
-            p.showPage()  # Crear nueva página si se acaba el espacio
-            y = alto - 50
-
-        p.drawString(50, y, f"{solicitud.vecino.nombres} {solicitud.vecino.apellidos}")
-        p.drawString(200, y, solicitud.fecha_solicitud.strftime("%Y-%m-%d"))
-        p.drawString(350, y, solicitud.get_estado_display())
-        y -= 20
-
-    # Finalizar el PDF
-    p.showPage()
-    p.save()
+    # Obtener el administrador actual
+    admin = request.user.administradorcomuna
     
+    # Obtener parámetros del request
+    year = int(request.GET.get('year', datetime.now().year))
+    month = int(request.GET.get('month', datetime.now().month))
+    
+    # Crear el objeto HttpResponse con el tipo de contenido de PDF
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="reporte_solicitudes_{year}_{month}.pdf"'
+    
+    # Configurar el documento
+    doc = SimpleDocTemplate(response, pagesize=letter)
+    elements = []
+    styles = getSampleStyleSheet()
+    
+    # Estilos personalizados
+    title_style = ParagraphStyle(
+        'CustomTitle',
+        parent=styles['Heading1'],
+        fontSize=16,
+        spaceAfter=30,
+        alignment=1  # Centrado
+    )
+    
+    # Título del reporte
+    title = Paragraph(f"Reporte de Solicitudes de Certificados - {admin.get_comuna_display()} - {get_month_name(month)} {year}", title_style)
+    elements.append(title)
+    
+    # Obtener las solicitudes del mes SOLO de la comuna del administrador
+    solicitudes = SolicitudCertificado.objects.filter(
+        fecha_solicitud__year=year,
+        fecha_solicitud__month=month,
+        vecino__comuna=admin.comuna  # Filtrar por comuna del administrador
+    ).select_related('vecino')
+    
+    # Estadísticas generales
+    total_solicitudes = solicitudes.count()
+    solicitudes_por_estado = solicitudes.values('estado').annotate(
+        total=Count('id')
+    )
+    
+    # Agregar resumen general
+    resumen_style = ParagraphStyle(
+        'Resumen',
+        parent=styles['Normal'],
+        fontSize=12,
+        spaceAfter=20
+    )
+    
+    elements.append(Paragraph(f"Total de Solicitudes: {total_solicitudes}", resumen_style))
+    
+    for estado in solicitudes_por_estado:
+        elements.append(Paragraph(
+            f"Total {estado['estado']}: {estado['total']}", 
+            resumen_style
+        ))
+    
+    elements.append(Spacer(1, 20))
+    
+    # Tabla de estadísticas por estado
+    elements.append(Paragraph("Estadísticas por Estado", styles['Heading2']))
+    estados_data = [['Estado', 'Total Solicitudes', 'Porcentaje']]
+    
+    for estado in solicitudes_por_estado:
+        porcentaje = (estado['total'] / total_solicitudes * 100) if total_solicitudes > 0 else 0
+        estados_data.append([
+            estado['estado'],
+            str(estado['total']),
+            f"{porcentaje:.1f}%"
+        ])
+    
+    tabla_estados = Table(estados_data)
+    tabla_estados.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 12),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('BACKGROUND', (0, 1), (-1, -1), colors.beige),
+        ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
+        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 1), (-1, -1), 10),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ('BOX', (0, 0), (-1, -1), 2, colors.black),
+    ]))
+    
+    elements.append(tabla_estados)
+    elements.append(Spacer(1, 20))
+    
+    # Detalle de todas las solicitudes
+    elements.append(Paragraph("Detalle de Solicitudes", styles['Heading2']))
+    
+    detalle_data = [['Fecha', 'Vecino', 'RUT', 'Comuna', 'Estado']]
+    for solicitud in solicitudes.order_by('fecha_solicitud'):
+        detalle_data.append([
+            solicitud.fecha_solicitud.strftime("%d/%m/%Y"),
+            f"{solicitud.vecino.nombres} {solicitud.vecino.apellidos}",
+            solicitud.vecino.rut,
+            solicitud.vecino.get_comuna_display(),
+            solicitud.get_estado_display()
+        ])
+    
+    tabla_detalle = Table(detalle_data, repeatRows=1)
+    tabla_detalle.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.grey),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.whitesmoke),
+        ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 12),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 12),
+        ('TEXTCOLOR', (0, 1), (-1, -1), colors.black),
+        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 1), (-1, -1), 9),
+        ('GRID', (0, 0), (-1, -1), 1, colors.black),
+        ('BOX', (0, 0), (-1, -1), 2, colors.black),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+    ]))
+    
+    elements.append(tabla_detalle)
+    
+    # Generar el PDF
+    doc.build(elements)
     return response
 
 @user_passes_test(is_admin)
@@ -1241,6 +1352,9 @@ def get_month_name(month_number):
 @user_passes_test(is_admin)
 @login_required
 def generar_reporte_pdf(request):
+    # Obtener el administrador y su comuna
+    admin = AdministradorComuna.objects.get(user=request.user)
+    
     # Obtener parámetros del request
     year = int(request.GET.get('year', datetime.now().year))
     month = int(request.GET.get('month', datetime.now().month))
@@ -1264,13 +1378,14 @@ def generar_reporte_pdf(request):
     )
     
     # Título del reporte
-    title = Paragraph(f"Reporte de Reservas - {get_month_name(month)} {year}", title_style)
+    title = Paragraph(f"Reporte de Reservas - {admin.get_comuna_display()} - {get_month_name(month)} {year}", title_style)
     elements.append(title)
     
-    # Obtener las reservas del mes
+    # Obtener las reservas del mes filtradas por comuna del administrador
     reservas = Reserva.objects.filter(
         fecha__year=year,
-        fecha__month=month
+        fecha__month=month,
+        espacio__comuna=admin  # Añadir filtro por comuna
     ).select_related('espacio', 'usuario')
     
     # Estadísticas generales
@@ -1289,7 +1404,7 @@ def generar_reporte_pdf(request):
     elements.append(Paragraph(f"Ingresos Totales: ${ingresos_totales:,.2f}", resumen_style))
     elements.append(Spacer(1, 20))
     
-    # Estadísticas por espacio
+    # Estadísticas por espacio (filtradas por comuna)
     stats_por_espacio = reservas.values('espacio__nombre').annotate(
         total_reservas=Count('id'),
         ingresos=Sum('monto_pagado')
@@ -1378,7 +1493,7 @@ def generar_reporte_actividades_excel(request):
         
         admin = request.user.administradorcomuna
         
-        # Filtrar actividades
+        # Filtrar actividades por comuna del administrador y período
         actividades = ActividadVecinal.objects.filter(
             comuna=admin,
             fecha__year=year,
@@ -1425,7 +1540,12 @@ def generar_reporte_actividades_excel(request):
         total_ingresos = 0
 
         for actividad in actividades:
-            inscritos = actividad.inscripcionactividad_set.count()
+            # Filtrar inscripciones solo de vecinos de la comuna del administrador
+            inscritos = InscripcionActividad.objects.filter(
+                actividad=actividad,
+                vecino__comuna=admin.comuna  # Este es el filtro clave
+            ).count()
+            
             ingresos = inscritos * actividad.precio
             
             ws.cell(row=row, column=1, value=actividad.titulo)
@@ -1623,7 +1743,7 @@ def generar_reporte_actividades_pdf(request):
     
     admin = request.user.administradorcomuna
     
-    # Filtrar actividades
+    # Filtrar actividades de la comuna del administrador
     actividades = ActividadVecinal.objects.filter(
         comuna=admin,
         fecha__year=year,
@@ -1648,7 +1768,9 @@ def generar_reporte_actividades_pdf(request):
     total_ingresos = 0
     
     for actividad in actividades:
-        inscritos = actividad.inscripcionactividad_set.count()
+        # Filtrar inscripciones de vecinos de la comuna del administrador
+        inscripciones = actividad.inscripcionactividad_set.filter(vecino__comuna=admin.comuna)
+        inscritos = inscripciones.count()
         ingresos = inscritos * actividad.precio
         data.append([
             actividad.titulo,
@@ -1683,6 +1805,7 @@ def generar_reporte_actividades_pdf(request):
     # Generar PDF
     doc.build(elements)
     return response
+
 
 @login_required
 def inscribir_actividad(request, actividad_id):

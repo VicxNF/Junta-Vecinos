@@ -266,13 +266,13 @@
             <div class="stats-grid fade-in">
                 <div class="stat-card">
                     <div class="stat-icon">👥</div>
-                    <div class="stat-number">{{ vecinos.count }}</div>
+                    <div class="stat-number">{{ total_vecinos  }}</div>
                     <div class="stat-label">Vecinos Registrados</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-icon">📝</div>
                     <div class="stat-number">{{ solicitudes.count }}</div>
-                    <div class="stat-label">Solicitudes Pendientes</div>
+                    <div class="stat-label">Solicitudes de Certificado</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-icon">🏗️</div>
@@ -303,6 +303,9 @@
                     </a>
                     <a href="{% url 'lista_actividades' %}" class="custom-btn">
                         <span>🪁</span> Gestionar Actividades
+                    </a>
+                    <a href="{% url 'lista_reservas' %}" class="custom-btn">
+                        <span>🏢</span> Gestionar Reservas
                     </a>
                     <a href="{% url 'lista_espacios' %}" class="custom-btn">
                         <span>🏠</span> Gestionar Espacios
@@ -433,6 +436,9 @@
                     <div class="stat-label">Proyectos Vecinales</div>
                     <a href="{% url 'mis_proyectos' %}" class="custom-btn mt-3">
                         Ver Mis Proyectos
+                    </a>
+                    <a href="{% url 'proyectos_comuna' %}" class="custom-btn mt-3">
+                        Ver Proyectos de la Comuna
                     </a>
                 </div>
                 <div class="stat-card">

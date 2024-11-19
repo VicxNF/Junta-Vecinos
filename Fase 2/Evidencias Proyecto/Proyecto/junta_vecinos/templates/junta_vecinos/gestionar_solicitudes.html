@@ -9,43 +9,37 @@
         <p class="lead">Gestión de solicitudes de certificados de residencia para la comuna de {{ admin.get_comuna_display }}</p>
     </div>
 
-    <div class="row">
-        <!-- Panel de estadísticas -->
-        <div class="col-md-12 mb-4">
-            <div class="row">
-                <div class="col-md-4">
-                    <div class="card">
-                        <div class="card-body text-center">
-                            <h5 class="card-title">Total Solicitudes</h5>
+    <!-- Panel de estadísticas -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4 text-center">
+                            <h5>Total Solicitudes</h5>
                             <h2 class="text-primary">{{ solicitudes.count }}</h2>
                         </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card">
-                        <div class="card-body text-center">
-                            <h5 class="card-title">Aprobadas</h5>
+                        <div class="col-md-4 text-center">
+                            <h5>Aprobadas</h5>
                             <h2 class="text-success">{{ aprobadas }}</h2>
                         </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="card">
-                        <div class="card-body text-center">
-                            <h5 class="card-title">Rechazadas</h5>
+                        <div class="col-md-4 text-center">
+                            <h5>Rechazadas</h5>
                             <h2 class="text-danger">{{ rechazadas }}</h2>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- Filtros y búsqueda -->
-        <div class="col-md-12 mb-4">
+    <!-- Filtros y búsqueda -->
+    <div class="row mb-4">
+        <div class="col-12">
             <div class="card">
                 <div class="card-body">
                     <div class="row">
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <select id="filtroEstado" class="form-select" onchange="filtrarSolicitudes()">
                                 <option value="">Todos los estados</option>
                                 <option value="Pendiente">Pendientes</option>
@@ -53,19 +47,16 @@
                                 <option value="Rechazado">Rechazadas</option>
                             </select>
                         </div>
-                        <div class="col-md-4">
+                        <div class="col-md-6">
                             <input type="text" id="buscarVecino" class="form-control" placeholder="Buscar por nombre de vecino..." onkeyup="filtrarSolicitudes()">
-                        </div>
-                        <div class="col-md-4 text-end">
-                            <button class="btn btn-success" onclick="window.location.href='{% url 'generar_reporte_solicitudes_pdf' %}'">
-                                <i class="fas fa-file-pdf me-2"></i>Generar Reporte
-                            </button>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
+    </div>
 
+    <div class="row">
         <!-- Lista de solicitudes -->
         <div class="col-md-8">
             <div class="card">
@@ -131,11 +122,49 @@
             </div>
         </div>
 
-        <!-- Gráfico -->
+        <!-- Gráfico y Reporte -->
         <div class="col-md-4">
+            <!-- Gráfico de solicitudes -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <h2 class="card-title mb-4">Distribución de Solicitudes</h2>
+                    <div class="chart-container">
+                        <canvas id="solicitudesChart"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Generación de Reporte -->
             <div class="card">
                 <div class="card-body">
-                    <canvas id="solicitudesChart"></canvas>
+                    <h2 class="card-title mb-4">Generar Reporte</h2>
+                    <form method="get" action="{% url 'generar_reporte_solicitudes_pdf' %}" class="row g-3">
+                        <div class="col-md-12">
+                            <label for="year" class="form-label">Año</label>
+                            <select name="year" id="year" class="form-select">
+                                {% for year in years %}
+                                    <option value="{{ year }}" {% if year == current_year %}selected{% endif %}>
+                                        {{ year }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-12">
+                            <label for="month" class="form-label">Mes</label>
+                            <select name="month" id="month" class="form-select">
+                                {% for month_num, month_name in months %}
+                                    <option value="{{ month_num }}" {% if month_num == current_month %}selected{% endif %}>
+                                        {{ month_name }}
+                                    </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-12">
+                            <button type="submit" class="btn btn-success w-100">
+                                <i class="fas fa-file-pdf me-2"></i>Generar Reporte PDF
+                            </button>
+                        </div>
+                    </form>
                 </div>
             </div>
         </div>
@@ -146,7 +175,6 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    // Configuración del gráfico
     var ctx = document.getElementById('solicitudesChart').getContext('2d');
     var solicitudesChart = new Chart(ctx, {
         type: 'doughnut',
@@ -163,10 +191,14 @@ document.addEventListener('DOMContentLoaded', function() {
         },
         options: {
             responsive: true,
-            maintainAspectRatio: false,
+            maintainAspectRatio: true, // Cambiado a true
             plugins: {
                 legend: {
                     position: 'bottom'
+                },
+                title: {
+                    display: true,
+                    text: 'Estado de Solicitudes'
                 }
             }
         }
@@ -189,12 +221,6 @@ function filtrarSolicitudes() {
         fila.style.display = coincideEstado && coincideBusqueda ? '' : 'none';
     }
 }
-
-// Animación para las cards
-const cards = document.querySelectorAll('.card');
-cards.forEach((card, index) => {
-    card.style.animation = `fadeInScale 0.5s ease-out ${index * 0.1}s forwards`;
-});
 </script>
 
 <style>
@@ -205,6 +231,7 @@ cards.forEach((card, index) => {
 
 .card {
     opacity: 0;
+    animation: fadeInScale 0.5s ease-out forwards;
 }
 
 @keyframes fadeInScale {
@@ -229,6 +256,42 @@ cards.forEach((card, index) => {
 .btn-sm {
     padding: 0.25rem 0.5rem;
     font-size: 0.875rem;
+}
+
+/* Estilos para el formulario de reporte */
+.card-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: #333;
+}
+
+.form-label {
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+
+.btn-success {
+    padding: 0.75rem 1.5rem;
+    font-weight: 500;
+}
+
+.row.g-3 {
+    margin-bottom: -1rem;
+}
+
+.row.g-3 > div {
+    margin-bottom: 1rem;
+}
+
+/* Aseguramos que el gráfico tenga una altura mínima */
+canvas#solicitudesChart {
+    min-height: 250px;
+}
+
+.chart-container {
+    position: relative;
+    height: 300px; /* altura fija */
+    width: 100%;
 }
 </style>
 {% endblock %}

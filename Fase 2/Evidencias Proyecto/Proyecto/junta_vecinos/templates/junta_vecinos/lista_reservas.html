@@ -1,107 +1,103 @@
 {% extends 'junta_vecinos/base.html' %}
 
-{% block title %}Lista de Reservas{% endblock %}
+{% load custom_filters %}
 
 {% block content %}
-<div class="container mt-5">
-    <!-- Título con la comuna -->
-    <h1 class="mb-4">Reservas de {{ comuna }}</h1>
-    
-    <!-- Sección de Estadísticas Rápidas -->
-    <div class="row mb-4">
+<div class="container-fluid px-4">
+    <!-- Header con animación suave -->
+    <div class="row mb-4 animate__animated animate__fadeIn">
         <div class="col-12">
-            <div class="card">
-                <div class="card-body">
-                    <h3 class="card-title mb-4">Estadísticas Generales</h3>
-                    <div class="row">
-                        <div class="col-md-4 text-center">
-                            <h5>Total Reservas</h5>
-                            <h2 class="text-primary">{{ reservas|length }}</h2>
-                        </div>
-                        <div class="col-md-4 text-center">
-                            <h5>Espacios Activos</h5>
-                            <h2 class="text-success">{{ espacios|length }}</h2>
-                        </div>
-                        <div class="col-md-4 text-center">
-                            <h5>Ingresos Totales</h5>
-                            <h2 class="text-info">${{ total_ingresos|floatformat:2 }}</h2>
-                        </div>
+            <h2 class="text-primary border-bottom pb-2">
+                Reservas de Espacios - {{ comuna }}
+                <small class="text-muted fs-5">Sistema de Reservas</small>
+            </h2>
+        </div>
+    </div>
+
+    <!-- Cards de Estadísticas con hover effects -->
+    <div class="row mb-4">
+        <div class="col-md-4 animate__animated animate__fadeInUp">
+            <div class="card shadow-sm hover-card">
+                <div class="card-body text-center">
+                    <div class="display-4 mb-2">
+                        <i class="fas fa-calendar-check text-primary"></i>
                     </div>
+                    <h5 class="text-muted">Total Reservas</h5>
+                    <div class="counter display-6 text-primary">{{ reservas|length }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 animate__animated animate__fadeInUp" style="animation-delay: 0.2s">
+            <div class="card shadow-sm hover-card">
+                <div class="card-body text-center">
+                    <div class="display-4 mb-2">
+                        <i class="fas fa-door-open text-success"></i>
+                    </div>
+                    <h5 class="text-muted">Espacios Activos</h5>
+                    <div class="counter display-6 text-success">{{ espacios|length }}</div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4 animate__animated animate__fadeInUp" style="animation-delay: 0.4s">
+            <div class="card shadow-sm hover-card">
+                <div class="card-body text-center">
+                    <div class="display-4 mb-2">
+                        <i class="fas fa-dollar-sign text-info"></i>
+                    </div>
+                    <h5 class="text-muted">Ingresos Totales</h5>
+                    <div class="counter display-6 text-info">${{ total_ingresos|floatformat:2 }}</div>
                 </div>
             </div>
         </div>
     </div>
 
-    <div class="row">
-        <!-- Lista de Reservas -->
-        <div class="col-md-6">
-            <div class="card">
+    <!-- Gráficos y Reportes -->
+    <div class="row mb-4">
+        <div class="col-lg-8 animate__animated animate__fadeInLeft">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h4 class="mb-0">Tendencia Mensual
+                        <button class="btn btn-sm btn-outline-primary float-end" 
+                                data-bs-toggle="tooltip" 
+                                title="Ver detalles">
+                            <i class="fas fa-expand"></i>
+                        </button>
+                    </h4>
+                </div>
                 <div class="card-body">
-                    <h2 class="card-title mb-4">Lista de Reservas</h2>
-                    <div class="list-group">
-                        {% for reserva in reservas %}
-                        <div class="list-group-item">
-                            <div class="d-flex w-100 justify-content-between">
-                                <h5 class="mb-1">{{ reserva.espacio.nombre }}</h5>
-                                <small>${{ reserva.monto_pagado|floatformat:2 }}</small>
-                            </div>
-                            <p class="mb-1">{{ reserva.fecha|date:"d/m/Y" }} de {{ reserva.hora_inicio|time:"H:i" }} a {{ reserva.hora_fin|time:"H:i" }}</p>
-                            <small>Reservado por: {{ reserva.usuario.get_full_name }}</small>
-                        </div>
-                        {% empty %}
-                        <div class="text-center py-3">
-                            <p>No hay reservas registradas</p>
-                        </div>
-                        {% endfor %}
-                    </div>
+                    <canvas id="tendenciaChart" style="height: 300px;"></canvas>
                 </div>
             </div>
         </div>
-
-        <!-- Gráficos -->
-        <div class="col-md-6">
-            <div class="card mb-4">
-                <div class="card-body">
-                    <h2 class="card-title mb-4">Distribución de Reservas</h2>
-                    <canvas id="reservasChart"></canvas>
+        <div class="col-lg-4 animate__animated animate__fadeInRight">
+            <div class="card shadow-sm">
+                <div class="card-header bg-white">
+                    <h4 class="mb-0">Generar Reportes</h4>
                 </div>
-            </div>
-
-            <div class="card mb-4">
                 <div class="card-body">
-                    <h2 class="card-title mb-4">Tendencia Mensual</h2>
-                    <canvas id="tendenciaChart"></canvas>
-                </div>
-            </div>
-
-            <!-- Formulario de Generación de Reportes -->
-            <div class="card">
-                <div class="card-body">
-                    <h2 class="card-title mb-4">Generar Reporte</h2>
                     <form method="get" action="{% url 'generar_reporte_pdf' %}" class="row g-3">
-                        <div class="col-md-6">
-                            <label for="year" class="form-label">Año</label>
-                            <select name="year" id="year" class="form-select">
-                                {% for year in years %}
+                        <div class="col-12">
+                            <label class="form-label">Período de Reporte</label>
+                            <div class="input-group mb-3">
+                                <select name="year" id="year" class="form-select">
+                                    {% for year in years %}
                                     <option value="{{ year }}" {% if year == current_year %}selected{% endif %}>
                                         {{ year }}
                                     </option>
-                                {% endfor %}
-                            </select>
-                        </div>
-                        <div class="col-md-6">
-                            <label for="month" class="form-label">Mes</label>
-                            <select name="month" id="month" class="form-select">
-                                {% for month_num, month_name in months %}
+                                    {% endfor %}
+                                </select>
+                                <select name="month" id="month" class="form-select">
+                                    {% for month_num, month_name in months %}
                                     <option value="{{ month_num }}" {% if month_num == current_month %}selected{% endif %}>
                                         {{ month_name }}
                                     </option>
-                                {% endfor %}
-                            </select>
+                                    {% endfor %}
+                                </select>
+                            </div>
                         </div>
                         <div class="col-12">
-                            <button type="submit" class="btn btn-success w-100">
-                                <i class="fas fa-file-pdf me-2"></i>Generar Reporte PDF
+                            <button type="submit" class="btn btn-primary w-100 mb-2 btn-hover">
+                                <i class="fas fa-file-pdf me-2"></i>Generar PDF
                             </button>
                         </div>
                     </form>
@@ -109,46 +105,121 @@
             </div>
         </div>
     </div>
+
+    <!-- Grid de Reservas -->
+    <div class="row" id="reservas-grid">
+        {% for reserva in reservas %}
+        <div class="col-md-4 mb-4 animate__animated animate__fadeIn" style="animation-delay: {{ forloop.counter0|multiply:0.1 }}s">
+            <div class="card h-100 shadow-sm reservation-card">
+                <div class="card-body">
+                    <h5 class="card-title text-primary">{{ reserva.espacio.nombre }}</h5>
+                    
+                    <div class="reservation-details">
+                        <div class="detail-item">
+                            <i class="fas fa-calendar-day text-primary"></i>
+                            <span>{{ reserva.fecha|date:"d/m/Y" }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <i class="fas fa-clock text-primary"></i>
+                            <span>{{ reserva.hora_inicio|time:"H:i" }} - {{ reserva.hora_fin|time:"H:i" }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <i class="fas fa-user text-primary"></i>
+                            <span>{{ reserva.usuario.get_full_name }}</span>
+                        </div>
+                        <div class="detail-item">
+                            <i class="fas fa-dollar-sign text-primary"></i>
+                            <span>${{ reserva.monto_pagado|floatformat:2 }}</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {% empty %}
+        <div class="col-12 text-center py-5">
+            <div class="empty-state animate__animated animate__fadeIn">
+                <i class="fas fa-calendar-times display-1 text-muted mb-3"></i>
+                <h3 class="text-muted">No hay reservas registradas</h3>
+                <p class="text-muted">Las reservas aparecerán aquí cuando sean creadas.</p>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
 </div>
+
+<!-- Estilos adicionales -->
+<style>
+    .hover-card {
+        transition: transform 0.3s ease-in-out, box-shadow 0.3s ease-in-out;
+    }
+
+    .hover-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+    }
+
+    .reservation-card {
+        transition: all 0.3s ease;
+        border: none;
+        overflow: hidden;
+    }
+
+    .reservation-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+    }
+
+    .reservation-details {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+        margin: 1rem 0;
+    }
+
+    .detail-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        color: #6c757d;
+    }
+
+    .detail-item i {
+        width: 20px;
+    }
+
+    .btn-hover {
+        transition: all 0.3s ease;
+    }
+
+    .btn-hover:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 0.25rem 0.5rem rgba(0, 0, 0, 0.15);
+    }
+
+    .empty-state {
+        padding: 3rem;
+    }
+
+    .counter {
+        transition: all 0.5s ease;
+    }
+
+    @media (max-width: 768px) {
+        .card-footer .btn-group {
+            flex-direction: column;
+        }
+        
+        .card-footer .btn {
+            margin-bottom: 0.5rem;
+        }
+    }
+</style>
 
 <!-- Scripts -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-    // Configuración del gráfico de torta
-    var ctx = document.getElementById('reservasChart').getContext('2d');
-    new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: {{ espacios|safe }},
-            datasets: [{
-                data: {{ totales|safe }},
-                backgroundColor: [
-                    'rgba(255, 99, 132, 0.8)',
-                    'rgba(54, 162, 235, 0.8)',
-                    'rgba(255, 206, 86, 0.8)',
-                    'rgba(75, 192, 192, 0.8)',
-                    'rgba(153, 102, 255, 0.8)',
-                    'rgba(255, 159, 64, 0.8)'
-                ],
-                borderWidth: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: {
-                legend: {
-                    position: 'bottom'
-                },
-                title: {
-                    display: true,
-                    text: 'Reservas por Espacio'
-                }
-            }
-        }
-    });
-
-    // Configuración del gráfico de tendencia
-    var ctxTendencia = document.getElementById('tendenciaChart').getContext('2d');
+    // Configuración del gráfico
+    const ctxTendencia = document.getElementById('tendenciaChart').getContext('2d');
     new Chart(ctxTendencia, {
         type: 'line',
         data: {
@@ -157,14 +228,16 @@
                 label: 'Reservas',
                 data: {{ reservas_mensuales|safe }},
                 borderColor: 'rgba(75, 192, 192, 1)',
-                tension: 0.1,
-                fill: false
+                backgroundColor: 'rgba(75, 192, 192, 0.1)',
+                tension: 0.4,
+                fill: true
             }, {
                 label: 'Ingresos ($)',
                 data: {{ ingresos_mensuales|safe }},
-                borderColor: 'rgba(255, 99, 132, 1)',
-                tension: 0.1,
-                fill: false,
+                borderColor: 'rgba(54, 162, 235, 1)',
+                backgroundColor: 'rgba(54, 162, 235, 0.1)',
+                tension: 0.4,
+                fill: true,
                 yAxisID: 'y1'
             }]
         },
@@ -174,36 +247,88 @@
                 mode: 'index',
                 intersect: false,
             },
+            plugins: {
+                legend: {
+                    position: 'top',
+                },
+                tooltip: {
+                    mode: 'index',
+                    intersect: false,
+                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                    titleColor: '#000',
+                    bodyColor: '#000',
+                    borderColor: '#ddd',
+                    borderWidth: 1,
+                    padding: 10,
+                    boxPadding: 5
+                }
+            },
             scales: {
                 y: {
                     type: 'linear',
                     display: true,
                     position: 'left',
-                    title: {
-                        display: true,
-                        text: 'Número de Reservas'
+                    grid: {
+                        drawBorder: false,
+                        color: 'rgba(0, 0, 0, 0.1)'
                     }
                 },
                 y1: {
                     type: 'linear',
                     display: true,
                     position: 'right',
-                    title: {
-                        display: true,
-                        text: 'Ingresos ($)'
-                    },
                     grid: {
-                        drawOnChartArea: false
+                        drawOnChartArea: false,
                     }
-                }
-            },
-            plugins: {
-                title: {
-                    display: true,
-                    text: 'Tendencia Mensual'
+                },
+                x: {
+                    grid: {
+                        drawBorder: false,
+                        display: false
+                    }
                 }
             }
         }
+    });
+
+    // Inicializar tooltips de Bootstrap
+    var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+    var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+        return new bootstrap.Tooltip(tooltipTriggerEl)
+    });
+
+    // Animación de contadores
+    function animateValue(obj, start, end, duration) {
+        let startTimestamp = null;
+        const step = (timestamp) => {
+            if (!startTimestamp) startTimestamp = timestamp;
+            const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+            obj.innerHTML = Math.floor(progress * (end - start) + start);
+            if (progress < 1) {
+                window.requestAnimationFrame(step);
+            }
+        };
+        window.requestAnimationFrame(step);
+    }
+
+    // Animar contadores cuando son visibles
+    const observerOptions = {
+        threshold: 0.1
+    };
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                const counter = entry.target;
+                const finalValue = parseInt(counter.innerText);
+                animateValue(counter, 0, finalValue, 2000);
+                observer.unobserve(counter);
+            }
+        });
+    }, observerOptions);
+
+    document.querySelectorAll('.counter').forEach(counter => {
+        observer.observe(counter);
     });
 </script>
 {% endblock %}
