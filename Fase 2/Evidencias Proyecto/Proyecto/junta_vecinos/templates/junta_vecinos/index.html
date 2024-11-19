@@ -437,9 +437,19 @@
                 <div class="stat-card">
                     <div class="stat-icon">📜</div>
                     <div class="stat-label">Certificados</div>
-                    <a href="{% url 'solicitar_certificado' %}" class="custom-btn mt-3">
-                        Solicitar Certificado
-                    </a>
+                    {% if certificado_estado == 'Pendiente' %}
+                        <div class="custom-btn mt-3 bg-warning text-dark">
+                            Certificado Pendiente
+                        </div>
+                    {% elif certificado_estado == 'Aprobado' %}
+                        <div class="custom-btn mt-3 bg-success">
+                            Certificado Aprobado
+                        </div>
+                    {% else %}
+                        <a href="{% url 'solicitar_certificado' %}" class="custom-btn mt-3">
+                            Solicitar Certificado
+                        </a>
+                    {% endif %}
                 </div>
                 <div class="stat-card">
                     <div class="stat-icon">🏗️</div>

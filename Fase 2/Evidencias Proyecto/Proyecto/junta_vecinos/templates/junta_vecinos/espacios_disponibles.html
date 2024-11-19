@@ -39,6 +39,7 @@
                     <div class="mt-3">
                         <span class="badge bg-primary me-2">Capacidad: 50 personas</span>
                         <span class="badge bg-success">Disponible</span>
+                        <span class="badge bg-info">Precio: ${{ espacio_seleccionado.precio_por_hora|floatformat:0 }}/hora</span>
                     </div>
                 </div>
             </div>
@@ -309,6 +310,7 @@
                     document.getElementById('espacio-foto').src = data.foto;
                     document.getElementById('espacio-nombre').textContent = data.nombre;
                     document.getElementById('espacio-ubicacion').textContent = data.ubicacion;
+                    document.getElementById('espacio-info').querySelector('.badge.bg-info').textContent = `Precio: $${data.precio_por_hora}/hora`;
                     document.getElementById('espacio-info').style.display = 'block';
                 });
         } else {
@@ -385,11 +387,13 @@
     function reserveSlots(slots) {
     var startTime = slots[selectedSlots[0]].start;
     var endTime = slots[selectedSlots[1]].end;
+    var espacioNombre = document.getElementById('espacio-nombre').textContent;
+    var espacioPrecio = document.getElementById('espacio-info').querySelector('.badge.bg-info').textContent.replace('Precio: ', '');
     
     // Actualizar el contenido del modal de confirmación
     document.getElementById('confirmFecha').textContent = selectedDate;
     document.getElementById('confirmHorario').textContent = `${startTime} - ${endTime}`;
-    document.getElementById('confirmEspacio').textContent = document.getElementById('espacio-nombre').textContent;
+    document.getElementById('confirmEspacio').textContent = `${espacioNombre} (${espacioPrecio})`;
 
     // Mostrar el modal de confirmación
     var confirmModal = new bootstrap.Modal(document.getElementById('confirmReservaModal'));

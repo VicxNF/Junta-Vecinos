@@ -125,8 +125,6 @@ class SolicitudCertificado(models.Model):
     fecha_solicitud = models.DateField(auto_now_add=True)
     estado = models.CharField(max_length=10, choices=ESTADO_CHOICES, default='Pendiente')
     motivo = models.TextField()
-
-    # Nuevos campos para los archivos
     foto_carnet_frente = models.ImageField(upload_to='carnets/', blank=False, null=False)
     foto_carnet_atras = models.ImageField(upload_to='carnets/', blank=False, null=False)
     documento_residencia = models.FileField(upload_to='documentos_residencia/', blank=False, null=False)

@@ -80,6 +80,7 @@ def index(request):
     reservas = []
     total_reservas = 0
     comuna = ""
+    certificado_estado = None  # Nueva variable para el estado del certificado
 
     if request.user.is_authenticated:
         if request.user.is_superuser:
@@ -111,6 +112,17 @@ def index(request):
             try:
                 vecino = Vecino.objects.get(user=request.user)
                 comuna = vecino.get_comuna_display()
+                
+                # Verificar el estado del certificado
+                certificado_existente = SolicitudCertificado.objects.filter(
+                    vecino=vecino, 
+                    estado__in=['Pendiente', 'Aprobado']
+                ).first()
+                
+                if certificado_existente:
+                    certificado_estado = certificado_existente.estado
+
+                
                 noticias = Noticia.objects.filter(comuna__comuna=vecino.comuna).order_by('-fecha_publicacion')[:5]
             except Vecino.DoesNotExist:
                 noticias = []
@@ -128,7 +140,8 @@ def index(request):
         'total_espacios': total_espacios, 
         'reservas': reservas,
         'total_reservas': total_reservas,
-        'comuna': comuna
+        'comuna': comuna,
+        'certificado_estado': certificado_estado  # Añadir la nueva variable al contexto
     })
 
 
@@ -450,6 +463,16 @@ def solicitar_certificado(request):
         vecino = request.user.vecino
     except Vecino.DoesNotExist:
         messages.error(request, 'No tienes un perfil de vecino asociado. Por favor, contacta con el administrador.')
+        return redirect('index')
+
+    # Verificación de solicitudes pendientes o aprobadas
+    solicitud_existente = SolicitudCertificado.objects.filter(
+        vecino=vecino, 
+        estado__in=['Pendiente', 'Aprobado']
+    ).exists()
+
+    if solicitud_existente:
+        messages.warning(request, 'Ya tienes un certificado de residencia en proceso o aprobado. No puedes realizar otra solicitud.')
         return redirect('index')
 
     if request.method == 'POST':
@@ -1136,6 +1159,7 @@ def get_espacio_info(request):
         'nombre': espacio.nombre,
         'ubicacion': espacio.ubicacion,
         'foto': espacio.foto.url if espacio.foto else '',
+        'precio_por_hora': float(espacio.precio_por_hora)
     })
 
 @login_required
