@@ -14,9 +14,15 @@ class AdministradorComuna(models.Model):
 
     user = models.OneToOneField(User, on_delete=models.CASCADE)
     comuna = models.CharField(max_length=20, choices=COMUNA_CHOICES, unique=True)
+    presidente_nombre = models.CharField(max_length=100, verbose_name="Nombre del Presidente", default="")
+    presidente_apellidos = models.CharField(max_length=100, verbose_name="Apellidos del Presidente", default="")
+    presidente_rut = models.CharField(max_length=12, verbose_name="RUT del Presidente", default="")
+
+    def get_presidente_nombre_completo(self):
+        return f"{self.presidente_nombre} {self.presidente_apellidos}"
 
     def __str__(self):
-        return f"Administrador de {self.get_comuna_display()}"
+        return f"Administrador de {self.get_comuna_display()} - Presidente: {self.get_presidente_nombre_completo()}"
     
 class TokenRegistro(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE)

@@ -85,3 +85,17 @@ class LoginAttemptAdmin(admin.ModelAdmin):
 
     def has_add_permission(self, request):
         return False  # Deshabilita la creación manual de intentos de login
+    
+@admin.register(AdministradorComuna)
+class AdministradorComunaAdmin(admin.ModelAdmin):
+    list_display = ['comuna', 'get_presidente_nombre_completo', 'presidente_rut']
+    search_fields = ['presidente_nombre', 'presidente_apellidos', 'presidente_rut']
+    list_filter = ['comuna']
+    fieldsets = (
+        ('Información de Usuario', {
+            'fields': ('user', 'comuna')
+        }),
+        ('Información del Presidente', {
+            'fields': ('presidente_nombre', 'presidente_apellidos', 'presidente_rut')
+        }),
+    )

@@ -1329,16 +1329,19 @@ def lista_reservas(request):
 
 
 def generar_certificado_pdf(vecino, numero_certificado):
-    # Renderizar el contenido HTML con los datos del vecino
+    # Obtener el administrador correspondiente a la comuna del vecino
+    administrador = AdministradorComuna.objects.get(comuna=vecino.comuna)
+
+    # Renderizar el contenido HTML con los datos del vecino y del presidente
     html_content = render_to_string('junta_vecinos/certificado_residencia.html', {
         'vecino': vecino,
         'numero_certificado': numero_certificado,
         'fecha_emision': date.today().strftime('%d/%m/%Y'),
-        'junta_nombre': "Nombre de la Junta",  # Agregar el nombre real
-        'comuna': vecino.comuna,
-        'region': "Metropolitana",  # Agregar la región correspondiente
-        'presidente_nombre': "Nombre del Presidente",  # Agregar el nombre real del presidente
-        'presidente_ci': "12345678-9",  # Agregar el CI real del presidente
+        'junta_nombre': f"Junta de Vecinos {vecino.get_comuna_display()}",  # Usa get_comuna_display para obtener el nombre bonito
+        'comuna': vecino.get_comuna_display(),
+        'region': "Metropolitana",
+        'presidente_nombre': administrador.get_presidente_nombre_completo(),
+        'presidente_ci': administrador.presidente_rut,
     })
 
     # Generar el PDF usando WeasyPrint
