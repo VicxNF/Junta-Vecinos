@@ -1319,6 +1319,9 @@ def lista_reservas(request):
     # Obtener el administrador y su comuna
     admin = AdministradorComuna.objects.get(user=request.user)
     
+    # Obtener TODOS los espacios de la comuna del administrador
+    espacios = Espacio.objects.filter(comuna=admin)
+
     # Obtener las reservas solo de los espacios de la comuna del administrador
     reservas = Reserva.objects.select_related('espacio', 'usuario').filter(
         espacio__comuna=admin
@@ -1345,9 +1348,15 @@ def lista_reservas(request):
     ).order_by('mes')
 
     # Preparar datos para los gráficos
-    espacios = [reserva['espacio__nombre'] for reserva in reservas_por_espacio]
-    totales = [reserva['total'] for reserva in reservas_por_espacio]
-    ingresos = [float(reserva['ingresos_totales'] or 0) for reserva in reservas_por_espacio]
+    nombres_espacios = list(espacios.values_list('nombre', flat=True))
+    
+    # Modificar cómo se calculan los totales e ingresos
+    totales = []
+    ingresos = []
+    for espacio in espacios:
+        espacio_reservas = reservas.filter(espacio=espacio)
+        totales.append(espacio_reservas.count())
+        ingresos.append(float(espacio_reservas.aggregate(total_ingresos=Sum('monto_pagado'))['total_ingresos'] or 0))
 
     # Preparar datos para el gráfico de tendencia mensual
     meses = [calendar.month_name[r['mes'].month] for r in reservas_por_mes]
@@ -1362,9 +1371,20 @@ def lista_reservas(request):
     # Calcular el total de ingresos (para solucionar el problema del filtro sum)
     total_ingresos = sum(ingresos)
 
+    if request.method == 'POST' and 'eliminar_reserva' in request.POST:
+        reserva_id = request.POST.get('reserva_id')
+        try:
+            reserva = get_object_or_404(Reserva, id=reserva_id, espacio__comuna=admin)
+            reserva.delete()
+            messages.success(request, f'Reserva {reserva_id} eliminada exitosamente.')
+        except Exception as e:
+            messages.error(request, f'Error al eliminar la reserva: {str(e)}')
+        
+        return redirect('lista_reservas')
+
     return render(request, 'junta_vecinos/lista_reservas.html', {
         'reservas': reservas,
-        'espacios': espacios,
+        'espacios': nombres_espacios,  # Cambiado a nombres de espacios
         'totales': totales,
         'ingresos': ingresos,
         'total_ingresos': total_ingresos,
@@ -1375,7 +1395,7 @@ def lista_reservas(request):
         'months': months,
         'current_year': current_year,
         'current_month': datetime.now().month,
-        'comuna': admin.get_comuna_display(),  # Añadimos el nombre de la comuna para mostrarlo
+        'comuna': admin.get_comuna_display(),
     })
 
 
