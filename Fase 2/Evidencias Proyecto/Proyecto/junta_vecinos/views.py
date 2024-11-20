@@ -43,6 +43,8 @@ from openpyxl.utils import get_column_letter
 import os
 from urllib.request import urlopen
 import base64
+from threading import Thread
+from django.views.decorators.http import require_POST
 
 
 
@@ -1018,7 +1020,7 @@ def publicar_noticia(request):
             admin = AdministradorComuna.objects.get(user=request.user)
             noticia.comuna = admin
             noticia.save()
-            return redirect('index')
+            return redirect('gestionar_noticias')
     else:
         form = NoticiaForm()
     return render(request, 'junta_vecinos/publicar_noticia.html', {'form': form})
@@ -1056,6 +1058,31 @@ def editar_noticia(request, id):
     else:
         form = NoticiaForm(instance=noticia)
     return render(request, 'junta_vecinos/editar_noticia.html', {'form': form, 'noticia': noticia})
+
+@login_required
+@user_passes_test(is_admin)
+@require_POST
+def eliminar_noticia(request, noticia_id):
+    try:
+        # Obtener el admin actual
+        admin = AdministradorComuna.objects.get(user=request.user)
+        
+        # Buscar la noticia que pertenece al admin actual
+        noticia = Noticia.objects.get(id=noticia_id, comuna=admin)
+        
+        # Eliminar la imagen asociada si existe
+        if noticia.imagen:
+            noticia.imagen.delete()
+        
+        # Eliminar la noticia
+        noticia.delete()
+        
+        return JsonResponse({'status': 'success'})
+    except Noticia.DoesNotExist:
+        return JsonResponse({'status': 'error', 'message': 'Noticia no encontrada'}, status=404)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
 
 
 def detalle_noticia(request, noticia_id):
@@ -1705,6 +1732,19 @@ def seleccionar_periodo_reporte(request):
     
     return render(request, 'junta_vecinos/seleccionar_periodo_reporte.html', context)
 
+def enviar_notificaciones(actividad, vecinos):
+    """Función para enviar notificaciones en un hilo separado"""
+    emails = [vecino.user.email for vecino in vecinos]
+    send_mail(
+        'Nueva Actividad Vecinal',
+        f'Se ha creado una nueva actividad: {actividad.titulo}\n'
+        f'Fecha: {actividad.fecha}\n'
+        f'Lugar: {actividad.lugar}\n'
+        f'Cupos disponibles: {actividad.cupo_maximo}',
+        settings.DEFAULT_FROM_EMAIL,
+        emails
+    )
+
 @user_passes_test(is_admin)
 def crear_actividad(request):
     # Obtenemos directamente el AdministradorComuna
@@ -1723,18 +1763,12 @@ def crear_actividad(request):
             
             actividad.save()
             
-            # Notificar a todos los vecinos de la comuna
+            # Notificar a todos los vecinos de la comuna en un hilo separado
             vecinos = Vecino.objects.filter(comuna=admin.comuna)
-            for vecino in vecinos:
-                send_mail(
-                    'Nueva Actividad Vecinal',
-                    f'Se ha creado una nueva actividad: {actividad.titulo}\n'
-                    f'Fecha: {actividad.fecha}\n'
-                    f'Lugar: {actividad.lugar}\n'
-                    f'Cupos disponibles: {actividad.cupo_maximo}',
-                    settings.DEFAULT_FROM_EMAIL,
-                    [vecino.user.email]
-                )
+            
+            # Iniciar hilo para enviar notificaciones
+            notificacion_thread = Thread(target=enviar_notificaciones, args=(actividad, vecinos))
+            notificacion_thread.start()
             
             messages.success(request, 'Actividad creada exitosamente.')
             return redirect('lista_actividades')
@@ -1935,15 +1969,33 @@ def inscribir_actividad(request, actividad_id):
 @login_required
 @user_passes_test(is_admin)
 def eliminar_actividad(request, actividad_id):
-    actividad = get_object_or_404(ActividadVecinal, id=actividad_id)
+    try:
+        actividad = get_object_or_404(ActividadVecinal, id=actividad_id)
 
-    # Verificar si la actividad se puede eliminar (por ejemplo, solo si está activa)
-    if actividad.estado == 'activa':
-        actividad.delete()
-        messages.success(request, 'Actividad eliminada exitosamente.')
-    else:
-        messages.warning(request, 'No se puede eliminar esta actividad.')
-
+        # Verificar si la actividad se puede eliminar 
+        if request.method == 'POST':
+            # Eliminar inscripciones relacionadas primero
+            InscripcionActividad.objects.filter(actividad=actividad).delete()
+            
+            # Eliminar la actividad
+            actividad.delete()
+            
+            # Usar messages para mostrar feedback
+            messages.success(request, 'Actividad eliminada exitosamente.')
+            
+            # Agregar un print para depuración
+            print(f"Actividad {actividad_id} eliminada correctamente")
+        
+    except ActividadVecinal.DoesNotExist:
+        # Manejar el caso en que la actividad ya no exista
+        messages.error(request, 'La actividad no existe o ya ha sido eliminada.')
+    except Exception as e:
+        # Capturar cualquier otro error
+        messages.error(request, f'Error al eliminar la actividad: {str(e)}')
+        # Opcional: imprimir el error para depuración
+        print(f"Error al eliminar actividad: {e}")
+    
+    # Redirigir siempre, independientemente del resultado
     return redirect('lista_actividades')
 
 @csrf_exempt

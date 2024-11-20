@@ -112,6 +112,14 @@
     {% else %}
     <h2 class="text-primary border-bottom pb-2 animate__animated animate__fadeIn">Actividades Vecinales</h2>
     {% endif %}
+    
+
+    {% if user.administradorcomuna %}
+        <a href="{% url 'crear_actividad' %}" class="btn btn-primary">
+            <i class="fas fa-plus-circle me-2"></i>Registrar nueva actividad
+        </a>
+    {% endif %}
+    <hr>
 
     <!-- Grid de Actividades con diseño de cards mejorado -->
     <div class="row" id="actividades-grid">
