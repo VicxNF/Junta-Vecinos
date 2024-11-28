@@ -29,37 +29,72 @@
                 <span class="navbar-toggler-icon"></span>
             </button>
             <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav me-auto">
+                    {% if user.is_authenticated %}
+                        {% if not user.is_superuser %}
+                            <!-- Botones para usuarios no administradores -->
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'solicitar_certificado' %}">
+                                    <i class="bi bi-file-earmark-text-fill me-2"></i> Solicitar Certificado
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'mis_proyectos' %}">
+                                    <i class="bi bi-file-earmark-plus me-2"></i> Postular a Proyectos
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'espacios_disponibles' %}">
+                                    <i class="bi bi-building me-2"></i> Espacios Vecinales
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="{% url 'lista_actividades' %}">
+                                    <i class="bi bi-calendar-event me-2"></i> Actividades Vecinales
+                                </a>
+                            </li>
+                        {% endif %}
+                        <!-- Menú para el usuario administrador -->
+                        {% if user.is_superuser %}
+                            <li class="nav-item dropdown">
+                                <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <i class="bi bi-gear-fill me-1"></i> Administración
+                                </a>
+                                <ul class="dropdown-menu dropdown-menu-end animated fadeIn" aria-labelledby="navbarDropdown">
+                                    <li><a class="dropdown-item" href="{% url 'lista_vecinos' %}"><i class="bi bi-people-fill me-2"></i>Lista de Vecinos</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'gestionar_solicitudes' %}"><i class="bi bi-file-earmark-text-fill me-2"></i>Gestionar Certificados</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'lista_espacios' %}"><i class="bi bi-building me-2"></i>Espacios vecinales</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'lista_reservas' %}"><i class="bi bi-calendar-check-fill me-2"></i>Reservas de espacios</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'gestionar_noticias' %}"><i class="bi bi-newspaper me-2"></i>Gestionar noticias</a></li>
+                                    <li><a class="dropdown-item" href="{% url 'registrar_espacio' %}"><i class="bi bi-plus-circle-fill me-2"></i>Registrar espacio</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                </ul>
+                            </li>
+                        {% endif %}
+                    {% endif %}
+                </ul>
+    
+                <!-- Botones de Login y Logout a la derecha -->
                 <ul class="navbar-nav ms-auto">
-                    {% if user.is_authenticated and user.is_superuser %}
-                    <li class="nav-item dropdown">
-                        <a class="nav-link dropdown-toggle" href="#" id="navbarDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="bi bi-gear-fill me-1"></i> Administración
-                        </a>
-                        <ul class="dropdown-menu dropdown-menu-end animated fadeIn" aria-labelledby="navbarDropdown">
-                            <li><a class="dropdown-item" href="{% url 'lista_vecinos' %}"><i class="bi bi-people-fill me-2"></i>Lista de Vecinos</a></li>
-                            <li><a class="dropdown-item" href="{% url 'gestionar_solicitudes' %}"><i class="bi bi-file-earmark-text-fill me-2"></i>Gestionar Certificados</a></li>
-                            <li><a class="dropdown-item" href="{% url 'lista_espacios' %}"><i class="bi bi-building me-2"></i>Espacios vecinales</a></li>
-                            <li><a class="dropdown-item" href="{% url 'lista_reservas' %}"><i class="bi bi-calendar-check-fill me-2"></i>Reservas de espacios</a></li>
-                            <li><a class="dropdown-item" href="{% url 'gestionar_noticias' %}"><i class="bi bi-newspaper me-2"></i>Gestionar noticias</a></li>
-                            <li><a class="dropdown-item" href="{% url 'registrar_espacio' %}"><i class="bi bi-plus-circle-fill me-2"></i>Registrar espacio</a></li>
-                            <li><hr class="dropdown-divider"></li>
-                            <li><a class="dropdown-item" href="{% url 'logout' %}"><i class="bi bi-box-arrow-right me-2"></i>Cerrar Sesión</a></li>
-                        </ul>
-                    </li>
-                    {% elif user.is_authenticated %}
+                    {% if user.is_authenticated %}
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'logout' %}"><i class="bi bi-box-arrow-right me-1"></i> Cerrar Sesión</a>
+                        <a class="nav-link btn btn-outline-danger custom-logout" href="{% url 'logout' %}">
+                            <i class="bi bi-box-arrow-right me-2"></i> Cerrar Sesión
+                        </a>
                     </li>
                     {% else %}
                     <li class="nav-item">
-                        <a class="nav-link" href="{% url 'login' %}"><i class="bi bi-box-arrow-in-right me-1"></i> Iniciar Sesión</a>
+                        <a class="nav-link btn btn-outline-danger custom-login" href="{% url 'login' %}">
+                            <i class="bi bi-box-arrow-in-right me-1"></i> Iniciar Sesión
+                        </a>
                     </li>
                     {% endif %}
                 </ul>
             </div>
         </div>
     </nav>
-
+    
+    
     <div class="container mt-4">
         {% block content %}
         {% endblock %}

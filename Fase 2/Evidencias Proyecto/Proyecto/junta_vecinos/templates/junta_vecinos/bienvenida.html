@@ -133,10 +133,16 @@
         <h1 class="display-3 mb-4">Bienvenido a tu Junta de Vecinos</h1>
         <p class="lead mb-4">Construyendo una comunidad más fuerte y unida</p>
         {% if not user.is_authenticated %}
-            <div class="mt-4">
-                <a href="{% url 'login' %}" class="btn btn-primary btn-lg mr-3">Ingresar al Sistema</a>
-                <a href="{% url 'registro_vecino' %}" class="btn btn-success btn-lg">Crear Nueva Cuenta</a>
-            </div>
+            <div class="mt-4 d-flex">
+                <!-- Botón Ingresar al Sistema con gradiente complementario y contorno negro -->
+                <a href="{% url 'login' %}" class="btn btn-lg w-50 me-2" style="border-radius: 25px; background: linear-gradient(to right, #b592cf, #b592cf); color: white; border: 2px solid black; transition: background 0.3s ease, border-color 0.3s ease;">
+                    Ingresar al Sistema
+                </a>
+                <!-- Botón Crear Nueva Cuenta con gradiente complementario y contorno negro -->
+                <a href="{% url 'registro_vecino' %}" class="btn btn-lg w-50" style="border-radius: 25px; background: linear-gradient(to right, #81c793, #81c793); color: white; border: 2px solid black; transition: background 0.3s ease, border-color 0.3s ease;">
+                    Crear Nueva Cuenta
+                </a>
+            </div>  
         {% endif %}
     </div>
 </div>
