@@ -74,6 +74,15 @@ class SolicitudCertificadoForm(forms.ModelForm):
         self.fields['foto_carnet_frente'].label = 'Foto del Carnet (Parte Frontal)'
         self.fields['foto_carnet_atras'].label = 'Foto del Carnet (Parte Trasera)'
         self.fields['documento_residencia'].label = 'Documento que Certifique su Residencia'
+        
+        # Validación de archivos de imagen
+        for field_name in ['foto_carnet_frente', 'foto_carnet_atras', 'documento_residencia']:
+            self.fields[field_name].validators.append(
+                FileExtensionValidator(
+                    allowed_extensions=['jpg', 'jpeg', 'png', 'gif', 'bmp'],
+                    message='Por favor, suba solo archivos de imagen (jpg, jpeg, png, gif, bmp).'
+                )
+            )
 
 class DocumentoCertificadoForm(forms.ModelForm):
     class Meta:

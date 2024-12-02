@@ -127,7 +127,7 @@ class SolicitudCertificado(models.Model):
     motivo = models.TextField()
     foto_carnet_frente = models.ImageField(upload_to='carnets/', blank=False, null=False)
     foto_carnet_atras = models.ImageField(upload_to='carnets/', blank=False, null=False)
-    documento_residencia = models.FileField(upload_to='documentos_residencia/', blank=False, null=False)
+    documento_residencia = models.ImageField(upload_to='documentos_residencia/', blank=False, null=False)
 
     def __str__(self):
         return f"Solicitud de {self.vecino} - {self.get_estado_display()}"
