@@ -579,6 +579,47 @@
         });
     }
 
+    // Función para generar reportes PDF
+    function generarReportePDF() {
+        const year = document.getElementById('year').value;
+        const month = document.getElementById('month').value;
+        
+        // Mostrar indicador de carga
+        Swal.fire({
+            title: 'Generando reporte PDF',
+            html: 'Por favor espera...',
+            timer: 2000,
+            timerProgressBar: true,
+            allowOutsideClick: false,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        });
+
+        // Crear un iframe temporal para la descarga
+        const iframe = document.createElement('iframe');
+        iframe.style.display = 'none';
+        iframe.src = `{% url 'generar_reporte_actividades_pdf' %}?year=${year}&month=${month}`;
+        
+        // Manejar la carga del iframe
+        iframe.onload = function() {
+            // Ocultar la pantalla de carga de SweetAlert
+            Swal.close();
+            
+            // Remover el iframe después de un breve momento
+            setTimeout(() => {
+                document.body.removeChild(iframe);
+            }, 100);
+        };
+
+        // Añadir el iframe al body
+        document.body.appendChild(iframe);
+    }
+
+    document.querySelector('form [type="submit"]').addEventListener('click', function(e) {
+        e.preventDefault();
+        generarReportePDF();
+    });
     // Manejo de botones de administrador
     if (document.querySelector('.cancelar-btn')) {
         document.querySelectorAll('.cancelar-btn').forEach(btn => {

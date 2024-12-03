@@ -302,6 +302,30 @@
         }
     });
 
+    // Función para generar reportes Excel
+    function generarReporteReservas() {
+        const year = document.getElementById('year').value;
+        const month = document.getElementById('month').value;
+        
+        // Mostrar indicador de carga
+        Swal.fire({
+            title: 'Generando reporte',
+            html: 'Por favor espera...',
+            timer: 2000,
+            timerProgressBar: true,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        }).then(() => {
+            window.location.href = `{% url 'generar_reporte_pdf' %}?year=${year}&month=${month}`;
+        });
+    }
+
+    document.querySelector('form [type="submit"]').addEventListener('click', function(e) {
+        e.preventDefault();
+        generarReporteReservas();
+    });
+
     // Inicializar tooltips de Bootstrap
     var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
