@@ -221,6 +221,30 @@ function filtrarSolicitudes() {
         fila.style.display = coincideEstado && coincideBusqueda ? '' : 'none';
     }
 }
+
+// Función para generar reportes Excel
+function generarReporteSolicitudes() {
+        const year = document.getElementById('year').value;
+        const month = document.getElementById('month').value;
+        
+        // Mostrar indicador de carga
+        Swal.fire({
+            title: 'Generando reporte',
+            html: 'Por favor espera...',
+            timer: 2000,
+            timerProgressBar: true,
+            didOpen: () => {
+                Swal.showLoading();
+            }
+        }).then(() => {
+            window.location.href = `{% url 'generar_reporte_solicitudes_pdf' %}?year=${year}&month=${month}`;
+        });
+    }
+
+document.querySelector('form [type="submit"]').addEventListener('click', function(e) {
+    e.preventDefault();
+    generarReporteSolicitudes();
+});
 </script>
 
 <style>
