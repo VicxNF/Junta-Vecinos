@@ -76,6 +76,12 @@
                             </div>
                         </div>
 
+                        {% if field.errors %}
+                        <div class="alert alert-danger mt-2">
+                            {{ field.errors }}
+                        </div>
+                        {% endif %}
+
                         <!-- Botones de acción -->
                         <div class="d-flex justify-content-end gap-2">
                             <a href="{% url 'mis_proyectos' %}" class="btn btn-outline-secondary">
@@ -188,20 +194,39 @@ document.addEventListener('DOMContentLoaded', function() {
     fileInput.addEventListener('change', function() {
         const file = this.files[0];
         if (file) {
+            // Validar tipo de archivo
+            if (!file.type.startsWith('image/')) {
+                // Mostrar mensaje de error
+                Swal2.fire({
+                    icon: 'error',
+                    title: 'Archivo no válido',
+                    text: 'Por favor, suba solo archivos de imagen (JPG, PNG, GIF, etc.)',
+                    confirmButtonText: 'Entendido'
+                });
+                
+                // Limpiar el input de archivo
+                this.value = '';
+                imagePreview.classList.add('d-none');
+                return;
+            }
+
             if (file.size > 5 * 1024 * 1024) { // 5MB
-                alert('El archivo es demasiado grande. El tamaño máximo es 5MB.');
+                Swal2.fire({
+                    icon: 'error',
+                    title: 'Archivo demasiado grande',
+                    text: 'El archivo es demasiado grande. El tamaño máximo es 5MB.',
+                    confirmButtonText: 'Entendido'
+                });
                 this.value = '';
                 return;
             }
             
-            if (file.type.startsWith('image/')) {
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    imagePreview.querySelector('img').src = e.target.result;
-                    imagePreview.classList.remove('d-none');
-                };
-                reader.readAsDataURL(file);
-            }
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                imagePreview.querySelector('img').src = e.target.result;
+                imagePreview.classList.remove('d-none');
+            };
+            reader.readAsDataURL(file);
         } else {
             imagePreview.classList.add('d-none');
         }
@@ -215,17 +240,43 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Validación del formulario
     form.addEventListener('submit', function(event) {
-        if (!form.checkValidity()) {
+        const propuestaInput = document.getElementById('{{ form.propuesta.id_for_label }}');
+        const descripcionInput = document.getElementById('{{ form.descripcion.id_for_label }}');
+        
+        let isValid = true;
+
+        // Validar propuesta
+        if (!propuestaInput.value.trim()) {
+            propuestaInput.classList.add('is-invalid');
+            isValid = false;
+        } else {
+            propuestaInput.classList.remove('is-invalid');
+        }
+
+        // Validar descripción
+        if (!descripcionInput.value.trim()) {
+            descripcionInput.classList.add('is-invalid');
+            isValid = false;
+        } else if (descripcionInput.value.length > 1000) {
+            descripcionInput.classList.add('is-invalid');
+            isValid = false;
+        } else {
+            descripcionInput.classList.remove('is-invalid');
+        }
+
+        // Si no es válido, prevenir envío y detener propagación
+        if (!isValid) {
             event.preventDefault();
             event.stopPropagation();
-        } else {
-            submitButton.disabled = true;
-            submitButton.innerHTML = `
-                <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-                Enviando...
-            `;
+            return;
         }
-        form.classList.add('was-validated');
+
+        // Si es válido, deshabilitar botón y mostrar spinner
+        submitButton.disabled = true;
+        submitButton.innerHTML = `
+            <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+            Enviando...
+        `;
     });
 });
 </script>

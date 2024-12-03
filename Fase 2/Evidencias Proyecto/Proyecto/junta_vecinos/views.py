@@ -45,6 +45,7 @@ from urllib.request import urlopen
 import base64
 from threading import Thread
 from django.views.decorators.http import require_POST
+from threading import Thread
 
 
 
@@ -166,16 +167,20 @@ def generar_username_unico(base_username):
         n += 1
     return username
 
-def enviar_correo_confirmacion(user, token):
-    confirmacion_url = settings.DOMAIN + reverse('confirmar_registro', kwargs={'token': token})
-    
-    send_mail(
-        'Confirme su registro',
-        f'Por favor, confirme su registro haciendo click en el siguiente enlace: {confirmacion_url}',
-        settings.DEFAULT_FROM_EMAIL,
-        [user.email],
-        fail_silently=False,
-    )
+def enviar_correo_confirmacion_async(user, token):
+    try:
+        confirmacion_url = settings.DOMAIN + reverse('confirmar_registro', kwargs={'token': token})
+        
+        send_mail(
+            'Confirme su registro',
+            f'Por favor, confirme su registro haciendo click en el siguiente enlace: {confirmacion_url}',
+            settings.DEFAULT_FROM_EMAIL,
+            [user.email],
+            fail_silently=False,
+        )
+    except Exception as e:
+        # Opcional: loggear el error si no se puede enviar el correo
+        print(f"Error enviando correo de confirmación: {e}")
 
 @user_passes_test(is_admin)
 @login_required
@@ -192,7 +197,10 @@ def registro_vecino(request):
             
             # Enviar correo de confirmación
             token = TokenRegistro.objects.get(user=vecino.user).token
-            enviar_correo_confirmacion(vecino.user, token)
+            
+            Thread(target=enviar_correo_confirmacion_async, 
+                   args=(vecino.user, token), 
+                   daemon=True).start()
             
             messages.success(request, 'Por favor, revise su correo para confirmar su registro.')
             return redirect('login')

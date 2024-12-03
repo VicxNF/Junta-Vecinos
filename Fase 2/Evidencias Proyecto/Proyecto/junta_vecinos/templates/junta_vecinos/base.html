@@ -149,15 +149,17 @@
         document.addEventListener('DOMContentLoaded', function() {
             // Mostrar pantalla de carga al enviar formularios
             document.querySelectorAll('form').forEach(form => {
-                form.addEventListener('submit', function() {
-                    showLoading();
-                });
-            });
-    
-            // Opcional: Ocultar pantalla si hubo un error
-            document.querySelectorAll('input[type="submit"]').forEach(button => {
-                button.addEventListener('click', function() {
-                    setTimeout(hideLoading, 5000); // Oculta después de un tiempo en caso de error
+                form.addEventListener('submit', function(event) {
+                    // Verificar si el formulario es válido usando la API de validación de HTML5
+                    if (form.checkValidity()) {
+                        showLoading();
+                    } else {
+                        // Prevenir el envío si el formulario no es válido
+                        event.preventDefault();
+                        event.stopPropagation();
+                    }
+                    // Añadir clase para mostrar validación
+                    form.classList.add('was-validated');
                 });
             });
         });

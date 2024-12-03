@@ -157,6 +157,7 @@
                 cancelButtonText: 'Cancelar'
             }).then((result) => {
                 if (result.isConfirmed) {
+                    showLoading();
                     document.getElementById("registro-form").submit();
                 }
             });

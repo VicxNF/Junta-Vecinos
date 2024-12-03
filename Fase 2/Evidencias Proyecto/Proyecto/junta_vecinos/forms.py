@@ -164,6 +164,24 @@ class ProyectoVecinalForm(forms.ModelForm):
                 'accept': 'image/*'
             })
         }
+    
+    def clean_evidencia(self):
+        evidencia = self.cleaned_data.get('evidencia')
+        if evidencia:
+            if evidencia.size > 5 * 1024 * 1024:  # 5MB
+                raise forms.ValidationError('El archivo es demasiado grande. El tamaño máximo es 5MB.')
+            if not evidencia.content_type.startswith('image/'):
+                raise forms.ValidationError('Solo se permiten archivos de imagen.')
+        return evidencia
+
+        # Validación de archivos de imagen
+        for field_name in ['evidencia']:
+            self.fields[field_name].validators.append(
+                FileExtensionValidator(
+                    allowed_extensions=['jpg', 'jpeg', 'png', 'gif', 'bmp'],
+                    message='Por favor, suba solo archivos de imagen (jpg, jpeg, png, gif, bmp).'
+                )
+            )
         
     def clean_evidencia(self):
         evidencia = self.cleaned_data.get('evidencia')

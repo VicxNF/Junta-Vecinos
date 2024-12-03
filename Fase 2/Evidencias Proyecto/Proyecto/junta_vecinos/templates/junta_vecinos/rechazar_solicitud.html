@@ -125,8 +125,16 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Manejador para el botón de confirmación del modal
     document.getElementById('confirmReject').addEventListener('click', function() {
+        // Cierra el modal
+        confirmModal.hide();
+
+        // Muestra la pantalla de carga
+        showLoading();
+
+        // Envía el formulario
         form.submit();
     });
+
 
     // Efectos visuales para los campos del formulario
     const formInputs = document.querySelectorAll('input, textarea');
